@@ -1,5 +1,6 @@
 import { clearAuthFailures, isBanned, recordAuthFailure } from "../auth/index.ts"
 import { config } from "../config/index.ts"
+import { canUpgradeServerSocketToTls } from "../starttls/index.ts"
 import { createImapSession, type ImapSession } from "./session/index.ts"
 
 export {
@@ -47,7 +48,10 @@ const createListener = (input: {
   tls: { cert: string; key: string } | null
   label: string
 }) => {
-  const canStartTls = Boolean(input.tls) && !input.implicitTls
+  // Never advertise STARTTLS the runtime cannot actually perform: a sender
+  // that takes us up on it gets its connection dropped mid-handshake and
+  // defers rather than falling back. See src/starttls.
+  const canStartTls = Boolean(input.tls) && !input.implicitTls && canUpgradeServerSocketToTls()
 
   const handlers = {
     open(socket: Bun.Socket<SocketData>) {
