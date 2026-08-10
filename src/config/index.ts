@@ -93,6 +93,12 @@ export const config = defineConfig({
     stripeWebhookSecret: env("STRIPE_WEBHOOK_SECRET", { default: "" }),
   },
 
+  // Webhook endpoints on private or loopback addresses are refused by default:
+  // the customer supplies the URL and this server fetches it, which is a
+  // server-side request forgery primitive. An operator running Corsair and its
+  // consumers on the same private network can opt back in.
+  webhookAllowPrivate: env("WEBHOOK_ALLOW_PRIVATE", { parse: bool, default: "false" }),
+
   rateLimitPerSecond: env("RATE_LIMIT_PER_SECOND", { parse: Number, default: "10" }),
   maxMessageBytes: env("MAX_MESSAGE_BYTES", { parse: Number, default: "52428800" }),
   trustedProxies: env("TRUSTED_PROXIES", { default: "" }),

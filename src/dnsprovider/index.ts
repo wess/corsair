@@ -4,7 +4,7 @@ import type { DomainRecord } from "../schema/index.ts"
 /**
  * One-click DNS publishing.
  *
- * The alternative to a customer copying eleven records into a control panel by
+ * The alternative to a customer copying ten records into a control panel by
  * hand, which is where most of them give up. Corsair detects the provider from
  * the domain's NS records and, given an API token, writes the records itself.
  *

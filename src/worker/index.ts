@@ -3,12 +3,15 @@ import { from } from "@atlas/db"
 import { config } from "../config/index.ts"
 import { db } from "../db/index.ts"
 import { checkDomain } from "../domains/index.ts"
+import { emit } from "../events/index.ts"
 import { type Domain, domains, type Job, jobs, type Transfer, transfers } from "../schema/index.ts"
 import { drain, releaseStale } from "../smtp/index.ts"
 import { recomputeUsage } from "../store/index.ts"
 import { runTransfer } from "./transfer/index.ts"
+import { drainWebhooks, releaseStaleWebhooks } from "./webhook/index.ts"
 
 export { runTransfer } from "./transfer/index.ts"
+export { deliverEvent, drainWebhooks, replayEvent } from "./webhook/index.ts"
 
 const WORKER_ID = `${process.pid}-${randomUUID().slice(0, 8)}`
 
@@ -80,10 +83,27 @@ const runJob = async (job: Job): Promise<void> => {
         from(domains).where((q) => q("id").equals(String(job.payload.domain_id))),
       )
       if (!domain) return
+      const wasActive = domain.status === "active"
       const result = await checkDomain(domain)
       console.log(
         `[corsair] dns check ${domain.name}: ${result.ready ? "active" : "still pending"}`,
       )
+
+      // Only on a transition. Emitting "still pending" every half hour for a
+      // domain nobody has finished setting up is noise, not a notification.
+      if (result.ready !== wasActive) {
+        void emit({
+          userId: domain.user_id,
+          domainId: domain.id,
+          type: result.ready ? "domain.verified" : "domain.verification_failed",
+          data: {
+            domain: domain.name,
+            records: result.records
+              .filter((r) => r.required)
+              .map((r) => ({ type: r.type, host: r.host, status: r.status })),
+          },
+        })
+      }
       // Keep re-checking a pending domain: customers publish records hours after
       // adding a domain and never come back to press the button.
       if (!result.ready) {
@@ -252,7 +272,14 @@ export const startWorker = async (): Promise<void> => {
 
   timers.push(
     setInterval(() => {
+      void drainWebhooks().catch((e) => console.error("[corsair] webhook drain failed:", e))
+    }, config.worker.pollMs),
+  )
+
+  timers.push(
+    setInterval(() => {
       void releaseStale().catch(() => {})
+      void releaseStaleWebhooks().catch(() => {})
       void periodic("retention.sweep", 4711).catch(() => {})
     }, 15 * 60_000),
   )

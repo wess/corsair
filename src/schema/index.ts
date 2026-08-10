@@ -675,6 +675,70 @@ export const transfers = defineSchema("transfers", {
 
 export type Transfer = RowOf<typeof transfers>
 
+// ------------------------------------------------------------- webhooks --
+
+/**
+ * An outbound event hook.
+ *
+ * status: enabled | disabled
+ *
+ * A hook with no `domain_id` receives events for every domain on the account;
+ * one with a domain receives only that domain's. Both are wanted — an operator
+ * watching their whole instance, and a customer wiring up one domain.
+ */
+export const webhooks = defineSchema("webhooks", {
+  id: id(),
+  user_id: column.uuid().ref("users", "id"),
+  domain_id: column.uuid().nullable(),
+  url: column.text(),
+  description: column.text().nullable(),
+  events: column.json<string[]>().default([]),
+  status: column.text().default("enabled"),
+  signing_secret: column.text(),
+  disabled_reason: column.text().nullable(),
+  consecutive_failures: column.integer().default(0),
+  last_success_at: column.timestamp().nullable(),
+  created_at: now(),
+  updated_at: now(),
+})
+
+/**
+ * One row per (event, endpoint).
+ *
+ * The id is a `msg_<base62>` string rather than a UUID because it is the
+ * idempotency key the receiver sees, and it travels in a header — a receiver
+ * that stores it to deduplicate retries wants something short and opaque.
+ *
+ * status: pending | delivered | failed | exhausted
+ */
+export const webhookEvents = defineSchema("webhook_events", {
+  id: column.text().primaryKey(),
+  user_id: column.uuid().nullable(),
+  webhook_id: column.uuid().ref("webhooks", "id"),
+  type: column.text(),
+  payload: column.json<Record<string, unknown>>(),
+  status: column.text().default("pending"),
+  attempts: column.integer().default(0),
+  next_attempt_at: column.timestamp().nullable(),
+  delivered_at: column.timestamp().nullable(),
+  created_at: now(),
+})
+
+export const webhookAttempts = defineSchema("webhook_attempts", {
+  id: id(),
+  webhook_event_id: column.text().ref("webhook_events", "id"),
+  webhook_id: column.uuid(),
+  http_status_code: column.integer().nullable(),
+  response: column.text().nullable(),
+  error: column.text().nullable(),
+  duration_ms: column.integer().nullable(),
+  sent_at: now(),
+})
+
+export type Webhook = RowOf<typeof webhooks>
+export type WebhookEvent = RowOf<typeof webhookEvents>
+export type WebhookAttempt = RowOf<typeof webhookAttempts>
+
 // ------------------------------------------------------------------- all --
 
 /**
@@ -714,4 +778,7 @@ export const allSchemas = [
   transactions,
   transfers,
   users,
+  webhookAttempts,
+  webhookEvents,
+  webhooks,
 ]

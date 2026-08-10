@@ -7,6 +7,7 @@ import { AuthPage } from "./pages/auth.tsx"
 import { BillingPage, PlansPage } from "./pages/billing.tsx"
 import { AddressDetailPage, DomainDetailPage, DomainsPage } from "./pages/domains.tsx"
 import { FilterEditPage, FiltersPage } from "./pages/filters.tsx"
+import { HookDetailPage, HooksPage } from "./pages/hooks.tsx"
 import { OverviewPage } from "./pages/overview.tsx"
 import {
   AddressRecoveryPage,
@@ -61,6 +62,7 @@ const NAV = [
   { label: "Domains", path: "/domains", icon: icons.domains },
   { label: "Filters", path: "/filters", icon: icons.filters },
   { label: "Transfers", path: "/transfers", icon: icons.transfers },
+  { label: "Webhooks", path: "/webhooks", icon: icons.webhook },
   { label: "Account", path: "/account", icon: icons.account },
   { label: "Plans", path: "/plans", icon: icons.plans },
   { label: "Billing", path: "/billing", icon: icons.billing },
@@ -71,6 +73,7 @@ const titleFor = (route: string): string => {
   if (route.startsWith("/addresses")) return "Address"
   if (route.startsWith("/filters")) return "Filters"
   if (route.startsWith("/transfers")) return "Transfers"
+  if (route.startsWith("/webhooks")) return "Webhooks"
   if (route.startsWith("/account")) return "Account"
   if (route.startsWith("/plans")) return "Plans"
   if (route.startsWith("/billing")) return "Billing"
@@ -105,6 +108,10 @@ const Shell = ({
     const filterDetail = route.match(/^\/filters\/([0-9a-f-]{36}|new)/)
     if (filterDetail) return <FilterEditPage id={filterDetail[1]!} />
     if (route.startsWith("/filters")) return <FiltersPage />
+
+    const hookDetail = route.match(/^\/webhooks\/([0-9a-f-]{36})/)
+    if (hookDetail) return <HookDetailPage id={hookDetail[1]!} />
+    if (route.startsWith("/webhooks")) return <HooksPage />
 
     if (route.startsWith("/transfers")) return <TransfersPage />
     if (route.startsWith("/account"))

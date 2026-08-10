@@ -13,6 +13,7 @@ import { billingRoutes } from "./routes/billing/index.ts"
 import { dashboardRoutes } from "./routes/dashboard/index.ts"
 import { domainRoutes } from "./routes/domains/index.ts"
 import { filterRoutes } from "./routes/filters/index.ts"
+import { hookRoutes } from "./routes/hooks/index.ts"
 import { jmapRoutes } from "./routes/jmap/index.ts"
 import { recoveryRoutes } from "./routes/recovery/index.ts"
 import { transferRoutes } from "./routes/transfers/index.ts"
@@ -36,6 +37,7 @@ export const allRoutes = (): Route[] => [
   ...wrapAll(addressRoutes),
   ...wrapAll(domainRoutes),
   ...wrapAll(recoveryRoutes),
+  ...wrapAll(hookRoutes),
   ...wrapAll(filterRoutes),
   ...wrapAll(transferRoutes),
   ...wrapAll(billingRoutes),

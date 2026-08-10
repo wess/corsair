@@ -717,7 +717,7 @@ const DnsTab = ({ domain, onChecked }: { domain: Domain; onChecked: () => void }
 /**
  * One-click publishing.
  *
- * The alternative is a customer copying eleven records by hand, which is where
+ * The alternative is a customer copying ten records by hand, which is where
  * most of them give up. The API token is sent once, used once, and never
  * stored — a DNS token can usually rewrite every record on every domain in an
  * account, and holding one to save a paste is a bad trade.
