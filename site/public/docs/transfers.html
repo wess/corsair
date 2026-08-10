@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Transfers — Corsair</title>
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏴</text></svg>" />
+<link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+<header class="site-head">
+  <a class="brand" href="../index.html">🏴 Corsair</a>
+  <nav>
+    <a href="../pricing.html">Pricing</a>
+    <a href="../faq.html">FAQ</a>
+    <a href="../docs/index.html">Docs</a>
+    <a href="../contact.html">Contact</a>
+    <a href="../affiliates.html">Affiliates</a>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<main>
+<h1 id="transfers">Transfers</h1>
+<p>A transfer copies an existing mailbox into Corsair over IMAP, folder structure intact, from any host that speaks it.</p>
+<h2 id="before-you-start">Before you start</h2>
+<ol>
+<li><strong>Create the destination mailbox first.</strong> A transfer copies <em>into</em> an existing address.</li>
+<li><strong>Do not move the MX yet.</strong> Transfer, verify, then cut over. New mail keeps arriving at the old host while the copy runs and is picked up by a second pass.</li>
+<li><strong>Find the source IMAP hostname.</strong> Not the webmail address — the IMAP one. Usually <code>imap.&lt;provider&gt;</code> on port 993.</li>
+</ol>
+<h2 id="what-gets-copied">What gets copied</h2>
+<p>Every selectable folder. Common names are mapped onto the local special-use folders — <code>[Gmail]/Sent Mail</code> becomes <code>Sent</code>, <code>Deleted Items</code> becomes <code>Trash</code> — so you do not end up with two of each.</p>
+<p>Flags are preserved. Message dates are preserved, so a transferred mailbox sorts correctly rather than showing everything as arriving today.</p>
+<h2 id="limits">Limits</h2>
+<ul>
+<li><strong>Message limit</strong> — stop after this many messages.</li>
+<li><strong>Size limit</strong> — stop once this many megabytes have been copied.</li>
+<li><strong>Newer than</strong> — only messages at or after this date. Applied by the <em>source</em> server, so old mail is never transferred and discarded.</li>
+</ul>
+<h2 id="credentials">Credentials</h2>
+<p>The source password is encrypted at rest and erased the moment the transfer reaches a terminal state. It is someone else's credential and there is no reason to keep it once the copy is done.</p>
+<p>If the source requires an app-specific password — Gmail and Fastmail both do — generate one there and use it here.</p>
+<h2 id="cutting-over">Cutting over</h2>
+<ol>
+<li>Run the transfer and check the message counts.</li>
+<li>Change the MX record to point at Corsair.</li>
+<li>Wait for the old TTL to expire. Mail may arrive at either host during this window; that is unavoidable and is why step 4 exists.</li>
+<li>Run the transfer again. Already-copied messages are re-copied, so the second pass is best run with a <code>newer than</code> date set to the day of the cutover.</li>
+</ol>
+</main>
+<footer class="site-foot">
+  <p>Corsair is open source email hosting, released under the MIT license.</p>
+  <p><a href="https://github.com/wess/corsair">Source</a> · <a href="../docs/index.html">Docs</a> · <a href="../policies/privacy.html">Privacy</a> · <a href="../policies/acceptable-use.html">Acceptable use</a></p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>FAQ — Corsair</title>
+<meta name="description" content="Common questions about running Corsair." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏴</text></svg>" />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+<header class="site-head">
+  <a class="brand" href="./index.html">🏴 Corsair</a>
+  <nav>
+    <a href="./pricing.html">Pricing</a>
+    <a href="./faq.html">FAQ</a>
+    <a href="./docs/index.html">Docs</a>
+    <a href="./contact.html">Contact</a>
+    <a href="./affiliates.html">Affiliates</a>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<main>
+<h1 id="frequently-asked-questions">Frequently asked questions</h1>
+<h2 id="do-i-need-port-25">Do I need port 25?</h2>
+<p>To deliver mail directly to recipients, yes — and most cloud providers block it outbound by default. DigitalOcean and Hetzner unblock it on request; AWS requires a form.</p>
+<p>If you cannot get it unblocked, set <code>DELIVERY_TRANSPORT=relay</code> and point <code>SMTP_RELAY_HOST</code> at a smarthost. Corsair still receives mail on 25 inbound (which is never blocked) and still signs everything with DKIM; it just hands outbound delivery to somebody with a clean IP.</p>
+<h2 id="will-my-mail-land-in-spam">Will my mail land in spam?</h2>
+<p>That depends almost entirely on things outside the software:</p>
+<ul>
+<li>A <strong>PTR record</strong> on your sending IP that matches <code>CORSAIR_HOSTNAME</code>. Without it, the large providers reject on connect.</li>
+<li><strong>SPF, DKIM, and DMARC</strong> published for every sending domain. Corsair generates all three and refuses to send from a domain that has not finished DNS setup — precisely so this cannot go wrong quietly.</li>
+<li><strong>A clean IP.</strong> A fresh address from a cheap VPS range may already be listed. Check it against the common blocklists before you commit to it.</li>
+</ul>
+<h2 id="can-i-read-mail-in-a-browser">Can I read mail in a browser?</h2>
+<p>Corsair ships its own webmail at <code>/webmail</code>. Sign in with the mailbox address and its password — not your control-panel credentials, which are a separate identity on purpose.</p>
+<p>Message bodies are sanitised on the server before the browser sees them, and remote images are withheld until you ask for them, because a remote image in an email reports when you opened it and from where.</p>
+<p>If you would rather run something else, the IMAP and JMAP servers are standard. Roundcube and SnappyMail work against IMAP unchanged; any JMAP client can use the session resource at <code>/.well-known/jmap</code>.</p>
+<h2 id="does-it-support-jmap">Does it support JMAP?</h2>
+<p>Yes — RFC 8620 and RFC 8621. Session discovery, batched method calls with back-references, <code>Mailbox</code>, <code>Email</code>, <code>Thread</code>, <code>Identity</code>, <code>EmailSubmission</code>, and blob upload and download. Authenticate with Basic credentials using the mailbox address and password.</p>
+<p>Not implemented: <code>SearchSnippet</code>, <code>VacationResponse</code>, and push channels. They are absent from the advertised capabilities rather than stubbed, so a client can discover what is missing rather than failing at the call.</p>
+<h2 id="what-happens-if-the-object-store-goes-down">What happens if the object store goes down?</h2>
+<p>Message metadata is in Postgres and stays queryable — folder lists, counts, subjects, and search all keep working. Fetching a body returns nothing until the bucket is back. Incoming mail still gets a row but its body write fails, so the delivery is retried by the sender rather than silently lost.</p>
+<h2 id="does-it-support-catch-all-addresses">Does it support catch-all addresses?</h2>
+<p>One per domain. It receives anything that does not match a real address, after sub-addressing has been tried. Be aware that a catch-all on a domain that has ever leaked will collect a great deal of spam.</p>
+<h2 id="what-about-aliases-that-forward-off-server">What about aliases that forward off-server?</h2>
+<p>Supported, and SRS-rewritten. Forwarding without SRS is the most common reason an alias &quot;randomly stops working&quot;: the envelope sender still names the original domain, whose SPF record does not list your server, so the next hop sees a forgery. Corsair rewrites the sender into the forwarding domain and can still route bounces home.</p>
+<h2 id="can-two-accounts-host-the-same-domain">Can two accounts host the same domain?</h2>
+<p>No. A domain is unique across the instance — two accounts claiming it would make routing ambiguous.</p>
+<h2 id="how-do-i-back-it-up">How do I back it up?</h2>
+<p>Two things: the Postgres database and the object bucket. <code>pg_dump</code> covers everything except message bodies; the bucket covers the bodies. Restoring one without the other leaves you with mailboxes whose messages have no content, or objects nothing references.</p>
+<h2 id="is-there-an-api">Is there an API?</h2>
+<p>The control panel talks to the same JSON API you can. It authenticates with a session cookie, so anything the panel does is scriptable with <code>curl</code> after a <code>POST /api/auth/login</code>.</p>
+</main>
+<footer class="site-foot">
+  <p>Corsair is open source email hosting, released under the MIT license.</p>
+  <p><a href="https://github.com/wess/corsair">Source</a> · <a href="./docs/index.html">Docs</a> · <a href="./policies/privacy.html">Privacy</a> · <a href="./policies/acceptable-use.html">Acceptable use</a></p>
+</footer>
+</body>
+</html>

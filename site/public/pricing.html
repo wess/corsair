@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Pricing — Corsair</title>
+<meta name="description" content="Corsair is free and open source. The plans exist for operators who resell it." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏴</text></svg>" />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+<header class="site-head">
+  <a class="brand" href="./index.html">🏴 Corsair</a>
+  <nav>
+    <a href="./pricing.html">Pricing</a>
+    <a href="./faq.html">FAQ</a>
+    <a href="./docs/index.html">Docs</a>
+    <a href="./contact.html">Contact</a>
+    <a href="./affiliates.html">Affiliates</a>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<main>
+<h1 id="pricing">Pricing</h1>
+<p><strong>Corsair itself is free.</strong> It is MIT licensed. Run it on your own hardware for as many domains and mailboxes as the disk holds, and pay nobody.</p>
+<p>The plan system exists because Corsair is also the software behind a hosting <em>business</em>, and an operator reselling it needs storage limits, send limits, and feature tiers. If you are running it for yourself, delete the plans or leave the one unlimited plan in place and never look at the Billing screen again.</p>
+<h2 id="the-default-plan-ladder">The default plan ladder</h2>
+<p>These are what <code>bun run seed</code> creates. They are rows in the <code>plans</code> table — rename them, reprice them, or drop them.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Plan</th>
+<th>Storage</th>
+<th>Daily in / out</th>
+<th>Monthly</th>
+<th>Yearly</th>
+</tr></thead><tbody>
+<tr>
+<td>Free Trial</td>
+<td>1 GB</td>
+<td>200 / 20</td>
+<td>Free</td>
+<td>Free</td>
+</tr>
+<tr>
+<td>Startup</td>
+<td>5 GB</td>
+<td>200 / 50</td>
+<td>$1.50</td>
+<td>$18.00</td>
+</tr>
+<tr>
+<td>Small Business</td>
+<td>30 GB</td>
+<td>1,000 / 100</td>
+<td>$5.00</td>
+<td>$60.00</td>
+</tr>
+<tr>
+<td>Mini Tycoon</td>
+<td>100 GB</td>
+<td>3,000 / 500</td>
+<td>$15.00</td>
+<td>$180.00</td>
+</tr>
+</tbody></table></div>
+<h2 id="plan-gated-features">Plan-gated features</h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Feature</th>
+<th>Trial</th>
+<th>Startup</th>
+<th>Small Business</th>
+<th>Mini Tycoon</th>
+</tr></thead><tbody>
+<tr>
+<td>Domains</td>
+<td>1</td>
+<td>Unlimited</td>
+<td>Unlimited</td>
+<td>Unlimited</td>
+</tr>
+<tr>
+<td>Addresses</td>
+<td>3</td>
+<td>Unlimited</td>
+<td>Unlimited</td>
+<td>Unlimited</td>
+</tr>
+<tr>
+<td>Mailbox transfers</td>
+<td>—</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Custom Sieve filters</td>
+<td>—</td>
+<td>—</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>User self service</td>
+<td>—</td>
+<td>—</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Fallback domains</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>Yes</td>
+</tr>
+</tbody></table></div>
+<p>Corsair does not process payments itself. Card details never reach the server — the panel records only what a payment provider hands back for display, and the <code>payment_methods</code> table has no field that could hold a card number.</p>
+<h2 id="running-it-unmetered">Running it unmetered</h2>
+<p>Delete every row from <code>plans</code> and Corsair falls back to a single unlimited entitlement: no storage cap, no daily limits, every feature on. That is the right configuration for a private server and it needs no code change.</p>
+</main>
+<footer class="site-foot">
+  <p>Corsair is open source email hosting, released under the MIT license.</p>
+  <p><a href="https://github.com/wess/corsair">Source</a> · <a href="./docs/index.html">Docs</a> · <a href="./policies/privacy.html">Privacy</a> · <a href="./policies/acceptable-use.html">Acceptable use</a></p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Client settings — Corsair</title>
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏴</text></svg>" />
+<link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+<header class="site-head">
+  <a class="brand" href="../index.html">🏴 Corsair</a>
+  <nav>
+    <a href="../pricing.html">Pricing</a>
+    <a href="../faq.html">FAQ</a>
+    <a href="../docs/index.html">Docs</a>
+    <a href="../contact.html">Contact</a>
+    <a href="../affiliates.html">Affiliates</a>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<main>
+<h1 id="client-settings">Client settings</h1>
+<div class='table-wrap'><table><thead><tr>
+<th>Protocol</th>
+<th>Port</th>
+<th>Security</th>
+</tr></thead><tbody>
+<tr>
+<td>IMAP</td>
+<td>993</td>
+<td>SSL/TLS</td>
+</tr>
+<tr>
+<td>IMAP</td>
+<td>143</td>
+<td>STARTTLS</td>
+</tr>
+<tr>
+<td>POP3</td>
+<td>995</td>
+<td>SSL/TLS</td>
+</tr>
+<tr>
+<td>SMTP</td>
+<td>465</td>
+<td>SSL/TLS (implicit)</td>
+</tr>
+<tr>
+<td>SMTP</td>
+<td>587</td>
+<td>STARTTLS</td>
+</tr>
+</tbody></table></div>
+<p><strong>Username is always the full email address</strong> — not the part before the <code>@</code>. A bare local part would be ambiguous across the domains on the server.</p>
+<p><strong>Password is the mailbox password</strong>, which is not your control-panel password. They are separate identities on purpose: a mailbox credential ends up in a phone that gets lost, and it must not also unlock the panel.</p>
+<h2 id="automatic-configuration">Automatic configuration</h2>
+<p>If you published the <code>autoconfig</code> and <code>autodiscover</code> CNAMEs, Thunderbird and Outlook find these settings from the email address alone.</p>
+<h2 id="per-client-notes">Per-client notes</h2>
+<h3 id="apple-mail-and-ios">Apple Mail and iOS</h3>
+<p>Choose &quot;Other Mail Account&quot; rather than any of the branded options. Apple Mail occasionally offers to &quot;automatically configure&quot; and gets the outgoing port wrong; set 587 with STARTTLS explicitly if sending fails.</p>
+<h3 id="gmail-app">Gmail app</h3>
+<p>Under &quot;Add account → Other&quot;. Gmail will fetch over IMAP but sends through its own servers unless you also configure the SMTP settings, which it asks for separately — mail sent without doing so will not be DKIM-signed by your domain.</p>
+<h3 id="thunderbird">Thunderbird</h3>
+<p>Works from the address alone if <code>autoconfig</code> is published. Otherwise &quot;Configure manually&quot; and enter the table above.</p>
+<h3 id="outlook">Outlook</h3>
+<p>Modern Outlook resists non-Microsoft IMAP accounts. Use &quot;Advanced setup → IMAP&quot; and enter the settings by hand if autodiscover does not take.</p>
+<h3 id="alias-and-group-addresses">Alias and group addresses</h3>
+<p>They have no password and cannot be signed into. They are routing entries: mail addressed to them is forwarded. To <em>send</em> as an alias, sign in as a real mailbox on the same account and set the From address in your client.</p>
+</main>
+<footer class="site-foot">
+  <p>Corsair is open source email hosting, released under the MIT license.</p>
+  <p><a href="https://github.com/wess/corsair">Source</a> · <a href="../docs/index.html">Docs</a> · <a href="../policies/privacy.html">Privacy</a> · <a href="../policies/acceptable-use.html">Acceptable use</a></p>
+</footer>
+</body>
+</html>

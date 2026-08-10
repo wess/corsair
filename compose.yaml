@@ -1,0 +1,66 @@
+# Production-shaped stack: the mail server, its database, and nothing else.
+#
+# Before this is reachable mail, the host needs a static IP whose PTR record
+# matches CORSAIR_HOSTNAME, port 25 unblocked outbound, and a real certificate
+# mounted at ./certs. See the README.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: corsair
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: corsair
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U corsair"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build: .
+    command: ["bun", "scripts/migrate.ts", "up"]
+    environment:
+      DATABASE_URL: postgres://corsair:${POSTGRES_PASSWORD}@postgres:5432/corsair
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  corsair:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://corsair:${POSTGRES_PASSWORD}@postgres:5432/corsair
+      SMTP_MX_PORT: 25
+      SMTP_SUBMISSION_PORT: 587
+      SMTP_SUBMISSION_TLS_PORT: 465
+      IMAP_PORT: 143
+      IMAP_TLS_PORT: 993
+      POP3_PORT: 110
+      POP3_TLS_PORT: 995
+      TLS_CERT_PATH: /certs/fullchain.pem
+      TLS_KEY_PATH: /certs/privkey.pem
+    volumes:
+      - ./certs:/certs:ro
+    ports:
+      - "3000:3000"
+      - "25:25"
+      - "587:587"
+      - "465:465"
+      - "143:143"
+      - "993:993"
+      - "110:110"
+      - "995:995"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:

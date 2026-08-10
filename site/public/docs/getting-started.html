@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Getting started — Corsair</title>
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏴</text></svg>" />
+<link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+<header class="site-head">
+  <a class="brand" href="../index.html">🏴 Corsair</a>
+  <nav>
+    <a href="../pricing.html">Pricing</a>
+    <a href="../faq.html">FAQ</a>
+    <a href="../docs/index.html">Docs</a>
+    <a href="../contact.html">Contact</a>
+    <a href="../affiliates.html">Affiliates</a>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<main>
+<h1 id="getting-started">Getting started</h1>
+<h2 id="locally-in-five-minutes">Locally, in five minutes</h2>
+<pre data-lang="sh"><code>git clone https://github.com/wess/corsair
+cd corsair
+bun install
+cp .env.example .env
+bun run db:up
+bun run migrate
+bun run seed
+bun run dev</code></pre>
+<p><code>seed</code> prints the first account's credentials. That account owns the instance. Open <code>http://localhost:3000/app</code>.</p>
+<p>The development ports are unprivileged so none of this needs root: SMTP on 2525 / 2587 / 2465, IMAP on 2143 / 2993, POP3 on 2110 / 2995.</p>
+<h2 id="before-it-is-reachable-mail">Before it is reachable mail</h2>
+<p>Four things decide whether mail actually flows, and none of them are code.</p>
+<h3 id="1-a-static-ip-with-a-matching-ptr-record">1. A static IP with a matching PTR record</h3>
+<p><code>CORSAIR_HOSTNAME</code> must resolve to the IP you send from, and that IP must reverse-resolve back to it. Set the PTR through your hosting provider's control panel — it is not something you can put in your own DNS. Without it the large providers reject on connect, before they have seen a single message.</p>
+<h3 id="2-port-25-outbound">2. Port 25 outbound</h3>
+<p>Most cloud providers block it. Ask them to unblock it, or set <code>DELIVERY_TRANSPORT=relay</code> and hand outbound mail to a smarthost.</p>
+<h3 id="3-tls">3. TLS</h3>
+<pre><code>TLS_CERT_PATH=/etc/letsencrypt/live/mail.example.com/fullchain.pem
+TLS_KEY_PATH=/etc/letsencrypt/live/mail.example.com/privkey.pem</code></pre>
+<p>Corsair refuses SMTP AUTH and IMAP LOGIN without a certificate. That is deliberate: a password crossing the network in the clear is worse than no service, and discovering it here is better than discovering it afterwards.</p>
+<h3 id="4-binding-the-privileged-ports">4. Binding the privileged ports</h3>
+<pre data-lang="sh"><code>setcap 'cap_net_bind_service=+ep' &quot;$(which bun)&quot;</code></pre>
+<p>Then set the ports to 25, 465, 587, 993, and 995. The alternative is running the mail server as root, which it should not be.</p>
+<h2 id="your-first-domain">Your first domain</h2>
+<ol>
+<li><strong>Domains → New domain.</strong> Corsair generates a verification token, three DKIM key pairs, and the full record set.</li>
+<li><strong>Publish the records.</strong> The DNS Setup tab lists every one with a copy button, and can export a zone file.</li>
+<li><strong>Check DNS.</strong> Once the required records resolve, the domain flips to active and sending is unlocked. Corsair also re-checks a pending domain every half hour, because people publish records and never come back to press the button.</li>
+<li><strong>Create a mailbox.</strong> Domains → your domain → New mailbox.</li>
+<li><strong>Connect a client</strong> with the settings on the Client Configuration tab.</li>
+</ol>
+<p>Until a domain is active, Corsair <em>accepts</em> mail for it but refuses to <em>send</em> from it — sending before SPF and DKIM are published damages the IP's reputation for every other domain on the server.</p>
+</main>
+<footer class="site-foot">
+  <p>Corsair is open source email hosting, released under the MIT license.</p>
+  <p><a href="https://github.com/wess/corsair">Source</a> · <a href="../docs/index.html">Docs</a> · <a href="../policies/privacy.html">Privacy</a> · <a href="../policies/acceptable-use.html">Acceptable use</a></p>
+</footer>
+</body>
+</html>

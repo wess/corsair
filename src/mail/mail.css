@@ -1,0 +1,240 @@
+/*
+ * Webmail-specific layout, on top of the panel's tokens and controls. Three
+ * panes on a desktop, one at a time on a phone.
+ */
+
+.mail {
+  display: grid;
+  grid-template-columns: 220px 380px 1fr;
+  height: 100%;
+}
+
+.mail-folders {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 12px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.mail-list {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.mail-list-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mail-list-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.mail-item {
+  display: block;
+  width: 100%;
+  padding: 11px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mail-item:hover {
+  background: var(--surface-2);
+}
+.mail-item.active {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+.mail-item.unseen .mail-from,
+.mail-item.unseen .mail-subject {
+  font-weight: 700;
+}
+.mail-item.unseen {
+  /* An unread message gets a marker as well as weight, so it is not colour or
+     weight alone doing the work. */
+  border-left-color: var(--accent);
+}
+
+.mail-item-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+.mail-from {
+  font-size: 14px;
+}
+.mail-date {
+  flex: none;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.mail-subject {
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+.mail-snippet {
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.mail-reader {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mail-reader-head {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mail-reader-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+/*
+ * The message body is attacker-supplied markup. It is sanitised on the server,
+ * and scoped here so its styles cannot leak out into the application chrome.
+ */
+.mail-body {
+  max-width: 100%;
+  overflow-x: auto;
+  line-height: 1.6;
+}
+.mail-body img {
+  max-width: 100%;
+  height: auto;
+}
+.mail-body table {
+  max-width: 100%;
+}
+.mail-body a {
+  color: var(--accent);
+}
+.mail-body .plain {
+  white-space: pre-wrap;
+  font-family: inherit;
+}
+.mail-body .quoted {
+  color: var(--text-faint);
+}
+.mail-body img[data-blocked-src] {
+  /* A withheld image still occupies space, so the layout does not jump when the
+     reader chooses to load them. */
+  display: inline-block;
+  min-width: 24px;
+  min-height: 24px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+}
+
+.mail-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 0 8px 8px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: inherit;
+  font-size: 13px;
+}
+.mail-attachment:hover {
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+.compose-grid {
+  display: grid;
+  gap: 0;
+}
+.compose-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 0;
+}
+.compose-row > span {
+  flex: none;
+  width: 60px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.compose-row input {
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+}
+.compose-row input:focus {
+  outline: none;
+}
+.compose-body {
+  min-height: 260px;
+  border: 0;
+  background: transparent;
+  padding: 14px 0;
+  font-family: inherit;
+  font-size: 15px;
+}
+.compose-body:focus {
+  outline: none;
+}
+
+.mail-empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 40px;
+  text-align: center;
+  color: var(--text-faint);
+}
+
+@media (max-width: 1000px) {
+  .mail {
+    grid-template-columns: 1fr;
+  }
+  /* One pane at a time: the folder list and the list collapse away once a
+     message is open, rather than being squeezed into unusable columns. */
+  .mail-folders {
+    flex-direction: row;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    padding: 10px;
+  }
+  .mail-folders .nav-item {
+    width: auto;
+  }
+  .mail.reading .mail-list,
+  .mail.reading .mail-folders {
+    display: none;
+  }
+  .mail:not(.reading) .mail-reader {
+    display: none;
+  }
+  .mail-list {
+    border-right: 0;
+  }
+}

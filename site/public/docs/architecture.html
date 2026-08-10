@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Architecture — Corsair</title>
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏴</text></svg>" />
+<link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+<header class="site-head">
+  <a class="brand" href="../index.html">🏴 Corsair</a>
+  <nav>
+    <a href="../pricing.html">Pricing</a>
+    <a href="../faq.html">FAQ</a>
+    <a href="../docs/index.html">Docs</a>
+    <a href="../contact.html">Contact</a>
+    <a href="../affiliates.html">Affiliates</a>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<main>
+<h1 id="architecture">Architecture</h1>
+<p>One Bun process, PostgreSQL, and an S3-compatible bucket.</p>
+<pre><code>                    ┌──────────────┐
+   port 25 ────────►│  SMTP  (MX)  │──┐
+   587 / 465 ──────►│  submission  │  │
+                    └──────────────┘  │
+                                      ▼
+   993 / 143 ──────►┌──────────────┐  ┌──────────┐   ┌────────────┐
+   995 / 110 ──────►│  IMAP / POP3 │◄─┤ Postgres │   │   bucket   │
+                    └──────────────┘  │ metadata │   │   bodies   │
+                                      └──────────┘   └────────────┘
+   3000 ───────────►┌──────────────┐        ▲               ▲
+                    │ API + panel  │────────┤               │
+                    │ webmail      │        │               │
+                    │ JMAP         │────────┘               │
+                    └──────────────┘                        │
+                    ┌──────────────┐                        │
+                    │    worker    │────────────────────────┘
+                    └──────────────┘</code></pre>
+<h2 id="the-split-between-postgres-and-the-bucket">The split between Postgres and the bucket</h2>
+<p>Message <strong>metadata</strong> — folder, UID, flags, envelope, size, a searchable text extract — lives in Postgres. Message <strong>bodies</strong> live in the bucket.</p>
+<p>That split is what makes IMAP fast. <code>SELECT</code>, <code>FETCH FLAGS</code>, <code>SEARCH</code>, and <code>SORT</code> are the commands a client runs constantly, and none of them need the body. Only <code>FETCH BODY[...]</code> does, and then exactly one object is read.</p>
+<p>Without a bucket configured, bodies stay inline in Postgres. That works and keeps a single-container install to one dependency, but it puts mail volume through the WAL.</p>
+<h2 id="receiving">Receiving</h2>
+<p>A message arriving on port 25 is checked for SPF, verified for DKIM, evaluated against the From domain's DMARC policy, and scored. The results are stamped into an <code>Authentication-Results</code> header so a client can see them.</p>
+<p>Then each recipient is resolved: an exact address, then sub-addressing (<code>user+tag@</code> → <code>user@</code>), then the domain's catch-all, then its fallback domain followed once. A mailbox recipient runs its Sieve filter and is written to a folder; a forwarding recipient is queued for outbound delivery with an SRS-rewritten sender.</p>
+<h2 id="sending">Sending</h2>
+<p>Submission proves the caller owns the From address, checks the daily limit, completes any headers the client left off, signs with the domain's DKIM key, files a copy in Sent, and queues one row per recipient.</p>
+<p>The queue claims work with <code>FOR UPDATE SKIP LOCKED</code>, so any number of workers can drain it without coordinating and without delivering anything twice. Failures back off from one minute out to about five days.</p>
+<h2 id="reading">Reading</h2>
+<p>Four protocols read the same rows: IMAP, JMAP, POP3, and the webmail API. There is no per-protocol copy and no synchronisation step between them, which is why a message that arrives over SMTP is visible in all four immediately.</p>
+<p>JMAP is the modern one — a single HTTPS endpoint taking batched method calls, with back-references so a client can query and fetch in one round trip, and state strings so it can ask what changed rather than re-walking a mailbox. The session resource is at <code>/.well-known/jmap</code>.</p>
+<p>The IMAP server keeps a per-session snapshot of the folder in UID order — which is what sequence numbers index into — and reconciles it against the database at each command boundary, emitting <code>EXPUNGE</code> highest-first so a client renumbers correctly.</p>
+<p>UIDs are allocated with <code>UPDATE folders SET uid_next = uid_next + 1 ... RETURNING</code>, which takes a row lock. Two simultaneous deliveries cannot be handed the same UID, and a duplicate UID is the one thing an IMAP client never recovers from.</p>
+<h2 id="the-worker">The worker</h2>
+<p>Re-checks pending domains every half hour, drains the delivery queue, runs mailbox transfers, recomputes quota, and sweeps expired tombstones, logs, bans, and sessions. Periodic work is guarded by a Postgres advisory lock so several workers do not all start the same sweep.</p>
+</main>
+<footer class="site-foot">
+  <p>Corsair is open source email hosting, released under the MIT license.</p>
+  <p><a href="https://github.com/wess/corsair">Source</a> · <a href="../docs/index.html">Docs</a> · <a href="../policies/privacy.html">Privacy</a> · <a href="../policies/acceptable-use.html">Acceptable use</a></p>
+</footer>
+</body>
+</html>

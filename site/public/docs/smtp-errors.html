@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>SMTP error lookup — Corsair</title>
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏴</text></svg>" />
+<link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+<header class="site-head">
+  <a class="brand" href="../index.html">🏴 Corsair</a>
+  <nav>
+    <a href="../pricing.html">Pricing</a>
+    <a href="../faq.html">FAQ</a>
+    <a href="../docs/index.html">Docs</a>
+    <a href="../contact.html">Contact</a>
+    <a href="../affiliates.html">Affiliates</a>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<main>
+<h1 id="smtp-error-lookup">SMTP error lookup</h1>
+<p>The first digit is what matters. <strong>4xx is temporary</strong> — the sender will retry, often for days. <strong>5xx is permanent</strong> — the message bounces.</p>
+<p>Paste a code or part of a message to find it.</p>
+<div class="lookup">
+  <input id="lookup" type="search" placeholder="550, quota, greylisting…" aria-label="Filter SMTP codes" autocomplete="off" />
+  <p class="lookup-empty" id="lookup-empty" hidden>Nothing matches that. The code may be specific to the receiving server — the text of its reply is usually the better clue.</p>
+</div>
+<script>
+  // Filters every row of every table on the page. The tables are the data;
+  // this only hides rows, so the page still works with scripting disabled.
+  (function () {
+    var input = document.getElementById("lookup");
+    var empty = document.getElementById("lookup-empty");
+    if (!input) return;
+    input.addEventListener("input", function () {
+      // Queried per keystroke rather than once at load: this script is inline
+      // and runs while the document is still parsing, so the tables below it do
+      // not exist yet.
+      var rows = Array.prototype.slice.call(document.querySelectorAll("tbody tr"));
+      var q = input.value.trim().toLowerCase();
+      var shown = 0;
+      rows.forEach(function (row) {
+        var hit = !q || row.textContent.toLowerCase().indexOf(q) !== -1;
+        row.hidden = !hit;
+        if (hit) shown++;
+      });
+      empty.hidden = shown !== 0;
+    });
+  })();
+</script>
+<h2 id="codes-corsair-returns">Codes Corsair returns</h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Code</th>
+<th>Meaning</th>
+<th>What to do</th>
+</tr></thead><tbody>
+<tr>
+<td>421</td>
+<td>Too many errors, or too many failed logins from this address</td>
+<td>The IP is temporarily banned. Wait an hour.</td>
+</tr>
+<tr>
+<td>450</td>
+<td>Mailbox temporarily unavailable</td>
+<td>Retry.</td>
+</tr>
+<tr>
+<td>451</td>
+<td>Daily sending limit reached</td>
+<td>The account is over its outbound allowance for the day.</td>
+</tr>
+<tr>
+<td>452</td>
+<td>Storage quota exceeded, or recipient's daily inbound limit reached</td>
+<td>Free space or upgrade; the sender will retry.</td>
+</tr>
+<tr>
+<td>501</td>
+<td>Malformed address or syntax</td>
+<td>The sending client has a bug.</td>
+</tr>
+<tr>
+<td>503</td>
+<td>Commands out of order</td>
+<td>Usually a client that pipelined without checking for support.</td>
+</tr>
+<tr>
+<td>530</td>
+<td>Authentication required</td>
+<td>Submission needs AUTH. Check the client is using 587 or 465, not 25.</td>
+</tr>
+<tr>
+<td>535</td>
+<td>Credentials invalid</td>
+<td>Wrong mailbox password. Note this is not the panel password.</td>
+</tr>
+<tr>
+<td>538</td>
+<td>Encryption required</td>
+<td>The client tried to authenticate before STARTTLS.</td>
+</tr>
+<tr>
+<td>550</td>
+<td>No such user, or relay denied</td>
+<td>The address does not exist here, or the domain is not hosted here.</td>
+</tr>
+<tr>
+<td>552</td>
+<td>Message too large</td>
+<td>Over <code>MAX_MESSAGE_BYTES</code>.</td>
+</tr>
+<tr>
+<td>554</td>
+<td>No valid recipients</td>
+<td>Every recipient was rejected.</td>
+</tr>
+</tbody></table></div>
+<h2 id="codes-you-will-see-from-others">Codes you will see from others</h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Code</th>
+<th>Usually means</th>
+</tr></thead><tbody>
+<tr>
+<td>421 4.7.0</td>
+<td>Rate-limited by the receiver. Slow down; this is not an error in your configuration.</td>
+</tr>
+<tr>
+<td>450 4.2.0</td>
+<td>Greylisting. The first attempt is always refused; the retry is accepted. Nothing to fix.</td>
+</tr>
+<tr>
+<td>550 5.7.1</td>
+<td>Blocked on policy — reputation, SPF, or DMARC. The text usually names which.</td>
+</tr>
+<tr>
+<td>550 5.7.26</td>
+<td>Unauthenticated: no aligned SPF or DKIM. Your DNS is wrong or incomplete.</td>
+</tr>
+<tr>
+<td>554 5.7.1</td>
+<td>Listed on a blocklist. The text usually names it.</td>
+</tr>
+</tbody></table></div>
+<h2 id="reading-a-bounce">Reading a bounce</h2>
+<p>A bounce carries three parts: a human-readable explanation, a machine-readable <code>message/delivery-status</code> report, and the original headers. The <code>Diagnostic-Code</code> line in the middle part is the remote server's verbatim reply — that is the one to act on, not the summary at the top.</p>
+</main>
+<footer class="site-foot">
+  <p>Corsair is open source email hosting, released under the MIT license.</p>
+  <p><a href="https://github.com/wess/corsair">Source</a> · <a href="../docs/index.html">Docs</a> · <a href="../policies/privacy.html">Privacy</a> · <a href="../policies/acceptable-use.html">Acceptable use</a></p>
+</footer>
+</body>
+</html>
