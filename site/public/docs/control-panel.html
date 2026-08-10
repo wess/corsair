@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>The control panel · Corsair</title>
+<meta name="description" content="A tour of every screen — what it shows, what it lets you do, and what to check when something looks wrong." />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/control-panel.html" />
+<meta property="og:title" content="The control panel" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="A tour of every screen — what it shows, what it lets you do, and what to check when something looks wrong." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/control-panel.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html" class="active" aria-current="page">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Using Corsair</p></div><h1 id="the-control-panel">The control panel</h1>
+<p>The panel is at <code>/app</code>. Sign in with a <strong>user</strong> account — the control-panel identity, not a mailbox password. If you are trying to read mail, you want <a href="webmail.html">the webmail</a> at <code>/webmail</code> instead.</p>
+<h2 id="overview">Overview<a class="anchor" href="#overview" aria-label="Link to this section">#</a></h2>
+<p>The landing screen. Storage against the plan, messages in and out over time, the delivery queue, and any domain that is not fully set up.</p>
+<p>The two numbers worth glancing at daily:</p>
+<ul><li><strong>Queue depth.</strong> A spike after a burst of sending is normal. Depth that keeps growing is not — see <a href="monitoring.html">Monitoring</a>.</li><li><strong>Storage.</strong> Plans cap storage per account, not per mailbox. Approaching the cap fires a <code>quota.warning</code> webhook before it fires a rejection.</li></ul>
+<h2 id="domains">Domains<a class="anchor" href="#domains" aria-label="Link to this section">#</a></h2>
+<p>One row per domain, with its status. A domain is <strong>pending</strong> until its required records resolve, then <strong>active</strong>.</p>
+<p>Until it is active, Corsair accepts mail for the domain but refuses to send from it. That is enforced rather than advised: sending before SPF and DKIM are published damages the sending IP's reputation for every other domain on the server.</p>
+<p>Opening a domain gives you four tabs.</p>
+<h3 id="dns-setup">DNS Setup<a class="anchor" href="#dns-setup" aria-label="Link to this section">#</a></h3>
+<p>Every record, with its current status and — when one does not match — what was actually observed. That observation is usually enough to spot the problem: a provider that appended the domain to a host that was already fully qualified, a quoted value stored with the quotes, an SPF record with two <code>v=spf1</code> entries.</p>
+<p>Three ways to publish:</p>
+<div class='table-wrap'><table><thead><tr>
+<th></th>
+<th></th>
+</tr></thead><tbody>
+<tr>
+<td><strong>Publish automatically</strong></td>
+<td>Corsair detects your provider from the NS records and writes them itself. Cloudflare and DigitalOcean today</td>
+</tr>
+<tr>
+<td><strong>Copy each record</strong></td>
+<td>A copy button per record</td>
+</tr>
+<tr>
+<td><strong>Export zone file</strong></td>
+<td>For a provider that imports one</td>
+</tr>
+</tbody></table></div>
+<p>The API token you paste into the automatic option is used for one publish and then discarded. It is never stored, because a DNS token can usually rewrite every record on every domain in the account.</p>
+<p><strong>Check DNS</strong> re-runs the check now. The worker also re-checks pending domains every half hour, because people publish records and never come back to press the button.</p>
+<h3 id="addresses">Addresses<a class="anchor" href="#addresses" aria-label="Link to this section">#</a></h3>
+<p>Every address on the domain, and where to create more. See <a href="addresses.html">Addresses</a> for the four kinds.</p>
+<h3 id="keys">Keys<a class="anchor" href="#keys" aria-label="Link to this section">#</a></h3>
+<p>The three DKIM key pairs, with one marked active. Activating a different one switches signing to that selector — see <a href="domains.html">Domains</a> for how to rotate without a gap.</p>
+<h3 id="settings">Settings<a class="anchor" href="#settings" aria-label="Link to this section">#</a></h3>
+<p>The catch-all, the fallback domain, and self-service recovery.</p>
+<h2 id="addresses-2">Addresses<a class="anchor" href="#addresses-2" aria-label="Link to this section">#</a></h2>
+<p>A flat list across every domain, which is the view you want when you are looking for one address rather than administering a domain.</p>
+<p>Opening an address gives you its folders with message counts, its recent activity, and the actions: change password, set a recovery address, attach a filter, delete.</p>
+<aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span>Deleting an address deletes its mail</p><p>There is no trash for this. Back up first if it matters.</p></aside>
+<h2 id="filters">Filters<a class="anchor" href="#filters" aria-label="Link to this section">#</a></h2>
+<p>Sieve scripts. A filter belongs to the <strong>account</strong> and can be attached to any number of mailboxes, so a &quot;file newsletters&quot; rule is written once and used everywhere.</p>
+<p>The editor validates on save — a script that does not compile is never stored, so you find out immediately rather than at delivery time. A script that throws at delivery time is treated as absent: the message goes to the inbox and the error is shown against the filter. A broken filter never loses mail.</p>
+<p><a href="filters.html">Filters</a> is the reference; the <a href="tutorials/filter-cookbook.html">cookbook</a> has working examples.</p>
+<h2 id="transfers">Transfers<a class="anchor" href="#transfers" aria-label="Link to this section">#</a></h2>
+<p>Mailbox migration from another host over IMAP. Create the destination address first — a transfer copies <em>into</em> an existing address.</p>
+<p>Each row shows progress per folder while it runs. The source password is encrypted at rest and erased the moment the transfer reaches a terminal state.</p>
+<p><a href="transfers.html">Transfers</a>, and <a href="tutorials/migrate-from-google.html">migrating from Google</a> end to end.</p>
+<h2 id="webhooks">Webhooks<a class="anchor" href="#webhooks" aria-label="Link to this section">#</a></h2>
+<p>Endpoints, their subscribed events, and their health.</p>
+<p>The signing secret is shown <strong>once</strong>, at creation, and as a prefix thereafter. It is a credential; an endpoint that has lost it should rotate rather than read it back.</p>
+<p><strong>Send test</strong> delivers a signed sample synchronously and shows the exact status and body that came back — far more useful than watching a queue.</p>
+<p><strong>Events</strong> lists every delivery with its status, attempt count, and next attempt. Open one to see the payload and replay it.</p>
+<p>An endpoint that fails twenty times in a row is disabled automatically, and this screen says so. Nothing else will tell you.</p>
+<p><a href="webhooks.html">Event hooks</a>, and <a href="tutorials/webhook-consumer.html">building a consumer</a>.</p>
+<h2 id="billing">Billing<a class="anchor" href="#billing" aria-label="Link to this section">#</a></h2>
+<p>Plan, subscription, payment methods, transactions, and tax ID.</p>
+<p>With <code>STRIPE_SECRET_KEY</code> unset, Corsair runs unmetered: plans still gate features and an operator can record payment methods by hand, but nothing is charged. That is the right default for hosting mail for yourself.</p>
+<p>With it set, checkout is hosted by the provider. Card details never reach this server.</p>
+<p><a href="plans-billing.html">Plans and billing</a>.</p>
+<h2 id="account">Account<a class="anchor" href="#account" aria-label="Link to this section">#</a></h2>
+<p>Your control-panel identity: email, password, notification preferences, two-factor, active sessions, and referrals.</p>
+<p><strong>Two-factor</strong> is TOTP. Turn it on — this account controls every domain.</p>
+<p><strong>Sessions</strong> lists everywhere you are signed in, with a button to revoke all the others. Use it after losing a device.</p>
+<h2 id="what-the-panel-will-not-do">What the panel will not do<a class="anchor" href="#what-the-panel-will-not-do" aria-label="Link to this section">#</a></h2>
+<p><strong>Read mail.</strong> That is <a href="webmail.html">the webmail</a>, signed in with a mailbox credential. The separation is deliberate.</p>
+<p><strong>Change server configuration.</strong> Everything is environment variables read at startup. A mail server's behaviour should be reproducible from its deployment, not from a row someone edited. See <a href="configuration.html">Configuration</a>.</p>
+<p><strong>Run migrations.</strong> <code>bun scripts/migrate.ts up</code>, deliberately outside the serving process.</p><nav class="pager"><a class="pager-prev" href="./security.html"><span>Previous</span><strong>Security model</strong></a><a class="pager-next" href="./domains.html"><span>Next</span><strong>Domains</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#overview">Overview</a></li><li class="toc-h2"><a href="#domains">Domains</a></li><li class="toc-h3"><a href="#dns-setup">DNS Setup</a></li><li class="toc-h3"><a href="#addresses">Addresses</a></li><li class="toc-h3"><a href="#keys">Keys</a></li><li class="toc-h3"><a href="#settings">Settings</a></li><li class="toc-h2"><a href="#addresses-2">Addresses</a></li><li class="toc-h2"><a href="#filters">Filters</a></li><li class="toc-h2"><a href="#transfers">Transfers</a></li><li class="toc-h2"><a href="#webhooks">Webhooks</a></li><li class="toc-h2"><a href="#billing">Billing</a></li><li class="toc-h2"><a href="#account">Account</a></li><li class="toc-h2"><a href="#what-the-panel-will-not-do">What the panel will not do</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>HTTP API · Corsair</title>
+<meta name="description" content="Authentication, error envelope, pagination, and every endpoint the control panel is built on." />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/api.html" />
+<meta property="og:title" content="HTTP API" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Authentication, error envelope, pagination, and every endpoint the control panel is built on." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/api.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html" class="active" aria-current="page">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Reference</p></div><h1 id="http-api">HTTP API</h1>
+<p>The API the control panel is built on. Everything under <code>/api</code>, JSON in and JSON out.</p>
+<p>There is no separate API-key mechanism: the panel API authenticates with the same session cookie a browser gets. If you are automating against it, sign in and keep the cookie.</p>
+<h2 id="authentication">Authentication<a class="anchor" href="#authentication" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>curl -c jar -X POST https://mail.example.com/api/auth/login \
+  -H 'content-type: application/json' \
+  -d '{&quot;email&quot;:&quot;you@example.com&quot;,&quot;password&quot;:&quot;...&quot;}'
+
+curl -b jar https://mail.example.com/api/auth/me</code></pre></figure>
+<p>The session is a <code>corsair_session</code> cookie, <code>HttpOnly</code>, <code>SameSite=Lax</code>, valid for <strong>14 days</strong>.</p>
+<p>Sessions are rows, not just signed tokens. The signature alone is not enough — a revoked session stops working immediately, which a stateless token cannot do.</p>
+<aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span>Two identities</p><p>This is the <strong>user</strong> identity — the control-panel login that owns domains. The webmail and JMAP endpoints use the <strong>address</strong> identity instead, with its own cookie or HTTP Basic. See <a href="concepts.html">Core concepts</a>.</p></aside>
+<h2 id="errors">Errors<a class="anchor" href="#errors" aria-label="Link to this section">#</a></h2>
+<p>One shape, everywhere:</p>
+<figure class="code"><span class="code-lang">json</span><pre><code>{
+  &quot;statusCode&quot;: 404,
+  &quot;name&quot;: &quot;not_found&quot;,
+  &quot;message&quot;: &quot;Domain not found.&quot;
+}</code></pre></figure>
+<p><code>name</code> is the machine-readable slug to switch on. It stays stable even when the message is reworded, so never match on <code>message</code>.</p>
+<div class='table-wrap'><table><thead><tr>
+<th><code>name</code></th>
+<th>Status</th>
+<th>Means</th>
+</tr></thead><tbody>
+<tr>
+<td><code>validation_error</code></td>
+<td>400</td>
+<td>The payload failed validation</td>
+</tr>
+<tr>
+<td><code>invalid_parameter</code></td>
+<td>400</td>
+<td>A parameter has an invalid value</td>
+</tr>
+<tr>
+<td><code>unauthorized</code></td>
+<td>401</td>
+<td>Not signed in</td>
+</tr>
+<tr>
+<td><code>plan_required</code></td>
+<td>402</td>
+<td>The plan does not include this feature</td>
+</tr>
+<tr>
+<td><code>forbidden</code></td>
+<td>403</td>
+<td>Signed in, but not allowed</td>
+</tr>
+<tr>
+<td><code>not_found</code></td>
+<td>404</td>
+<td>No such resource, or not yours</td>
+</tr>
+<tr>
+<td><code>method_not_allowed</code></td>
+<td>405</td>
+<td>Wrong verb for this endpoint</td>
+</tr>
+<tr>
+<td><code>conflict</code></td>
+<td>409</td>
+<td>A record with these values already exists</td>
+</tr>
+<tr>
+<td><code>quota_exceeded</code></td>
+<td>413</td>
+<td>Over a plan limit</td>
+</tr>
+<tr>
+<td><code>missing_required_field</code></td>
+<td>422</td>
+<td>A required field is absent</td>
+</tr>
+<tr>
+<td><code>rate_limit_exceeded</code></td>
+<td>429</td>
+<td>Too many requests</td>
+</tr>
+<tr>
+<td><code>application_error</code></td>
+<td>500</td>
+<td>A bug. Please report it</td>
+</tr>
+</tbody></table></div>
+<p><strong>402 rather than 403</strong> for plan gating, so a client can render an upgrade prompt rather than an error.</p>
+<p><strong>404 rather than 403</strong> for a resource belonging to another account. The distinction would leak existence.</p>
+<p>Postgres constraint violations are translated rather than surfaced as 500s — a unique violation is a 409.</p>
+<h2 id="rate-limits">Rate limits<a class="anchor" href="#rate-limits" aria-label="Link to this section">#</a></h2>
+<p>Ten requests per second per principal by default (<code>RATE_LIMIT_PER_SECOND</code>); unauthenticated requests are limited per IP. Sign-in and sign-up have their own limit of <strong>five per second per IP</strong>.</p>
+<p>A 429 carries:</p>
+<figure class="code"><pre><code>retry-after: 1
+ratelimit-limit: 10
+ratelimit-remaining: 0
+ratelimit-reset: 1</code></pre></figure>
+<h2 id="pagination">Pagination<a class="anchor" href="#pagination" aria-label="Link to this section">#</a></h2>
+<p>List endpoints take <code>page</code>, <code>per_page</code>, <code>search</code>, <code>sort</code>, and <code>direction</code>.</p>
+<p><code>per_page</code> must be one of <strong>10, 25, 50, 100</strong>; anything else falls back to 10. <code>direction</code> is <code>asc</code> or <code>desc</code>. Sort columns are chosen from a per-endpoint whitelist, so an unrecognised <code>sort</code> is ignored rather than erroring.</p>
+<figure class="code"><span class="code-lang">json</span><pre><code>{
+  &quot;object&quot;: &quot;list&quot;,
+  &quot;data&quot;: [ ... ],
+  &quot;page&quot;: 1,
+  &quot;per_page&quot;: 10,
+  &quot;total&quot;: 42,
+  &quot;pages&quot;: 5
+}</code></pre></figure>
+<p>Offset pagination, deliberately: the panel's tables are numbered, a total needs a count, and every table is scoped to one account so the offset never walks far.</p>
+<h2 id="endpoints">Endpoints<a class="anchor" href="#endpoints" aria-label="Link to this section">#</a></h2>
+<h3 id="authentication-2">Authentication<a class="anchor" href="#authentication-2" aria-label="Link to this section">#</a></h3>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/auth/signup</code></td>
+<td>Create an account. The first one owns the instance</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/auth/login</code></td>
+<td>Sign in</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/auth/logout</code></td>
+<td>Sign out</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/auth/me</code></td>
+<td>The current user</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/auth/verify/send</code></td>
+<td>Send an email verification</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/auth/verify</code></td>
+<td>Redeem a verification token</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/auth/password/forgot</code></td>
+<td>Request a reset</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/auth/password/reset</code></td>
+<td>Redeem a reset token</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/auth/totp/setup</code></td>
+<td>Begin two-factor enrolment</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/auth/totp/enable</code></td>
+<td>Confirm and enable</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/auth/totp/disable</code></td>
+<td>Disable</td>
+</tr>
+</tbody></table></div>
+<p><code>/api/auth/password/forgot</code> always answers the same way whether or not the address exists, and login gives one reply for both an unknown address and a wrong password. Making either more helpful turns it into a way to enumerate accounts.</p>
+<h3 id="account">Account<a class="anchor" href="#account" aria-label="Link to this section">#</a></h3>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>PATCH</td>
+<td><code>/api/account</code></td>
+<td>Update the profile</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/account</code></td>
+<td>Delete the account</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/account/email</code></td>
+<td>Change the email address</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/account/password</code></td>
+<td>Change the password</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/account/notifications</code></td>
+<td>Notification preferences</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/account/sessions</code></td>
+<td>Active sessions</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/account/sessions/revoke-others</code></td>
+<td>Revoke every other session</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/account/referrals</code></td>
+<td>Referral data</td>
+</tr>
+</tbody></table></div>
+<h3 id="domains">Domains<a class="anchor" href="#domains" aria-label="Link to this section">#</a></h3>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/domains</code></td>
+<td>List</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/domains</code></td>
+<td>Add a domain</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/domains/:domain_id</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/domains/:domain_id</code></td>
+<td>Update</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/domains/:domain_id</code></td>
+<td>Delete, with its addresses and their mail</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/domains/:domain_id/dns</code></td>
+<td>The record set with current status</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/domains/:domain_id/dns/zone</code></td>
+<td>Zone-file export</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/domains/:domain_id/dns/provider</code></td>
+<td>Detected DNS provider</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/domains/:domain_id/dns/publish</code></td>
+<td>Publish via the provider's API</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/domains/:domain_id/check</code></td>
+<td>Re-run the DNS check now</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/domains/:domain_id/keys</code></td>
+<td>DKIM keys</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/domains/:domain_id/keys/:key_id/activate</code></td>
+<td>Switch the signing selector</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/domains/:domain_id/fallback</code></td>
+<td>Set the fallback domain</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/domains/:domain_id/addresses</code></td>
+<td>Addresses on this domain</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/domains/:domain_id/addresses</code></td>
+<td>Create an address</td>
+</tr>
+</tbody></table></div>
+<p>The API token posted to <code>dns/publish</code> is used for that one call and never stored.</p>
+<h3 id="addresses">Addresses<a class="anchor" href="#addresses" aria-label="Link to this section">#</a></h3>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/addresses/:address_id</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/addresses/:address_id</code></td>
+<td>Update</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/addresses/:address_id</code></td>
+<td>Delete, with its mail</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/addresses/:address_id/password</code></td>
+<td>Change the mailbox password</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/addresses/:address_id/recovery</code></td>
+<td>Set the recovery address</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/addresses/:address_id/folders</code></td>
+<td>Folders with counts</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/addresses/:address_id/activity</code></td>
+<td>Recent mail activity</td>
+</tr>
+</tbody></table></div>
+<h3 id="filters">Filters<a class="anchor" href="#filters" aria-label="Link to this section">#</a></h3>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/filters</code></td>
+<td>List</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/filters</code></td>
+<td>Create</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/filters/validate</code></td>
+<td>Compile a script without saving</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/filters/:filter_id</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/filters/:filter_id</code></td>
+<td>Update</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/filters/:filter_id</code></td>
+<td>Delete</td>
+</tr>
+</tbody></table></div>
+<p><code>/api/filters/validate</code> is registered <strong>before</strong> <code>/api/filters/:filter_id</code>. The router matches in registration order and does not rank static segments above dynamic ones.</p>
+<h3 id="transfers">Transfers<a class="anchor" href="#transfers" aria-label="Link to this section">#</a></h3>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/transfers</code></td>
+<td>List</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/transfers</code></td>
+<td>Start one</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/transfers/destinations</code></td>
+<td>Addresses available as a destination</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/transfers/:transfer_id</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/transfers/:transfer_id</code></td>
+<td>Cancel</td>
+</tr>
+</tbody></table></div>
+<p>The source password is encrypted at rest and erased the moment the transfer reaches a terminal state.</p>
+<h3 id="webhooks">Webhooks<a class="anchor" href="#webhooks" aria-label="Link to this section">#</a></h3>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/webhooks</code></td>
+<td>List</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/webhooks</code></td>
+<td>Create. The signing secret is returned <strong>once</strong></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/webhooks/:webhook_id</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/webhooks/:webhook_id</code></td>
+<td>Update</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/webhooks/:webhook_id</code></td>
+<td>Delete</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/webhooks/:webhook_id/rotate</code></td>
+<td>New signing secret</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/webhooks/:webhook_id/test</code></td>
+<td>Deliver a signed sample synchronously</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/webhooks/events</code></td>
+<td>Events across every endpoint</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/webhooks/:webhook_id/events</code></td>
+<td>Events for one</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/webhooks/:webhook_id/events/:event_id</code></td>
+<td>One event with its payload</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/webhooks/:webhook_id/events/:event_id/replay</code></td>
+<td>Redeliver it</td>
+</tr>
+</tbody></table></div>
+<p>Listing shows only a prefix of the signing secret — enough to tell two apart. An endpoint that has lost its secret should rotate rather than read it back.</p>
+<h3 id="billing">Billing<a class="anchor" href="#billing" aria-label="Link to this section">#</a></h3>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/plans</code></td>
+<td>Available plans. No authentication needed</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/entitlement</code></td>
+<td>The current account's entitlement and usage</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/subscription</code></td>
+<td>Subscribe to a plan</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/subscription/cancel</code></td>
+<td>Cancel at period end</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/billing/provider</code></td>
+<td>Which payment provider is configured</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/billing/checkout/subscription</code></td>
+<td>Hosted checkout for a subscription</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/billing/checkout/setup</code></td>
+<td>Hosted checkout to add a payment method</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/billing/payment-methods</code></td>
+<td>List</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/billing/payment-methods</code></td>
+<td>Record one</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/billing/payment-methods/:method_id/default</code></td>
+<td>Make default</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/billing/payment-methods/:method_id</code></td>
+<td>Remove</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/billing/transactions</code></td>
+<td>List</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/billing/transactions/:transaction_id</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/billing/tax-id</code></td>
+<td>Read</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/api/billing/tax-id</code></td>
+<td>Set</td>
+</tr>
+</tbody></table></div>
+<h3 id="recovery">Recovery<a class="anchor" href="#recovery" aria-label="Link to this section">#</a></h3>
+<p>Reached by mailbox owners who are not panel users at all, so it lives outside <code>/app</code>.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/recover/check</code></td>
+<td>Whether recovery is available for a domain</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/recover/request</code></td>
+<td>Request a mailbox password reset</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/recover/reset</code></td>
+<td>Redeem the token</td>
+</tr>
+</tbody></table></div>
+<p><code>/api/recover/request</code> answers identically whether or not the address exists.</p>
+<h3 id="dashboard">Dashboard<a class="anchor" href="#dashboard" aria-label="Link to this section">#</a></h3>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/overview</code></td>
+<td>Everything the Overview screen renders</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/client-config</code></td>
+<td>Hostnames and ports for mail clients</td>
+</tr>
+</tbody></table></div>
+<h3 id="webmail">Webmail<a class="anchor" href="#webmail" aria-label="Link to this section">#</a></h3>
+<p>The <strong>address</strong> identity, via the <code>corsair_webmail</code> cookie. A 12-hour session.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/login</code></td>
+<td>Sign in with a mailbox credential</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/logout</code></td>
+<td>Sign out</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/me</code></td>
+<td>The current mailbox</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/folders</code></td>
+<td>List</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/folders</code></td>
+<td>Create</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/mail/folders/:folder_id</code></td>
+<td>Delete</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/messages</code></td>
+<td>List, with search and pagination</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/messages/:message_id</code></td>
+<td>One message, sanitised</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/messages/:message_id/raw</code></td>
+<td>The raw MIME</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/messages/:message_id/part/:section</code></td>
+<td>One MIME part</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/messages/flags</code></td>
+<td>Set or clear flags</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/messages/move</code></td>
+<td>Move between folders</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/messages/delete</code></td>
+<td>Delete</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/send</code></td>
+<td>Send</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/drafts</code></td>
+<td>Save a draft</td>
+</tr>
+</tbody></table></div>
+<p>Message bodies are sanitised server-side before this endpoint returns them.</p>
+<h3 id="payment-provider-webhook">Payment provider webhook<a class="anchor" href="#payment-provider-webhook" aria-label="Link to this section">#</a></h3>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/webhooks/payments</code></td>
+<td>Settlement callbacks</td>
+</tr>
+</tbody></table></div>
+<p>Reads the body verbatim and verifies the signature before parsing.</p>
+<h2 id="outside-api">Outside <code>/api</code><a class="anchor" href="#outside-api" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>GET</td>
+<td><code>/.well-known/jmap</code></td>
+<td>JMAP session resource</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/jmap</code></td>
+<td>JMAP method calls</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/jmap/download/:accountId/:blobId/:name</code></td>
+<td>Blob download</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/jmap/upload/:accountId</code></td>
+<td>Blob upload</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/mail/config-v1.1.xml</code></td>
+<td>Thunderbird autoconfig</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/autodiscover/autodiscover.xml</code></td>
+<td>Outlook autodiscover</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/.well-known/mta-sts.txt</code></td>
+<td>MTA-STS policy</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/.well-known/security.txt</code></td>
+<td>Vulnerability contact</td>
+</tr>
+</tbody></table></div>
+<p>See <a href="jmap.html">JMAP</a>.</p>
+<h2 id="route-ordering">Route ordering<a class="anchor" href="#route-ordering" aria-label="Link to this section">#</a></h2>
+<p>The router matches in <strong>registration order</strong> and does not rank static segments above dynamic ones. Two consequences worth knowing if you are extending it:</p>
+<ul><li><code>/api/filters/validate</code> must be registered before <code>/api/filters/:filter_id</code></li><li><code>addressRoutes</code> is registered before <code>domainRoutes</code> so <code>/api/domains/:domain_id/addresses</code> is not swallowed by a domain pattern</li></ul>
+<p><code>src/api/index.ts</code> documents the intended order.</p>
+<h2 id="serialisation">Serialisation<a class="anchor" href="#serialisation" aria-label="Link to this section">#</a></h2>
+<p>Every response shape comes from <code>src/serialize</code>. Keeping it in one place is what stops a secret gaining a field: a password hash, a DKIM private key, or a stored provider reference has to be added deliberately to be exposed, rather than appearing because someone returned a row.</p>
+<p>Objects carry an <code>object</code> discriminator (<code>&quot;domain&quot;</code>, <code>&quot;address&quot;</code>, <code>&quot;webhook&quot;</code>, <code>&quot;list&quot;</code>) so a client can tell them apart without inspecting shape.</p><nav class="pager"><a class="pager-prev" href="./architecture.html"><span>Previous</span><strong>Architecture</strong></a><a class="pager-next" href="./smtp.html"><span>Next</span><strong>SMTP</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#authentication">Authentication</a></li><li class="toc-h2"><a href="#errors">Errors</a></li><li class="toc-h2"><a href="#rate-limits">Rate limits</a></li><li class="toc-h2"><a href="#pagination">Pagination</a></li><li class="toc-h2"><a href="#endpoints">Endpoints</a></li><li class="toc-h3"><a href="#authentication-2">Authentication</a></li><li class="toc-h3"><a href="#account">Account</a></li><li class="toc-h3"><a href="#domains">Domains</a></li><li class="toc-h3"><a href="#addresses">Addresses</a></li><li class="toc-h3"><a href="#filters">Filters</a></li><li class="toc-h3"><a href="#transfers">Transfers</a></li><li class="toc-h3"><a href="#webhooks">Webhooks</a></li><li class="toc-h3"><a href="#billing">Billing</a></li><li class="toc-h3"><a href="#recovery">Recovery</a></li><li class="toc-h3"><a href="#dashboard">Dashboard</a></li><li class="toc-h3"><a href="#webmail">Webmail</a></li><li class="toc-h3"><a href="#payment-provider-webhook">Payment provider webhook</a></li><li class="toc-h2"><a href="#outside-api">Outside /api</a></li><li class="toc-h2"><a href="#route-ordering">Route ordering</a></li><li class="toc-h2"><a href="#serialisation">Serialisation</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Monitoring · Corsair</title>
+<meta name="description" content="What to watch, what to alert on, and the queries that tell you whether mail is actually flowing." />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/monitoring.html" />
+<meta property="og:title" content="Monitoring" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="What to watch, what to alert on, and the queries that tell you whether mail is actually flowing." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/monitoring.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html" class="active" aria-current="page">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Install and operate</p></div><h1 id="monitoring">Monitoring</h1>
+<p>Mail fails quietly. A queue that stops draining, a certificate that expired, a disk that filled — none of them announce themselves, and all of them look like &quot;my email is a bit slow today&quot; until someone notices a week of missing messages.</p>
+<p>These are the things worth watching, in the order they matter.</p>
+<h2 id="alert-on-these">Alert on these<a class="anchor" href="#alert-on-these" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Signal</th>
+<th>Threshold</th>
+<th>Why</th>
+</tr></thead><tbody>
+<tr>
+<td>Process not running</td>
+<td>Any</td>
+<td>Nothing else matters</td>
+</tr>
+<tr>
+<td>Queue depth climbing</td>
+<td>Growing for 30 min</td>
+<td>Delivery is stuck</td>
+</tr>
+<tr>
+<td>Oldest queued message</td>
+<td>Older than 1 hour</td>
+<td>Something is failing repeatedly</td>
+</tr>
+<tr>
+<td>Certificate expiry</td>
+<td>Under 14 days</td>
+<td>Renewal or the reload hook broke</td>
+</tr>
+<tr>
+<td>Disk free</td>
+<td>Under 20%</td>
+<td>Postgres stops writing when it fills</td>
+</tr>
+<tr>
+<td>Bounce rate</td>
+<td>Over 5% of sends</td>
+<td>Reputation damage in progress</td>
+</tr>
+<tr>
+<td>Webhook endpoints disabled</td>
+<td>Any</td>
+<td>Twenty consecutive failures disabled one</td>
+</tr>
+<tr>
+<td>Backup heartbeat</td>
+<td>Missing for 36 hours</td>
+<td>The backup silently stopped</td>
+</tr>
+</tbody></table></div>
+<h2 id="is-it-running">Is it running<a class="anchor" href="#is-it-running" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>systemctl is-active corsair
+curl -sf localhost:3000/api/plans &gt;/dev/null &amp;&amp; echo ok</code></pre></figure>
+<p><code>/api/plans</code> needs no authentication and touches the database, so a 200 means the HTTP tier is up <em>and</em> Postgres is reachable. That makes it a reasonable liveness check.</p>
+<p>For the mail listeners, check the sockets:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>for p in 25 587 465 143 993 110 995; do
+  nc -z localhost $p &amp;&amp; echo &quot;$p ok&quot; || echo &quot;$p DOWN&quot;
+done</code></pre></figure>
+<h2 id="the-delivery-queue">The delivery queue<a class="anchor" href="#the-delivery-queue" aria-label="Link to this section">#</a></h2>
+<p>The single most useful thing to watch. If it drains, mail is flowing.</p>
+<figure class="code"><span class="code-lang">sql</span><pre><code>SELECT status, count(*), min(created_at) AS oldest
+FROM deliveries
+GROUP BY status;</code></pre></figure>
+<p>Depth alone is not the alarm — a spike after a burst of sending is normal. What matters is <strong>depth that keeps growing</strong> and <strong>an oldest entry that keeps getting older</strong>.</p>
+<p>Failures back off from one minute out to about five days, so a genuinely undeliverable message sits in the queue for days by design. A pile of them appearing at once usually means one destination is refusing you.</p>
+<figure class="code"><span class="code-lang">sql</span><pre><code>-- What is failing, and where to. last_error is the verbatim final SMTP reply,
+-- which is what distinguishes a greylist from a block.
+SELECT split_part(rcpt_to, '@', 2) AS domain,
+       count(*),
+       max(last_code) AS code,
+       max(last_error) AS reply
+FROM deliveries
+WHERE attempts &gt; 2 AND status &lt;&gt; 'sent'
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 10;</code></pre></figure>
+<p>One domain dominating that list is a reputation problem with that provider. Every domain appearing means your outbound path is broken.</p>
+<h2 id="inbound-flow">Inbound flow<a class="anchor" href="#inbound-flow" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sql</span><pre><code>SELECT date_trunc('hour', created_at) AS hour, count(*)
+FROM mail_log
+WHERE direction = 'inbound' AND created_at &gt; now() - interval '24 hours'
+GROUP BY 1 ORDER BY 1;</code></pre></figure>
+<p>An hour with zero inbound on a domain that normally receives is worth investigating. It is usually DNS or a firewall, not the application.</p>
+<h2 id="storage">Storage<a class="anchor" href="#storage" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sql</span><pre><code>-- Per account. Tombstoned rows still occupy the folder until the retention
+-- sweep clears them, so exclude them or the numbers read high.
+SELECT u.email, pg_size_pretty(sum(m.size)::bigint) AS used
+FROM messages m
+JOIN addresses a ON a.id = m.address_id
+JOIN domains d ON d.id = a.domain_id
+JOIN users u ON u.id = d.user_id
+WHERE m.expunged_at IS NULL
+GROUP BY 1 ORDER BY sum(m.size) DESC
+LIMIT 20;</code></pre></figure>
+<p>Corsair emits <code>quota.warning</code> and <code>quota.exceeded</code> webhooks; subscribing to those is easier than polling.</p>
+<p>Host disk matters separately:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>df -h /var/lib/postgresql</code></pre></figure>
+<p>Postgres stops accepting writes when the filesystem fills, and a mail server that cannot write is a mail server that rejects. Alert well before it happens.</p>
+<h2 id="certificate-expiry">Certificate expiry<a class="anchor" href="#certificate-expiry" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>openssl s_client -connect mail.example.com:993 -servername mail.example.com &lt;/dev/null 2&gt;/dev/null \
+  | openssl x509 -noout -enddate</code></pre></figure>
+<p>Check the port, not the file. The file on disk being fresh proves nothing if the process is still holding the old one — which is exactly the failure mode of renewal without a reload hook.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code># Days remaining, for a monitoring check
+expiry=$(openssl s_client -connect mail.example.com:993 &lt;/dev/null 2&gt;/dev/null \
+  | openssl x509 -noout -enddate | cut -d= -f2)
+echo $(( ($(date -d &quot;$expiry&quot; +%s) - $(date +%s)) / 86400 ))</code></pre></figure>
+<h2 id="webhook-health">Webhook health<a class="anchor" href="#webhook-health" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sql</span><pre><code>SELECT url, status, consecutive_failures, last_success_at
+FROM webhooks
+WHERE status &lt;&gt; 'active' OR consecutive_failures &gt; 0;</code></pre></figure>
+<p>An endpoint that fails twenty times in a row is disabled automatically. Nothing tells you except the panel, so query for it.</p>
+<h2 id="bounce-rate">Bounce rate<a class="anchor" href="#bounce-rate" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sql</span><pre><code>-- mail_log.status is one of accepted, rejected, delivered, deferred, bounced, spam
+SELECT
+  count(*) FILTER (WHERE status = 'bounced')::float
+    / NULLIF(count(*), 0) AS bounce_rate
+FROM mail_log
+WHERE direction = 'outbound' AND created_at &gt; now() - interval '24 hours';</code></pre></figure>
+<p>Above a few percent and receivers start treating you as a source of junk. Corsair suppresses nothing automatically, but it records every bounce — repeatedly delivering to an address that hard-bounces is one of the fastest ways to damage a sending reputation.</p>
+<h2 id="logs">Logs<a class="anchor" href="#logs" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>journalctl -u corsair -f
+journalctl -u corsair --since &quot;1 hour ago&quot; | grep -i error
+docker compose logs -f corsair        # if containerised</code></pre></figure>
+<p>Worth grepping for:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Pattern</th>
+<th>Meaning</th>
+</tr></thead><tbody>
+<tr>
+<td><code>unhandled route error</code></td>
+<td>An API bug. Should be rare; investigate each one</td>
+</tr>
+<tr>
+<td><code>job .* failed</code></td>
+<td>A worker job threw. It retries</td>
+</tr>
+<tr>
+<td><code>rejected</code></td>
+<td>Inbound refusals — no such user, over quota, filtered</td>
+</tr>
+</tbody></table></div>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Mail logs contain addresses</p><p>Sender and recipient addresses are personal data. Decide your retention period deliberately and configure <code>journald</code> or your log shipper to honour it.</p></aside>
+<h2 id="the-worker">The worker<a class="anchor" href="#the-worker" aria-label="Link to this section">#</a></h2>
+<p>Four periodic jobs, guarded by a Postgres advisory lock so several workers do not all start the same sweep:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Job</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>domain.verify</code></td>
+<td>Re-checks pending domains, every half hour</td>
+</tr>
+<tr>
+<td><code>transfer.run</code></td>
+<td>Runs mailbox migrations</td>
+</tr>
+<tr>
+<td><code>quota.recompute</code></td>
+<td>Recalculates account storage</td>
+</tr>
+<tr>
+<td><code>retention.sweep</code></td>
+<td>Expires tombstones, logs, bans, and sessions</td>
+</tr>
+</tbody></table></div>
+<figure class="code"><span class="code-lang">sql</span><pre><code>SELECT kind, status, count(*), max(updated_at)
+FROM jobs GROUP BY 1, 2;</code></pre></figure>
+<p>Jobs stuck in <code>running</code> with an old <code>updated_at</code> mean a worker died mid-job.</p>
+<h2 id="external-checks">External checks<a class="anchor" href="#external-checks" aria-label="Link to this section">#</a></h2>
+<p>Things a check on the host cannot see:</p>
+<ul><li><strong>Deliverability.</strong> Send to a seed address at a large provider on a schedule and assert <code>dkim=pass</code>. This catches an expired DKIM record, which nothing local will.</li><li><strong>Blocklists.</strong> Query your IP against Spamhaus and SpamCop daily. Being listed is silent until mail starts bouncing.</li><li><strong>Inbound reachability.</strong> Connect to port 25 from outside. A firewall rule that changed is invisible from inside.</li><li><strong>DNS.</strong> Assert the MX, SPF, DKIM, and DMARC records still resolve. Someone editing DNS for an unrelated reason is a common cause of sudden failure.</li></ul>
+<h2 id="a-minimal-setup">A minimal setup<a class="anchor" href="#a-minimal-setup" aria-label="Link to this section">#</a></h2>
+<p>If you do only four things:</p>
+<ol><li>Alert when the process is down.</li><li>Alert when the oldest queued message is over an hour old.</li><li>Alert when the certificate has under fourteen days.</li><li>Alert when the backup heartbeat goes quiet.</li></ol>
+<p>Those four cover the failures that lose mail. Everything else on this page is refinement.</p><nav class="pager"><a class="pager-prev" href="./backups.html"><span>Previous</span><strong>Backups and restore</strong></a><a class="pager-next" href="./upgrading.html"><span>Next</span><strong>Upgrading</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#alert-on-these">Alert on these</a></li><li class="toc-h2"><a href="#is-it-running">Is it running</a></li><li class="toc-h2"><a href="#the-delivery-queue">The delivery queue</a></li><li class="toc-h2"><a href="#inbound-flow">Inbound flow</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#certificate-expiry">Certificate expiry</a></li><li class="toc-h2"><a href="#webhook-health">Webhook health</a></li><li class="toc-h2"><a href="#bounce-rate">Bounce rate</a></li><li class="toc-h2"><a href="#logs">Logs</a></li><li class="toc-h2"><a href="#the-worker">The worker</a></li><li class="toc-h2"><a href="#external-checks">External checks</a></li><li class="toc-h2"><a href="#a-minimal-setup">A minimal setup</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

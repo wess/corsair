@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>SMTP · Corsair</title>
+<meta name="description" content="The MX listener, authenticated submission, the inbound pipeline, and how outbound delivery retries." />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/smtp.html" />
+<meta property="og:title" content="SMTP" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="The MX listener, authenticated submission, the inbound pipeline, and how outbound delivery retries." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/smtp.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html" class="active" aria-current="page">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Reference</p></div><h1 id="smtp">SMTP</h1>
+<p>Three listeners, two jobs. Port 25 receives mail from the internet; 587 and 465 accept mail from your own users.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Port</th>
+<th>Role</th>
+<th>TLS</th>
+<th>Authentication</th>
+</tr></thead><tbody>
+<tr>
+<td>25</td>
+<td>MX — inbound from anywhere</td>
+<td>STARTTLS, opportunistic</td>
+<td>None</td>
+</tr>
+<tr>
+<td>587</td>
+<td>Submission</td>
+<td>STARTTLS, required before AUTH</td>
+<td>Address credential</td>
+</tr>
+<tr>
+<td>465</td>
+<td>Submission</td>
+<td>Implicit from the first byte</td>
+<td>Address credential</td>
+</tr>
+</tbody></table></div>
+<p>Port 25 never requires STARTTLS. A sending server that does not support it still has legitimate mail to deliver, and refusing means losing that mail. Every other port requires encryption before a credential crosses it.</p>
+<h2 id="extensions-advertised">Extensions advertised<a class="anchor" href="#extensions-advertised" aria-label="Link to this section">#</a></h2>
+<figure class="code"><pre><code>250-mail.example.com at your service
+250-SIZE 52428800
+250-8BITMIME
+250-SMTPUTF8
+250-PIPELINING
+250-ENHANCEDSTATUSCODES
+250-STARTTLS
+250-AUTH PLAIN LOGIN
+250 HELP</code></pre></figure>
+<p><code>STARTTLS</code> appears only on a connection that is not already encrypted, and <strong><code>AUTH</code> only on one that is</strong>. On a server with no certificate configured, AUTH is never advertised at all — which is the correct failure. A self-hoster who has not set up TLS should discover it there rather than after their users' passwords have crossed the network.</p>
+<p><code>CHUNKING</code> is deliberately not advertised. It invites <code>BDAT</code>, and a sender that switches to BDAT against a server without it gets a hard failure rather than falling back to <code>DATA</code>.</p>
+<p><code>SIZE</code> is <code>MAX_MESSAGE_BYTES</code>, 50 MB by default. That is the wire size after encoding — base64 costs about a third, so it is roughly a 35 MB attachment.</p>
+<h2 id="the-inbound-pipeline">The inbound pipeline<a class="anchor" href="#the-inbound-pipeline" aria-label="Link to this section">#</a></h2>
+<p>A message arriving on port 25 goes through this, in order:</p>
+<ol><li><strong>Connection checks</strong> — the client IP against the ban list and rate limits.</li><li><strong>SPF</strong> — evaluated against the envelope sender.</li><li><strong>Recipient resolution</strong> — per <code>RCPT TO</code>. An unknown recipient is refused <strong>during the transaction</strong> with a 550.</li><li><strong>DATA</strong> — the message is read, bounded by <code>SIZE</code>.</li><li><strong>DKIM verification</strong> — every signature on the message.</li><li><strong>DMARC</strong> — the From domain's policy, applied to the SPF and DKIM results.</li><li><strong>Spam scoring</strong> — heuristic, over the raw message plus the authentication signals.</li><li><strong><code>Authentication-Results</code></strong> — stamped into the message so a client can see what the server made of it.</li><li><strong>Sieve</strong> — the recipient's filter runs.</li><li><strong>Filing</strong> — into a folder, with an atomically allocated UID.</li><li><strong>Events</strong> — <code>message.received</code>, <code>message.spam</code>, or <code>message.rejected</code>.</li></ol>
+<aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span>Rejection happens during the transaction, not afterwards</p><p>An unknown recipient gets a 550 at <code>RCPT TO</code>. Corsair does not accept and then bounce — a bounce to a forged sender is backscatter, and it makes you a source of spam for someone else. Refusing during the transaction puts the problem back on the sending server, which is where it belongs.</p></aside>
+<h3 id="recipient-resolution">Recipient resolution<a class="anchor" href="#recipient-resolution" aria-label="Link to this section">#</a></h3>
+<p>For each <code>RCPT TO</code> at a hosted domain, in order:</p>
+<ol><li>An exact address match</li><li>Sub-addressing — <code>user+tag@</code> routes to <code>user@</code></li><li>The domain's catch-all</li><li>The domain's fallback domain, followed <strong>exactly once</strong></li></ol>
+<p>A mailbox recipient runs its Sieve filter and is written to a folder. A forwarding recipient — an alias or a group — is queued for outbound delivery with an SRS-rewritten sender.</p>
+<h3 id="spam-scoring">Spam scoring<a class="anchor" href="#spam-scoring" aria-label="Link to this section">#</a></h3>
+<p>Heuristic, deliberately conservative, and cheap by construction because it runs on every inbound message.</p>
+<p>A message scoring at or above the junk threshold is <strong>filed in <code>Junk</code></strong>, not rejected. Rejecting on a heuristic score loses real mail silently, which is a much worse failure than a message in the wrong folder.</p>
+<p>The score is recorded on the message row and in <code>mail_log</code>, and goes out on the <code>message.spam</code> webhook.</p>
+<h2 id="submission">Submission<a class="anchor" href="#submission" aria-label="Link to this section">#</a></h2>
+<p>Authenticated sending, on 587 and 465.</p>
+<ol><li><strong>Authenticate.</strong> <code>PLAIN</code> or <code>LOGIN</code>, only over an encrypted connection.</li><li><strong>Prove the sender.</strong> The From address must belong to the authenticated address. This is the difference between a mail server and an open relay.</li><li><strong>Check the daily limit</strong> from the plan.</li><li><strong>Complete the headers</strong> the client left off — <code>Date</code>, <code>Message-ID</code>, <code>MIME-Version</code>.</li><li><strong>Sign</strong> with the domain's active DKIM key.</li><li><strong>File a copy</strong> in <code>Sent</code>.</li><li><strong>Queue</strong> one row per recipient.</li></ol>
+<p>Header values are sanitised on the way out. A bare CR or LF in a subject, a display name, or a custom header injects a header, so <code>stripControls</code> runs on every value this codebase emits. There are regression tests for it.</p>
+<h2 id="outbound-delivery">Outbound delivery<a class="anchor" href="#outbound-delivery" aria-label="Link to this section">#</a></h2>
+<p>Queued in the <code>deliveries</code> table, drained by the worker.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Transport</th>
+<th>Behaviour</th>
+</tr></thead><tbody>
+<tr>
+<td><code>direct</code></td>
+<td>Resolve the recipient's MX and deliver. Needs port 25 outbound</td>
+</tr>
+<tr>
+<td><code>relay</code></td>
+<td>Hand everything to a configured smarthost</td>
+</tr>
+<tr>
+<td><code>console</code></td>
+<td>Print to stdout. The default, for local development</td>
+</tr>
+</tbody></table></div>
+<p>The queue claims work with <code>FOR UPDATE SKIP LOCKED</code>, so any number of workers can drain it without coordinating and without delivering anything twice.</p>
+<h3 id="retries">Retries<a class="anchor" href="#retries" aria-label="Link to this section">#</a></h3>
+<p>Failures back off from about one minute out to roughly <strong>five days</strong>, after which the message bounces. The final SMTP reply is stored <strong>verbatim</strong> — operators need the original text, not a paraphrase, to tell a greylist from a block.</p>
+<figure class="code"><span class="code-lang">sql</span><pre><code>SELECT rcpt_to, status, attempts, last_code, last_error, run_at
+FROM deliveries
+WHERE status &lt;&gt; 'sent'
+ORDER BY updated_at DESC;</code></pre></figure>
+<p>A <code>4xx</code> is temporary and retried. A <code>5xx</code> is permanent and bounces immediately — there is no point retrying a refusal.</p>
+<h3 id="srs">SRS<a class="anchor" href="#srs" aria-label="Link to this section">#</a></h3>
+<p>An alias that forwards keeps the original envelope sender, whose SPF does not list your server. The next hop sees a forgery and rejects it.</p>
+<p>Corsair rewrites the envelope sender with SRS so it survives. The HMAC in the rewritten address is not optional — without it, the rewritten address is an open relay for anyone who can construct one.</p>
+<p>This is automatic for aliases and groups.</p>
+<h2 id="bounces">Bounces<a class="anchor" href="#bounces" aria-label="Link to this section">#</a></h2>
+<p>A permanent failure generates a bounce to the original sender and fires <code>message.bounced</code>. Bounces are recorded in the <code>bounces</code> table.</p>
+<p>Corsair suppresses nothing automatically. Repeatedly delivering to an address that hard-bounces is one of the fastest ways to damage a sending reputation — build a suppression list from the webhook if you send at volume.</p>
+<h2 id="testing-by-hand">Testing by hand<a class="anchor" href="#testing-by-hand" aria-label="Link to this section">#</a></h2>
+<p>Inbound:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>nc mail.example.com 25</code></pre></figure>
+<figure class="code"><pre><code>EHLO test.example.net
+MAIL FROM:&lt;someone@test.example.net&gt;
+RCPT TO:&lt;you@example.com&gt;
+DATA
+From: Someone &lt;someone@test.example.net&gt;
+To: you@example.com
+Subject: Test
+
+Body text.
+.
+QUIT</code></pre></figure>
+<p>Submission, which needs TLS first:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>openssl s_client -starttls smtp -connect mail.example.com:587 -crlf</code></pre></figure>
+<figure class="code"><pre><code>EHLO test
+AUTH PLAIN &lt;base64 of \0user@example.com\0password&gt;
+MAIL FROM:&lt;you@example.com&gt;
+RCPT TO:&lt;someone@elsewhere.com&gt;
+DATA
+...
+.
+QUIT</code></pre></figure>
+<h2 id="reply-codes">Reply codes<a class="anchor" href="#reply-codes" aria-label="Link to this section">#</a></h2>
+<p>Corsair uses enhanced status codes throughout. <code>250 2.1.5 Recipient OK</code>, <code>550 5.1.1 No such user</code>, and so on.</p>
+<p><a href="smtp-errors.html">SMTP error lookup</a> has the full table, including the codes you will see coming back from other people's servers.</p>
+<h2 id="everything-on-the-wire-is-latin1">Everything on the wire is latin1<a class="anchor" href="#everything-on-the-wire-is-latin1" aria-label="Link to this section">#</a></h2>
+<p>The SMTP session, the MIME parser, and the storage layer handle messages as latin1 strings, so one character is exactly one byte.</p>
+<p><code>SIZE</code> and <code>RFC822.SIZE</code> are octet counts. Decoding to UTF-8 anywhere in that path silently changes every offset. Decoding to real Unicode happens only at the point something displays text.</p><nav class="pager"><a class="pager-prev" href="./api.html"><span>Previous</span><strong>HTTP API</strong></a><a class="pager-next" href="./imap.html"><span>Next</span><strong>IMAP</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#extensions-advertised">Extensions advertised</a></li><li class="toc-h2"><a href="#the-inbound-pipeline">The inbound pipeline</a></li><li class="toc-h3"><a href="#recipient-resolution">Recipient resolution</a></li><li class="toc-h3"><a href="#spam-scoring">Spam scoring</a></li><li class="toc-h2"><a href="#submission">Submission</a></li><li class="toc-h2"><a href="#outbound-delivery">Outbound delivery</a></li><li class="toc-h3"><a href="#retries">Retries</a></li><li class="toc-h3"><a href="#srs">SRS</a></li><li class="toc-h2"><a href="#bounces">Bounces</a></li><li class="toc-h2"><a href="#testing-by-hand">Testing by hand</a></li><li class="toc-h2"><a href="#reply-codes">Reply codes</a></li><li class="toc-h2"><a href="#everything-on-the-wire-is-latin1">Everything on the wire is latin1</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

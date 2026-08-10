@@ -142,6 +142,25 @@ unknown address and a wrong password. Making any of them more helpful turns it
 into a way to enumerate accounts. There are smoke-test cases asserting the
 replies are identical — keep them.
 
+## Event hooks
+
+Outbound webhooks are signed with the **Standard Webhooks** scheme (`whsec_`
+secret, `webhook-id` / `webhook-timestamp` / `webhook-signature`, HMAC-SHA256
+over `id.timestamp.body`), the same as outbox. The `svix-*` aliases go out
+alongside so an off-the-shelf verifier works unchanged. Do not invent a
+different scheme here.
+
+`emit()` in `src/events` **never throws** and never blocks. It is called from
+the SMTP path, where a failure to record a notification must not fail the
+delivery that triggered it — the mail is the product, the hook is a courtesy.
+Delivery is the worker's job.
+
+**A webhook URL is attacker-supplied and this server fetches it.** That is a
+server-side request forgery primitive, so `assertDeliverable` refuses private,
+loopback, and link-local addresses. `WEBHOOK_ALLOW_PRIVATE` exists for an
+operator whose consumers are on the same private network; it is off by default
+because the safe case is the rarer one.
+
 ## Plan gating
 
 A feature the plan does not include raises a **402**, not a 403, so the panel can
@@ -164,6 +183,29 @@ invalid regardless of the plan.
 5. Route in `src/api/routes/<area>`, registered in `src/api/index.ts`.
 6. A case in `tests/smoke.ts`.
 
+## The docs site
+
+`site/content/**.md` → `site/public/**.html`, rendered by `site/build.ts`. It is
+served two ways: by this server for any non-API path, and by GitHub Pages via
+`.github/workflows/pages.yml`. Run `bun run site:check` after touching either —
+it builds and then fails on a broken internal link or a dead anchor.
+
+**Every emitted link is relative to the page carrying it.** That is what makes
+one build work at a domain root, under a `/corsair/` project-page prefix, and off
+a local disk. Do not introduce a root-absolute `href` in the layout or in
+content; `SITE_MODE=pages` exists for the one place that needed to differ (the
+`/app` link, which does not exist behind a static host).
+
+A docs page's place in the sidebar comes from its front matter — `section` (one
+of the keys in `SECTIONS`) and `order`. A page with no `section` renders without
+a sidebar entry and drops out of the previous/next chain, which is the failure
+mode to check for when a new page seems to vanish.
+
+The markdown subset is deliberate, not aspirational. It has nested lists, tables,
+`:::note` / `tip` / `warning` / `danger` callouts, `- [ ]` checklists, and a
+`raw` fence that emits verbatim HTML for the two pages that need a widget. Adding
+a dependency to get more is the wrong trade for a mail server.
+
 ## Tests
 
 - `bun test` — unit and integration, from `tests/`. Needs Postgres
@@ -171,6 +213,7 @@ invalid regardless of the plan.
   database.
 - `bun run test:smoke` — API contract. Needs a running server; backs off on 429
   because the rate limiter is real.
+- `bun run site:check` — the docs site builds and every internal link resolves.
 
 ## Local setup
 

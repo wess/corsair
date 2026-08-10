@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Configuration · Corsair</title>
+<meta name="description" content="Every environment variable Corsair reads, its default, and what changes when you set it." />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/configuration.html" />
+<meta property="og:title" content="Configuration" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Every environment variable Corsair reads, its default, and what changes when you set it." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/configuration.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html" class="active" aria-current="page">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Install and operate</p></div><h1 id="configuration">Configuration</h1>
+<p>Everything is configured through environment variables, read once at startup from the process environment or <code>.env</code>. There is no configuration file and no settings table — a mail server's behaviour should be reproducible from its deployment, not from a row somebody edited.</p>
+<p>Defaults below are what the shipped code uses, not suggestions.</p>
+<h2 id="core">Core<a class="anchor" href="#core" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>DATABASE_URL</code></td>
+<td><code>postgres://corsair:corsair@localhost:55433/corsair</code></td>
+<td>PostgreSQL connection string</td>
+</tr>
+<tr>
+<td><code>DB_POOL_SIZE</code></td>
+<td><code>10</code></td>
+<td>Connections in the pool</td>
+</tr>
+<tr>
+<td><code>JWT_SECRET</code></td>
+<td><code>corsair-dev-secret-change-me</code></td>
+<td>Signs session tokens. <strong>Change this</strong></td>
+</tr>
+<tr>
+<td><code>PORT</code></td>
+<td><code>3000</code></td>
+<td>HTTP listener</td>
+</tr>
+<tr>
+<td><code>PUBLIC_URL</code></td>
+<td><code>http://localhost:3000</code></td>
+<td>Base URL in emails and redirects</td>
+</tr>
+<tr>
+<td><code>SIGNUPS</code></td>
+<td><code>open</code></td>
+<td><code>open</code> lets anyone sign up; <code>closed</code> allows only the first account</td>
+</tr>
+<tr>
+<td><code>TRUSTED_PROXIES</code></td>
+<td><em>(empty)</em></td>
+<td>Proxies whose <code>X-Forwarded-For</code> is believed</td>
+</tr>
+</tbody></table></div>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>JWT_SECRET</p><p>Anyone who knows it can mint a session for any account. Generate 48 random bytes and treat it as a credential:</p>
+<p><code>openssl rand -base64 48</code></p>
+<p>Changing it invalidates every existing session, which is also how you revoke everything at once.</p></aside>
+<p><code>TRUSTED_PROXIES</code> matters more than it looks. Behind a reverse proxy with it unset, every request appears to come from <code>127.0.0.1</code>: the rate limiter sees one client, and the ban list bans your own proxy.</p>
+<h2 id="mail-identity">Mail identity<a class="anchor" href="#mail-identity" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>CORSAIR_HOSTNAME</code></td>
+<td><code>mail.corsair.local</code></td>
+<td>The name this server gives in EHLO and stamps into <code>Received</code> headers</td>
+</tr>
+</tbody></table></div>
+<p>This must resolve to the IP you send from, and that IP must reverse-resolve back to it. Without that, the large providers reject on connect.</p>
+<p>The next group is what the DNS Setup screen tells customers to point records at — the public names of <em>this</em> installation, not of the customer's domain. On a single-host install, point them all at the same name.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+</tr></thead><tbody>
+<tr>
+<td><code>MAIL_MX_HOST</code></td>
+<td><code>mx1.corsair.local</code></td>
+</tr>
+<tr>
+<td><code>MAIL_SMTP_HOST</code></td>
+<td><code>smtp.corsair.local</code></td>
+</tr>
+<tr>
+<td><code>MAIL_IMAP_HOST</code></td>
+<td><code>imap.corsair.local</code></td>
+</tr>
+<tr>
+<td><code>MAIL_POP_HOST</code></td>
+<td><code>pop.corsair.local</code></td>
+</tr>
+<tr>
+<td><code>MAIL_SPF_HOST</code></td>
+<td><code>spf.corsair.local</code></td>
+</tr>
+<tr>
+<td><code>MAIL_AUTOCONFIG_HOST</code></td>
+<td><code>autoconfig.corsair.local</code></td>
+</tr>
+<tr>
+<td><code>MAIL_AUTODISCOVER_HOST</code></td>
+<td><code>autodiscover.corsair.local</code></td>
+</tr>
+<tr>
+<td><code>MAIL_DKIM_HOSTS</code></td>
+<td><code>dkim-1.corsair.local,dkim-2.corsair.local,dkim-3.corsair.local</code></td>
+</tr>
+</tbody></table></div>
+<p><code>MAIL_DKIM_HOSTS</code> is a comma-separated list of three. Customers publish a CNAME per selector pointing at these names and this server answers the lookup — three selectors let a key be rotated without a gap in signing.</p>
+<h2 id="listeners">Listeners<a class="anchor" href="#listeners" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default (dev)</th>
+<th>Production</th>
+</tr></thead><tbody>
+<tr>
+<td><code>SMTP_MX_PORT</code></td>
+<td><code>2525</code></td>
+<td><code>25</code></td>
+</tr>
+<tr>
+<td><code>SMTP_SUBMISSION_PORT</code></td>
+<td><code>2587</code></td>
+<td><code>587</code></td>
+</tr>
+<tr>
+<td><code>SMTP_SUBMISSION_TLS_PORT</code></td>
+<td><code>2465</code></td>
+<td><code>465</code></td>
+</tr>
+<tr>
+<td><code>IMAP_PORT</code></td>
+<td><code>2143</code></td>
+<td><code>143</code></td>
+</tr>
+<tr>
+<td><code>IMAP_TLS_PORT</code></td>
+<td><code>2993</code></td>
+<td><code>993</code></td>
+</tr>
+<tr>
+<td><code>POP3_PORT</code></td>
+<td><code>2110</code></td>
+<td><code>110</code></td>
+</tr>
+<tr>
+<td><code>POP3_TLS_PORT</code></td>
+<td><code>2995</code></td>
+<td><code>995</code></td>
+</tr>
+<tr>
+<td><code>SMTP_ENABLED</code></td>
+<td><code>true</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>IMAP_ENABLED</code></td>
+<td><code>true</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>POP3_ENABLED</code></td>
+<td><code>true</code></td>
+<td></td>
+</tr>
+</tbody></table></div>
+<p>The defaults are unprivileged so development needs no root. Ports below 1024 need <code>CAP_NET_BIND_SERVICE</code>:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo setcap 'cap_net_bind_service=+ep' &quot;$(which bun)&quot;</code></pre></figure>
+<p>The <code>*_ENABLED</code> flags accept <code>true</code>, <code>1</code>, or <code>yes</code>. Turning listeners off is how you <a href="installation.html">split the deployment</a>.</p>
+<h2 id="tls">TLS<a class="anchor" href="#tls" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>TLS_CERT_PATH</code></td>
+<td><em>(empty)</em></td>
+<td>PEM certificate chain</td>
+</tr>
+<tr>
+<td><code>TLS_KEY_PATH</code></td>
+<td><em>(empty)</em></td>
+<td>PEM private key</td>
+</tr>
+</tbody></table></div>
+<p>Used by the implicit-TLS listeners and by STARTTLS. Leave them empty to run plaintext-only, which is fine locally and unacceptable anywhere else — Corsair advertises <code>LOGINDISABLED</code> and refuses SMTP <code>AUTH</code> and IMAP <code>LOGIN</code> on an unencrypted connection when a certificate is configured.</p>
+<p>See <a href="tls.html">TLS certificates</a>.</p>
+<h2 id="delivery">Delivery<a class="anchor" href="#delivery" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>DELIVERY_TRANSPORT</code></td>
+<td><code>console</code></td>
+<td><code>direct</code>, <code>relay</code>, or <code>console</code></td>
+</tr>
+<tr>
+<td><code>SMTP_RELAY_HOST</code></td>
+<td><em>(empty)</em></td>
+<td>Smarthost, for <code>relay</code></td>
+</tr>
+<tr>
+<td><code>SMTP_RELAY_PORT</code></td>
+<td><code>587</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>SMTP_RELAY_USER</code></td>
+<td><em>(empty)</em></td>
+<td></td>
+</tr>
+<tr>
+<td><code>SMTP_RELAY_PASS</code></td>
+<td><em>(empty)</em></td>
+<td></td>
+</tr>
+<tr>
+<td><code>SMTP_RELAY_SECURE</code></td>
+<td><code>starttls</code></td>
+<td></td>
+</tr>
+</tbody></table></div>
+<div class='table-wrap'><table><thead><tr>
+<th>Transport</th>
+<th>Behaviour</th>
+</tr></thead><tbody>
+<tr>
+<td><code>direct</code></td>
+<td>Look up the recipient's MX and talk to it. Needs port 25 outbound</td>
+</tr>
+<tr>
+<td><code>relay</code></td>
+<td>Hand everything to an upstream smarthost</td>
+</tr>
+<tr>
+<td><code>console</code></td>
+<td>Print to stdout, deliver nothing. The default, for local development</td>
+</tr>
+</tbody></table></div>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span><code>console</code> is the default</p><p>A fresh <code>.env</code> delivers nothing. That is right for a laptop and wrong for a server — set <code>DELIVERY_TRANSPORT=direct</code> (or <code>relay</code>) as part of going live, or mail silently goes to the log.</p></aside>
+<h2 id="storage">Storage<a class="anchor" href="#storage" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>STORAGE_BUCKET</code></td>
+<td><em>(empty)</em></td>
+<td>S3-compatible bucket. Empty keeps bodies in Postgres</td>
+</tr>
+<tr>
+<td><code>STORAGE_REGION</code></td>
+<td><code>nyc3</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>STORAGE_ENDPOINT</code></td>
+<td><em>(empty)</em></td>
+<td>e.g. <code>https://nyc3.digitaloceanspaces.com</code></td>
+</tr>
+<tr>
+<td><code>STORAGE_ACCESS_KEY_ID</code></td>
+<td><em>(empty)</em></td>
+<td></td>
+</tr>
+<tr>
+<td><code>STORAGE_SECRET_ACCESS_KEY</code></td>
+<td><em>(empty)</em></td>
+<td></td>
+</tr>
+<tr>
+<td><code>STORAGE_PREFIX</code></td>
+<td><code>corsair</code></td>
+<td>Key prefix inside the bucket</td>
+</tr>
+</tbody></table></div>
+<p>Objects are written with no ACL and inherit the bucket's default. Check that default is private before pointing Corsair at a bucket you already use.</p>
+<h2 id="workers">Workers<a class="anchor" href="#workers" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>WORKER_CONCURRENCY</code></td>
+<td><code>8</code></td>
+<td>Jobs processed at once</td>
+</tr>
+<tr>
+<td><code>WORKER_POLL_MS</code></td>
+<td><code>1000</code></td>
+<td>How often the queue is polled when idle</td>
+</tr>
+</tbody></table></div>
+<p>The queue claims work with <code>FOR UPDATE SKIP LOCKED</code>, so any number of worker processes can drain it without coordinating and without delivering anything twice. Raise concurrency before adding processes.</p>
+<h2 id="payments">Payments<a class="anchor" href="#payments" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>STRIPE_SECRET_KEY</code></td>
+<td><em>(empty)</em></td>
+<td>Enables hosted checkout</td>
+</tr>
+<tr>
+<td><code>STRIPE_WEBHOOK_SECRET</code></td>
+<td><em>(empty)</em></td>
+<td>Verifies settlement webhooks</td>
+</tr>
+</tbody></table></div>
+<p>Leave both empty and Corsair runs unmetered: plans still gate features and an operator can record payment methods by hand, but nothing is charged. That is the right default for hosting mail for yourself.</p>
+<p>Card details never reach this server. The customer enters them on the provider's hosted page; a brand, four digits, and an opaque reference come back. There is no code path here that could accept a card number.</p>
+<h2 id="webhooks">Webhooks<a class="anchor" href="#webhooks" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>WEBHOOK_ALLOW_PRIVATE</code></td>
+<td><code>false</code></td>
+<td>Allow endpoints on private, loopback, and link-local addresses</td>
+</tr>
+</tbody></table></div>
+<p>The customer supplies the URL and this server fetches it, which is a server-side request forgery primitive. <code>assertDeliverable</code> refuses private ranges by default. Turn it on only when your consumers are genuinely on the same private network.</p>
+<h2 id="limits">Limits<a class="anchor" href="#limits" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>RATE_LIMIT_PER_SECOND</code></td>
+<td><code>10</code></td>
+<td>API requests per second, per principal</td>
+</tr>
+<tr>
+<td><code>MAX_MESSAGE_BYTES</code></td>
+<td><code>52428800</code></td>
+<td>50 MB. Advertised in the SMTP <code>SIZE</code> extension</td>
+</tr>
+</tbody></table></div>
+<p>Authenticated requests are limited per user; unauthenticated ones per IP. Sign-in and sign-up have their own tighter limit of <strong>5 per second per IP</strong>, since there is no principal yet.</p>
+<p>A 429 carries <code>retry-after</code>, <code>ratelimit-limit</code>, <code>ratelimit-remaining</code>, and <code>ratelimit-reset</code>.</p>
+<p><code>MAX_MESSAGE_BYTES</code> is the wire size after encoding. Base64 costs about a third, so 50 MB on the wire is roughly a 35 MB attachment.</p>
+<h2 id="seeding">Seeding<a class="anchor" href="#seeding" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>SEED_PASSWORD</code></td>
+<td><code>corsair-dev-password</code></td>
+<td>Password for the account <code>scripts/seed.ts</code> creates</td>
+</tr>
+</tbody></table></div>
+<p>Read only by the seed script. Set it on any host that is not your laptop.</p>
+<h2 id="a-production-starting-point">A production starting point<a class="anchor" href="#a-production-starting-point" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>DATABASE_URL=postgres://corsair:LONG_PASSWORD@localhost:5432/corsair
+JWT_SECRET=&lt;openssl rand -base64 48&gt;
+PUBLIC_URL=https://mail.example.com
+SIGNUPS=closed
+TRUSTED_PROXIES=127.0.0.1
+
+CORSAIR_HOSTNAME=mail.example.com
+MAIL_MX_HOST=mail.example.com
+MAIL_SMTP_HOST=mail.example.com
+MAIL_IMAP_HOST=mail.example.com
+MAIL_POP_HOST=mail.example.com
+MAIL_SPF_HOST=mail.example.com
+MAIL_AUTOCONFIG_HOST=mail.example.com
+MAIL_AUTODISCOVER_HOST=mail.example.com
+MAIL_DKIM_HOSTS=dkim-1.mail.example.com,dkim-2.mail.example.com,dkim-3.mail.example.com
+
+SMTP_MX_PORT=25
+SMTP_SUBMISSION_PORT=587
+SMTP_SUBMISSION_TLS_PORT=465
+IMAP_PORT=143
+IMAP_TLS_PORT=993
+POP3_PORT=110
+POP3_TLS_PORT=995
+
+TLS_CERT_PATH=/etc/corsair/certs/fullchain.pem
+TLS_KEY_PATH=/etc/corsair/certs/privkey.pem
+
+DELIVERY_TRANSPORT=direct
+
+STORAGE_BUCKET=my-mail-bucket
+STORAGE_REGION=nyc3
+STORAGE_ENDPOINT=https://nyc3.digitaloceanspaces.com
+STORAGE_ACCESS_KEY_ID=...
+STORAGE_SECRET_ACCESS_KEY=...</code></pre></figure>
+<p>Then walk <a href="production-checklist.html">the production checklist</a>.</p>
+<h2 id="changing-configuration">Changing configuration<a class="anchor" href="#changing-configuration" aria-label="Link to this section">#</a></h2>
+<p>Every value is read at startup. Restart after any edit:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo systemctl restart corsair
+# or
+docker compose up -d</code></pre></figure>
+<p>There is no reload signal. A mail server that reconfigures itself mid-connection is a source of bugs nobody enjoys.</p><nav class="pager"><a class="pager-prev" href="./installation.html"><span>Previous</span><strong>Installation</strong></a><a class="pager-next" href="./dns-setup.html"><span>Next</span><strong>DNS setup</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#core">Core</a></li><li class="toc-h2"><a href="#mail-identity">Mail identity</a></li><li class="toc-h2"><a href="#listeners">Listeners</a></li><li class="toc-h2"><a href="#tls">TLS</a></li><li class="toc-h2"><a href="#delivery">Delivery</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#workers">Workers</a></li><li class="toc-h2"><a href="#payments">Payments</a></li><li class="toc-h2"><a href="#webhooks">Webhooks</a></li><li class="toc-h2"><a href="#limits">Limits</a></li><li class="toc-h2"><a href="#seeding">Seeding</a></li><li class="toc-h2"><a href="#a-production-starting-point">A production starting point</a></li><li class="toc-h2"><a href="#changing-configuration">Changing configuration</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Core concepts · Corsair</title>
+<meta name="description" content="Users, addresses, domains, folders, and the single-store model — the vocabulary the rest of the manual assumes." />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/concepts.html" />
+<meta property="og:title" content="Core concepts" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Users, addresses, domains, folders, and the single-store model — the vocabulary the rest of the manual assumes." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/concepts.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html" class="active" aria-current="page">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Start here</p></div><h1 id="core-concepts">Core concepts</h1>
+<p>Six ideas. Everything else in the manual is built on them, and the first one is the one people get wrong.</p>
+<h2 id="users-and-addresses-are-different-things">Users and addresses are different things<a class="anchor" href="#users-and-addresses-are-different-things" aria-label="Link to this section">#</a></h2>
+<p>There are two entirely separate identities in Corsair, and conflating them is the bug to avoid.</p>
+<div class='table-wrap'><table><thead><tr>
+<th></th>
+<th>User</th>
+<th>Address</th>
+</tr></thead><tbody>
+<tr>
+<td>What it is</td>
+<td>A control-panel login</td>
+<td>A mailbox credential</td>
+</tr>
+<tr>
+<td>Signs into</td>
+<td>The panel at <code>/app</code></td>
+<td>SMTP, IMAP, POP3, JMAP, webmail</td>
+</tr>
+<tr>
+<td>Authenticated by</td>
+<td>Session cookie (<code>corsair_session</code>)</td>
+<td>Password on the protocol</td>
+</tr>
+<tr>
+<td>Owns</td>
+<td>Domains, plans, webhooks, filters</td>
+<td>Messages, folders</td>
+</tr>
+</tbody></table></div>
+<p>An address password never signs into the panel, and a user password never signs into a mail client. This is deliberate and it is not going to change: a mailbox credential is typed into phones, laptops, and printers, and one of those will eventually be lost or compromised. When that happens it must not also be the key to the account that owns every domain.</p>
+<p>The <strong>first user created owns the instance</strong> (<code>users.is_owner</code>). The claim is made inside the INSERT and guarded by a partial unique index, so two simultaneous signups cannot both win.</p>
+<h2 id="a-domain-is-a-routing-decision-plus-proof">A domain is a routing decision plus proof<a class="anchor" href="#a-domain-is-a-routing-decision-plus-proof" aria-label="Link to this section">#</a></h2>
+<p>Adding a domain does three things: it generates a verification token, it creates three DKIM key pairs, and it produces the record set you have to publish.</p>
+<p>A domain has a status. Until it is <strong>active</strong>, Corsair will accept mail for it but refuses to send from it. Sending from a domain whose SPF and DKIM are not published damages the sending IP's reputation for every other domain on the server, so this is enforced rather than advised.</p>
+<p>The worker re-checks pending domains every half hour, because people publish records and never come back to press the button.</p>
+<p>See <a href="domains.html">Domains</a> and <a href="dns-setup.html">DNS setup</a>.</p>
+<h2 id="addresses-come-in-four-kinds">Addresses come in four kinds<a class="anchor" href="#addresses-come-in-four-kinds" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Kind</th>
+<th>Password</th>
+<th>Mailbox</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>standard</code></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>An ordinary mailbox</td>
+</tr>
+<tr>
+<td><code>catchall</code></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>A mailbox that also receives anything unmatched in the domain</td>
+</tr>
+<tr>
+<td><code>alias</code></td>
+<td>No</td>
+<td>No</td>
+<td>Forwards to exactly one destination</td>
+</tr>
+<tr>
+<td><code>group</code></td>
+<td>No</td>
+<td>No</td>
+<td>Forwards to several destinations at once</td>
+</tr>
+</tbody></table></div>
+<p>Only <code>standard</code> and <code>catchall</code> carry a password hash. Aliases and groups are routing entries — there is nothing to sign into, because there is no mailbox behind them.</p>
+<p>To <em>send</em> as an alias, sign in as a real mailbox on the same account and set the From address in your client.</p>
+<h3 id="how-a-recipient-is-resolved">How a recipient is resolved<a class="anchor" href="#how-a-recipient-is-resolved" aria-label="Link to this section">#</a></h3>
+<p>For <code>anything@example.com</code>, in order:</p>
+<ol><li>An exact address match.</li><li><strong>Sub-addressing</strong> — <code>user+tag@</code> routes to <code>user@</code>, with no setup at all.</li><li>The domain's <strong>catch-all</strong>, if one exists.</li><li>The domain's <strong>fallback domain</strong>, followed exactly once. (Following it twice is how you build a loop.)</li></ol>
+<p>If none match, the message is rejected at SMTP time with a 550. Corsair does not accept-then-bounce: a bounce to a forged sender is backscatter, and refusing during the transaction puts the problem back where it belongs.</p>
+<h2 id="folders-uids-and-why-they-are-fussy">Folders, UIDs, and why they are fussy<a class="anchor" href="#folders-uids-and-why-they-are-fussy" aria-label="Link to this section">#</a></h2>
+<p>Every mailbox is provisioned with six folders: <code>INBOX</code>, <code>Drafts</code>, <code>Sent</code>, <code>Junk</code>, <code>Trash</code>, and <code>Archive</code>, each tagged with its IMAP special-use attribute so clients put things in the right place without being told.</p>
+<p>Two properties of IMAP shape a lot of the code:</p>
+<p><strong>A UID is permanent and must be unique.</strong> Corsair allocates one with <code>UPDATE folders SET uid_next = uid_next + 1 … RETURNING</code>, which takes a row lock. Two deliveries arriving at the same instant cannot be handed the same UID, and a duplicate UID is the one thing an IMAP client never recovers from.</p>
+<p><strong>Sequence numbers renumber.</strong> They index into the folder's live messages in UID order, so deleting message 3 makes the old 4 into the new 3. This is why <code>EXPUNGE</code> is emitted highest-sequence-first — ascending order makes a client delete the wrong messages.</p>
+<p><strong>A move keeps the message id.</strong> <code>moveTo</code> updates <code>folder_id</code> and allocates a fresh UID in the target, writing a tombstone in the source. It is deliberately not implemented as copy-then-expunge, which would mint a new row id — and JMAP requires an Email's id to survive a change of mailbox.</p>
+<h2 id="one-store-five-ways-in">One store, five ways in<a class="anchor" href="#one-store-five-ways-in" aria-label="Link to this section">#</a></h2>
+<p>SMTP, IMAP, JMAP, POP3, and the webmail all read and write the same rows.</p>
+<p>That is why a message delivered over SMTP is instantly visible over all of them, and why there is no &quot;sync&quot; anywhere in the product. It is also why a change to the store affects every protocol at once, which is the trade you are making.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Protocol</th>
+<th>Port</th>
+<th>Identity</th>
+<th>Notes</th>
+</tr></thead><tbody>
+<tr>
+<td>SMTP (MX)</td>
+<td>25</td>
+<td>None — anyone may deliver</td>
+<td><a href="smtp.html">Reference</a></td>
+</tr>
+<tr>
+<td>SMTP (submission)</td>
+<td>587, 465</td>
+<td>Address</td>
+<td>Requires TLS</td>
+</tr>
+<tr>
+<td>IMAP</td>
+<td>143, 993</td>
+<td>Address</td>
+<td><a href="imap.html">Reference</a></td>
+</tr>
+<tr>
+<td>POP3</td>
+<td>110, 995</td>
+<td>Address</td>
+<td><a href="pop3.html">Reference</a></td>
+</tr>
+<tr>
+<td>JMAP</td>
+<td>443 (HTTP)</td>
+<td>Address, via Basic or cookie</td>
+<td><a href="jmap.html">Reference</a></td>
+</tr>
+<tr>
+<td>Webmail</td>
+<td>443 (HTTP)</td>
+<td>Address, via cookie</td>
+<td><a href="webmail.html">Guide</a></td>
+</tr>
+<tr>
+<td>Panel API</td>
+<td>443 (HTTP)</td>
+<td>User, via cookie</td>
+<td><a href="api.html">Reference</a></td>
+</tr>
+</tbody></table></div>
+<h2 id="plans-gate-features-even-when-nothing-is-charged">Plans gate features, even when nothing is charged<a class="anchor" href="#plans-gate-features-even-when-nothing-is-charged" aria-label="Link to this section">#</a></h2>
+<p>An account's <strong>entitlement</strong> is its plan plus its live subscription. Plans are rows in a table, not constants, so a self-hoster can price, rename, or delete them without a deploy.</p>
+<p>An account with no subscription falls back to the trial plan. An instance with <strong>no plans at all</strong> is unmetered: every feature on, no caps. That is a legitimate way to run a private server, and it is what you get if you never touch billing.</p>
+<p>A feature the plan does not include raises a <strong>402</strong>, not a 403, so the panel can render an upgrade prompt rather than an error. Validation always runs first — a malformed input is invalid regardless of the plan.</p>
+<p>See <a href="plans-billing.html">Plans and billing</a>.</p>
+<h2 id="things-that-are-deliberately-never-stored">Things that are deliberately never stored<a class="anchor" href="#things-that-are-deliberately-never-stored" aria-label="Link to this section">#</a></h2>
+<p>Three credentials pass through Corsair and are never persisted. Do not &quot;fix&quot; any of them by adding a column:</p>
+<ul><li><strong>DNS API tokens</strong> — used for one publish and discarded. One can usually rewrite every record on every domain in the account.</li><li><strong>Card details</strong> — never touch the server at all. The customer enters them on the provider's hosted page; a brand, four digits, and an opaque reference come back.</li><li><strong>Transfer source passwords</strong> — encrypted at rest and erased the moment the transfer reaches a terminal state. They are someone else's credential.</li></ul>
+<p>Reset and recovery tokens are stored only as SHA-256 hashes, and redeemed with a <code>used_at IS NULL</code> predicate <em>inside</em> the UPDATE — checking it in a separate read lets two concurrent requests both redeem the same link.</p><nav class="pager"><a class="pager-prev" href="./quickstart.html"><span>Previous</span><strong>Quickstart</strong></a><a class="pager-next" href="./prerequisites.html"><span>Next</span><strong>Prerequisites</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#users-and-addresses-are-different-things">Users and addresses are different things</a></li><li class="toc-h2"><a href="#a-domain-is-a-routing-decision-plus-proof">A domain is a routing decision plus proof</a></li><li class="toc-h2"><a href="#addresses-come-in-four-kinds">Addresses come in four kinds</a></li><li class="toc-h3"><a href="#how-a-recipient-is-resolved">How a recipient is resolved</a></li><li class="toc-h2"><a href="#folders-uids-and-why-they-are-fussy">Folders, UIDs, and why they are fussy</a></li><li class="toc-h2"><a href="#one-store-five-ways-in">One store, five ways in</a></li><li class="toc-h2"><a href="#plans-gate-features-even-when-nothing-is-charged">Plans gate features, even when nothing is charged</a></li><li class="toc-h2"><a href="#things-that-are-deliberately-never-stored">Things that are deliberately never stored</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

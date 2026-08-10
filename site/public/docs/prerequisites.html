@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Prerequisites · Corsair</title>
+<meta name="description" content="The four things that decide whether your mail is delivered, none of which are code." />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/prerequisites.html" />
+<meta property="og:title" content="Prerequisites" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="The four things that decide whether your mail is delivered, none of which are code." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/prerequisites.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html" class="active" aria-current="page">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Start here</p></div><h1 id="prerequisites">Prerequisites</h1>
+<p>Read this before you buy a server. Four things decide whether your mail is delivered or silently binned, and none of them are code. Corsair cannot fix any of them for you and does not pretend it can.</p>
+<h2 id="1-a-static-ip-with-a-matching-ptr-record">1. A static IP with a matching PTR record<a class="anchor" href="#1-a-static-ip-with-a-matching-ptr-record" aria-label="Link to this section">#</a></h2>
+<p><code>CORSAIR_HOSTNAME</code> must resolve to the IP you send from, and that IP must reverse-resolve back to the same name. Both directions.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>$ dig +short mail.example.com
+203.0.113.9
+$ dig +short -x 203.0.113.9
+mail.example.com.</code></pre></figure>
+<p>The PTR is set through your <strong>hosting provider's</strong> control panel — it lives in their reverse zone, not yours, and you cannot publish it yourself. Every provider worth using offers it: DigitalOcean sets it from the droplet name, Hetzner and Vultr have a field, AWS requires a request form for Elastic IPs.</p>
+<p>Without a matching PTR the large providers reject on connect, before they have seen a single message. This is the single most common reason a new mail server does not work.</p>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Dynamic IPs will not work</p><p>Residential and dynamic addresses are on the Policy Block List by construction. No configuration makes them deliverable. If that is what you have, run Corsair anyway and set <code>DELIVERY_TRANSPORT=relay</code> to hand outbound mail to a smarthost.</p></aside>
+<h2 id="2-port-25-outbound">2. Port 25 outbound<a class="anchor" href="#2-port-25-outbound" aria-label="Link to this section">#</a></h2>
+<p>Most cloud providers block outbound 25 by default to limit the damage from compromised instances. They will usually unblock it on request:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Provider</th>
+<th>How</th>
+</tr></thead><tbody>
+<tr>
+<td>DigitalOcean</td>
+<td>Support ticket, usually approved for an established account</td>
+</tr>
+<tr>
+<td>Hetzner</td>
+<td>Support ticket, generally granted after a few days of account age</td>
+</tr>
+<tr>
+<td>Vultr</td>
+<td>Support ticket</td>
+</tr>
+<tr>
+<td>AWS</td>
+<td>A request form against the Elastic IP, plus a matching PTR request</td>
+</tr>
+<tr>
+<td>Google Cloud</td>
+<td>Not granted. Use a relay</td>
+</tr>
+<tr>
+<td>Azure</td>
+<td>Not granted for most subscriptions. Use a relay</td>
+</tr>
+<tr>
+<td>OVH, Scaleway</td>
+<td>Usually open by default</td>
+</tr>
+</tbody></table></div>
+<p>Test it from the host before you commit:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>$ nc -zv gmail-smtp-in.l.google.com 25
+Connection to gmail-smtp-in.l.google.com port 25 [tcp/smtp] succeeded!</code></pre></figure>
+<p>If it hangs, it is blocked. That is not fatal — set <code>DELIVERY_TRANSPORT=relay</code> and point Corsair at a smarthost. Inbound mail on port 25 still works; only outbound delivery changes.</p>
+<h2 id="3-a-real-tls-certificate">3. A real TLS certificate<a class="anchor" href="#3-a-real-tls-certificate" aria-label="Link to this section">#</a></h2>
+<figure class="code"><pre><code>TLS_CERT_PATH=/etc/letsencrypt/live/mail.example.com/fullchain.pem
+TLS_KEY_PATH=/etc/letsencrypt/live/mail.example.com/privkey.pem</code></pre></figure>
+<p>Corsair refuses SMTP <code>AUTH</code> and IMAP <code>LOGIN</code> without one. That is deliberate: a password crossing the network in the clear is worse than no service, and discovering it here is better than discovering it afterwards.</p>
+<p>The certificate must be for <code>CORSAIR_HOSTNAME</code>. If your clients connect to <code>imap.example.com</code> and <code>smtp.example.com</code>, either include those as SANs or point them at the same name with CNAMEs.</p>
+<p>Let's Encrypt via DNS-01 is the least painful route because it does not need port 80 open. See <a href="tls.html">TLS certificates</a>.</p>
+<h2 id="4-permission-to-bind-privileged-ports">4. Permission to bind privileged ports<a class="anchor" href="#4-permission-to-bind-privileged-ports" aria-label="Link to this section">#</a></h2>
+<p>Ports below 1024 need root or the capability. Granting the capability is the alternative to running a mail server as root, which it should not be:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo setcap 'cap_net_bind_service=+ep' &quot;$(which bun)&quot;</code></pre></figure>
+<p>Then set the ports to the real ones:</p>
+<figure class="code"><pre><code>SMTP_MX_PORT=25
+SMTP_SUBMISSION_PORT=587
+SMTP_SUBMISSION_TLS_PORT=465
+IMAP_PORT=143
+IMAP_TLS_PORT=993
+POP3_PORT=110
+POP3_TLS_PORT=995</code></pre></figure>
+<p>The provided <code>Dockerfile</code> already does the <code>setcap</code> and then drops to an unprivileged user.</p>
+<h2 id="sizing-the-host">Sizing the host<a class="anchor" href="#sizing-the-host" aria-label="Link to this section">#</a></h2>
+<p>Corsair is not demanding. The floor is set by PostgreSQL and by how much mail you keep.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Mailboxes</th>
+<th>vCPU</th>
+<th>RAM</th>
+<th>Disk (excluding bodies)</th>
+</tr></thead><tbody>
+<tr>
+<td>1–10</td>
+<td>1</td>
+<td>1 GB</td>
+<td>10 GB</td>
+</tr>
+<tr>
+<td>10–100</td>
+<td>2</td>
+<td>2 GB</td>
+<td>25 GB</td>
+</tr>
+<tr>
+<td>100–1000</td>
+<td>4</td>
+<td>8 GB</td>
+<td>100 GB</td>
+</tr>
+</tbody></table></div>
+<p>With <code>STORAGE_BUCKET</code> configured, message bodies live in object storage and the disk figure above is metadata only — a few kilobytes per message. Without a bucket, add the full size of every message you intend to keep.</p>
+<p>See <a href="scaling.html">Scaling and performance</a> for the detail.</p>
+<h2 id="a-clean-ip">A clean IP<a class="anchor" href="#a-clean-ip" aria-label="Link to this section">#</a></h2>
+<p>Check the address against the common blocklists <strong>before</strong> you commit to it. Cheap VPS ranges are frequently listed before you ever boot the machine, and a provider will usually reassign you a different address if you ask early.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code># Reverse the octets and query. 203.0.113.9 → 9.113.0.203
+dig +short 9.113.0.203.zen.spamhaus.org
+dig +short 9.113.0.203.bl.spamcop.net</code></pre></figure>
+<p>An answer means listed. No answer means not listed by that service.</p>
+<h2 id="a-domain-you-control-the-dns-for">A domain you control the DNS for<a class="anchor" href="#a-domain-you-control-the-dns-for" aria-label="Link to this section">#</a></h2>
+<p>You need to publish ten records. If the domain's DNS is at Cloudflare or DigitalOcean, Corsair can write them itself given an API token — used once, never stored. Otherwise you paste them, or import the zone file it exports.</p>
+<h2 id="the-checklist">The checklist<a class="anchor" href="#the-checklist" aria-label="Link to this section">#</a></h2>
+<p>Before you install anything:</p>
+<ul><li class="task"><span class="box" aria-hidden="true"></span>Static IP, PTR set, forward and reverse agree</li><li class="task"><span class="box" aria-hidden="true"></span>Outbound port 25 confirmed open, or a relay chosen</li><li class="task"><span class="box" aria-hidden="true"></span>Hostname decided and resolving</li><li class="task"><span class="box" aria-hidden="true"></span>DNS control for the domain you will host</li><li class="task"><span class="box" aria-hidden="true"></span>IP checked against blocklists</li><li class="task"><span class="box" aria-hidden="true"></span>A plan for certificates</li></ul>
+<p>With those, <a href="tutorials/first-server.html">Your first production server</a> takes about an hour.</p><nav class="pager"><a class="pager-prev" href="./concepts.html"><span>Previous</span><strong>Core concepts</strong></a><a class="pager-next" href="./tutorials/index.html"><span>Next</span><strong>Tutorials</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#1-a-static-ip-with-a-matching-ptr-record">1. A static IP with a matching PTR record</a></li><li class="toc-h2"><a href="#2-port-25-outbound">2. Port 25 outbound</a></li><li class="toc-h2"><a href="#3-a-real-tls-certificate">3. A real TLS certificate</a></li><li class="toc-h2"><a href="#4-permission-to-bind-privileged-ports">4. Permission to bind privileged ports</a></li><li class="toc-h2"><a href="#sizing-the-host">Sizing the host</a></li><li class="toc-h2"><a href="#a-clean-ip">A clean IP</a></li><li class="toc-h2"><a href="#a-domain-you-control-the-dns-for">A domain you control the DNS for</a></li><li class="toc-h2"><a href="#the-checklist">The checklist</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Troubleshooting · Corsair</title>
+<meta name="description" content="Symptom first — find what you are seeing, then the cause and the fix." />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/troubleshooting.html" />
+<meta property="og:title" content="Troubleshooting" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Symptom first — find what you are seeing, then the cause and the fix." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/troubleshooting.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html" class="active" aria-current="page">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Install and operate</p></div><h1 id="troubleshooting">Troubleshooting</h1>
+<p>Organised by what you are seeing, not by what is broken. Find the symptom, work down the causes in order — they are ordered by how often they turn out to be it.</p>
+<h2 id="first-three-commands">First, three commands<a class="anchor" href="#first-three-commands" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>systemctl status corsair
+journalctl -u corsair --since &quot;30 minutes ago&quot; | grep -i error
+psql &quot;$DATABASE_URL&quot; -c &quot;SELECT status, count(*) FROM deliveries GROUP BY status&quot;</code></pre></figure>
+<p>Running, no errors, queue draining. If all three are fine, the problem is probably DNS or the network, not Corsair.</p>
+<h2 id="no-mail-arrives-at-all">No mail arrives at all<a class="anchor" href="#no-mail-arrives-at-all" aria-label="Link to this section">#</a></h2>
+<p><strong>1. Is the MX record right?</strong></p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>dig +short MX example.com</code></pre></figure>
+<p>It must point at a name that resolves to this server. A missing or stale MX is the cause more often than everything else combined.</p>
+<p><strong>2. Is port 25 reachable from outside?</strong></p>
+<figure class="code"><span class="code-lang">sh</span><pre><code># From another machine
+nc -zv mail.example.com 25</code></pre></figure>
+<p>Test from off the host. A firewall or security group blocking inbound 25 is invisible from inside.</p>
+<p><strong>3. Is the listener up?</strong></p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo ss -lntp | grep ':25 '</code></pre></figure>
+<p>Nothing there means <code>SMTP_ENABLED=false</code>, or the process could not bind the port:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo setcap 'cap_net_bind_service=+ep' &quot;$(which bun)&quot;
+sudo systemctl restart corsair</code></pre></figure>
+<p>This is also what happens after a <code>bun upgrade</code> — the new binary has no capability.</p>
+<p><strong>4. Is the domain added?</strong> Corsair only accepts mail for domains it hosts. Everything else is refused, correctly.</p>
+<p><strong>5. Watch a live delivery.</strong></p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>journalctl -u corsair -f</code></pre></figure>
+<p>Then send yourself something. If nothing appears in the log, it never arrived — the problem is DNS or the network.</p>
+<h2 id="mail-arrives-but-the-recipient-does-not-see-it">Mail arrives but the recipient does not see it<a class="anchor" href="#mail-arrives-but-the-recipient-does-not-see-it" aria-label="Link to this section">#</a></h2>
+<p><strong>Check where it was filed.</strong> The spam scorer may have put it in Junk.</p>
+<figure class="code"><span class="code-lang">sql</span><pre><code>SELECT m.subject, m.spam_score, f.name
+FROM messages m JOIN folders f ON f.id = m.folder_id
+WHERE m.address_id = (SELECT id FROM addresses WHERE address = 'you@example.com')
+ORDER BY m.created_at DESC LIMIT 10;</code></pre></figure>
+<p><strong>Check the filter.</strong> A <code>fileinto</code> cancels the implicit keep, so a rule that matched more than intended silently files mail somewhere else. A <code>discard</code> drops it entirely.</p>
+<p><strong>Check it is not sub-addressing.</strong> <code>you+tag@</code> lands in <code>you@</code>, which is by design but surprises people looking for a separate mailbox.</p>
+<h2 id="cannot-send">Cannot send<a class="anchor" href="#cannot-send" aria-label="Link to this section">#</a></h2>
+<p><strong>1. Is the domain active?</strong> Corsair accepts mail for a pending domain but refuses to send from it. Sending before SPF and DKIM are published damages the IP's reputation for every other domain on the server.</p>
+<p>Panel → Domains → the domain must say active. If it does not, press <strong>Check DNS</strong> and read what it says is missing.</p>
+<p><strong>2. Is <code>DELIVERY_TRANSPORT</code> set?</strong></p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>grep DELIVERY_TRANSPORT .env</code></pre></figure>
+<p>The default is <code>console</code> — it prints to stdout and delivers nothing. Right for a laptop, wrong for a server.</p>
+<p><strong>3. Is port 25 open outbound?</strong></p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>nc -zv gmail-smtp-in.l.google.com 25</code></pre></figure>
+<p>Hanging means blocked. Set <code>DELIVERY_TRANSPORT=relay</code> and point at a smarthost.</p>
+<p><strong>4. Is the daily limit reached?</strong> Plans cap <code>daily_out</code>. A quota error in the response is this.</p>
+<h2 id="mail-is-sent-but-rejected-by-the-receiver">Mail is sent but rejected by the receiver<a class="anchor" href="#mail-is-sent-but-rejected-by-the-receiver" aria-label="Link to this section">#</a></h2>
+<p>Read the reply. It is recorded verbatim:</p>
+<figure class="code"><span class="code-lang">sql</span><pre><code>SELECT rcpt_to, last_code, last_error, attempts
+FROM deliveries
+WHERE status &lt;&gt; 'sent'
+ORDER BY updated_at DESC LIMIT 20;</code></pre></figure>
+<div class='table-wrap'><table><thead><tr>
+<th>Reply</th>
+<th>Meaning</th>
+<th>Fix</th>
+</tr></thead><tbody>
+<tr>
+<td><code>550 5.7.26</code></td>
+<td>No aligned SPF or DKIM</td>
+<td>DNS is wrong or incomplete. Entirely fixable</td>
+</tr>
+<tr>
+<td><code>550 5.7.1</code> … PTR</td>
+<td>Reverse DNS mismatch</td>
+<td>Set the PTR at your host</td>
+</tr>
+<tr>
+<td><code>421 4.7.0</code></td>
+<td>Rate limited</td>
+<td>Back off. Not a configuration error</td>
+</tr>
+<tr>
+<td><code>450 4.2.0</code></td>
+<td>Greylisting</td>
+<td>Normal on a first attempt. The retry is accepted</td>
+</tr>
+<tr>
+<td><code>554</code> … blocked</td>
+<td>IP reputation or a blocklist</td>
+<td>Check listings; request delisting</td>
+</tr>
+</tbody></table></div>
+<p><a href="smtp-errors.html">SMTP error lookup</a> has the full table.</p>
+<h2 id="dkim-fail-at-the-receiver"><code>dkim=fail</code> at the receiver<a class="anchor" href="#dkim-fail-at-the-receiver" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>dig +short CNAME corsair-1._domainkey.example.com</code></pre></figure>
+<p><strong>Nothing returned</strong> — the record is not published. The panel's DNS tab has it.</p>
+<p><strong>Returned, but still failing</strong> — you may be publishing the CNAME for a selector that is not the active one. Domains → Keys shows which is active.</p>
+<p><strong>Was working, now failing</strong> — a DNS edit for an unrelated reason removed it, or the provider &quot;helpfully&quot; flattened the CNAME.</p>
+<p>Check what the receiver saw:</p>
+<figure class="code"><pre><code>dkim=pass header.i=@example.com header.s=corsair-1</code></pre></figure>
+<p><code>header.s</code> is the selector. That is the CNAME that must exist.</p>
+<h2 id="spf-fail"><code>spf=fail</code><a class="anchor" href="#spf-fail" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>dig +short TXT example.com | grep spf1</code></pre></figure>
+<p><strong>Includes your host?</strong> It must include whatever <code>MAIL_SPF_HOST</code> is set to.</p>
+<p><strong>Sending from the right IP?</strong> SPF authorises addresses. If outbound leaves through a different interface or a NAT, that address must be listed.</p>
+<p><strong>Two <code>v=spf1</code> records?</strong> That is a permanent error and SPF stops working entirely. There must be exactly one.</p>
+<p><strong>Over ten lookups?</strong> SPF has a hard limit of ten DNS-querying mechanisms. Every <code>include:</code> counts, including the ones nested inside them.</p>
+<h2 id="clients-cannot-connect-or-log-in">Clients cannot connect or log in<a class="anchor" href="#clients-cannot-connect-or-log-in" aria-label="Link to this section">#</a></h2>
+<p><strong>&quot;Certificate not trusted&quot;</strong> — self-signed, or the chain is incomplete. You need <code>fullchain.pem</code>, not the leaf.</p>
+<p><strong>&quot;Server does not support authentication&quot;</strong> — Corsair advertises <code>LOGINDISABLED</code> on an unencrypted connection. Use 993 or 465, or STARTTLS first. This is deliberate: a password in the clear is worse than no service.</p>
+<p><strong>&quot;Wrong password&quot;</strong> — the mailbox password, not the control-panel password. They are separate identities. Alias and group addresses have no password at all; they cannot be signed into.</p>
+<p><strong>Username</strong> is always the <strong>full email address</strong>. A bare local part is ambiguous across the domains on the server.</p>
+<p><strong>Check what is actually served:</strong></p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>openssl s_client -connect mail.example.com:993 -servername mail.example.com &lt;/dev/null 2&gt;&amp;1 \
+  | grep -i 'verify return code'</code></pre></figure>
+<h2 id="it-worked-then-stopped-after-about-ninety-days">It worked, then stopped after about ninety days<a class="anchor" href="#it-worked-then-stopped-after-about-ninety-days" aria-label="Link to this section">#</a></h2>
+<p>The certificate expired. Renewal ran; the reload did not — Corsair reads the files at startup and holds them.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>openssl s_client -connect mail.example.com:993 &lt;/dev/null 2&gt;/dev/null \
+  | openssl x509 -noout -enddate</code></pre></figure>
+<p>Check the <strong>port</strong>, not the file on disk. Add a certbot deploy hook that restarts the service; <a href="tls.html">TLS</a> has one.</p>
+<h2 id="the-queue-is-growing">The queue is growing<a class="anchor" href="#the-queue-is-growing" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sql</span><pre><code>SELECT status, count(*), min(created_at) FROM deliveries GROUP BY status;</code></pre></figure>
+<p><strong>One domain dominating</strong> the failure list is a reputation problem with that provider.</p>
+<p><strong>Every domain failing</strong> means outbound is broken — port 25, DNS resolution, or <code>DELIVERY_TRANSPORT</code>.</p>
+<p><strong>Nothing being claimed at all</strong> means the worker is not running. It is part of <code>src/start.ts</code>; if you run <code>src/server.ts</code> alone, nothing drains the queue.</p>
+<h2 id="webhooks-stopped-arriving">Webhooks stopped arriving<a class="anchor" href="#webhooks-stopped-arriving" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sql</span><pre><code>SELECT url, status, consecutive_failures, disabled_reason, last_success_at
+FROM webhooks WHERE status &lt;&gt; 'active';</code></pre></figure>
+<p>Twenty consecutive failures disables an endpoint automatically. Fix it, re-enable it in the panel.</p>
+<p>If deliveries are arriving but failing verification, you are almost certainly parsing the JSON and re-serialising before checking the signature. Sign over the raw bytes exactly as received.</p>
+<h2 id="the-panel-is-slow">The panel is slow<a class="anchor" href="#the-panel-is-slow" aria-label="Link to this section">#</a></h2>
+<p><strong>Rate limited?</strong> A 429 carries <code>retry-after</code>. The default is 10 requests per second per principal.</p>
+<p><strong>Behind a proxy without <code>TRUSTED_PROXIES</code>?</strong> Every request looks like <code>127.0.0.1</code>, so the limiter treats the whole internet as one client and everyone shares one bucket.</p>
+<p><strong>Database?</strong></p>
+<figure class="code"><span class="code-lang">sql</span><pre><code>SELECT count(*), state FROM pg_stat_activity GROUP BY state;</code></pre></figure>
+<p>All connections active means <code>DB_POOL_SIZE</code> is the constraint.</p>
+<h2 id="a-domain-will-not-verify">A domain will not verify<a class="anchor" href="#a-domain-will-not-verify" aria-label="Link to this section">#</a></h2>
+<p>The DNS tab shows what was actually observed, which is usually enough. The recurring causes:</p>
+<ul><li>The provider appended the domain to a host that was already fully qualified — <code>_dmarc.example.com.example.com</code></li><li>A quoted value stored <strong>with</strong> the quotes</li><li>Two <code>v=spf1</code> records</li><li>The record is right but has not propagated — a record can take up to the previous record's TTL to become visible</li></ul>
+<p>The worker re-checks pending domains every half hour on its own, so a record that appears later is picked up without you doing anything.</p>
+<h2 id="migrations-will-not-run">Migrations will not run<a class="anchor" href="#migrations-will-not-run" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>bun scripts/migrate.ts status</code></pre></figure>
+<p><strong>&quot;pending&quot; that never applies</strong> — read the error. Hand-written SQL that conflicts with existing data needs fixing in the migration, not retrying.</p>
+<p><strong><code>diff</code> reports drift after a successful <code>up</code></strong> — a table is missing from <code>allSchemas</code>, or a migration did not do what its schema change implies.</p>
+<p>Never restart into a state where <code>diff</code> is not clean.</p>
+<h2 id="getting-more-detail">Getting more detail<a class="anchor" href="#getting-more-detail" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>NODE_ENV=development bun src/start.ts</code></pre></figure>
+<p>Development mode relaxes the security-header hardening and logs more. Do not leave a production server in it.</p>
+<p>For a single SMTP transaction, talk to the server yourself:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>openssl s_client -starttls smtp -connect mail.example.com:587 -crlf</code></pre></figure>
+<p>Every reply, in order, with no client in the way.</p>
+<h2 id="still-stuck">Still stuck<a class="anchor" href="#still-stuck" aria-label="Link to this section">#</a></h2>
+<p>Collect these before asking:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>bun --version
+git rev-parse --short HEAD
+bun scripts/migrate.ts status | tail -5
+systemctl status corsair --no-pager | head -20
+journalctl -u corsair --since &quot;1 hour ago&quot; | grep -i error | tail -20</code></pre></figure>
+<p>Then open an issue at <a href="https://github.com/wess/corsair/issues" class="external" rel="noopener">github.com/wess/corsair/issues</a>. Redact the addresses; keep the reply codes, which are the useful part.</p><nav class="pager"><a class="pager-prev" href="./scaling.html"><span>Previous</span><strong>Scaling and performance</strong></a><a class="pager-next" href="./security.html"><span>Next</span><strong>Security model</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#first-three-commands">First, three commands</a></li><li class="toc-h2"><a href="#no-mail-arrives-at-all">No mail arrives at all</a></li><li class="toc-h2"><a href="#mail-arrives-but-the-recipient-does-not-see-it">Mail arrives but the recipient does not see it</a></li><li class="toc-h2"><a href="#cannot-send">Cannot send</a></li><li class="toc-h2"><a href="#mail-is-sent-but-rejected-by-the-receiver">Mail is sent but rejected by the receiver</a></li><li class="toc-h2"><a href="#dkim-fail-at-the-receiver">dkim=fail at the receiver</a></li><li class="toc-h2"><a href="#spf-fail">spf=fail</a></li><li class="toc-h2"><a href="#clients-cannot-connect-or-log-in">Clients cannot connect or log in</a></li><li class="toc-h2"><a href="#it-worked-then-stopped-after-about-ninety-days">It worked, then stopped after about ninety days</a></li><li class="toc-h2"><a href="#the-queue-is-growing">The queue is growing</a></li><li class="toc-h2"><a href="#webhooks-stopped-arriving">Webhooks stopped arriving</a></li><li class="toc-h2"><a href="#the-panel-is-slow">The panel is slow</a></li><li class="toc-h2"><a href="#a-domain-will-not-verify">A domain will not verify</a></li><li class="toc-h2"><a href="#migrations-will-not-run">Migrations will not run</a></li><li class="toc-h2"><a href="#getting-more-detail">Getting more detail</a></li><li class="toc-h2"><a href="#still-stuck">Still stuck</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

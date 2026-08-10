@@ -1,5 +1,10 @@
 ---
 title: SMTP error lookup
+description: What an SMTP reply code actually means, and whether you need to act on it.
+section: reference
+order: 9
+short: SMTP errors
+eyebrow: Reference
 ---
 
 # SMTP error lookup

@@ -1,5 +1,10 @@
 ---
 title: Filters
+description: The Sieve subset Corsair implements, and why filtering is a real language rather than a rules builder.
+section: using
+order: 6
+short: Filters
+eyebrow: Using Corsair
 ---
 
 # Filters

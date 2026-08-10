@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Event hooks · Corsair</title>
+<meta name="description" content="Signed JSON delivered to your endpoint when mail arrives, bounces, or is filed as spam." />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/webhooks.html" />
+<meta property="og:title" content="Event hooks" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Signed JSON delivered to your endpoint when mail arrives, bounces, or is filed as spam." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/webhooks.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html" class="active" aria-current="page">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Using Corsair</p></div><h1 id="event-hooks">Event hooks</h1>
+<p>Corsair POSTs a JSON payload to an endpoint you choose when something happens. Add one under <strong>Webhooks</strong> in the control panel.</p>
+<h2 id="verifying-a-delivery">Verifying a delivery<a class="anchor" href="#verifying-a-delivery" aria-label="Link to this section">#</a></h2>
+<p>Every delivery is signed. <strong>Verify it.</strong> Without the check, anyone who learns your URL can post whatever they like and your system will believe it.</p>
+<p>The scheme is <a href="https://www.standardwebhooks.com" class="external" rel="noopener">Standard Webhooks</a>, so the libraries you may already have work unchanged. Three headers:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Header</th>
+<th>Meaning</th>
+</tr></thead><tbody>
+<tr>
+<td><code>webhook-id</code></td>
+<td>Unique per delivery. Store it to deduplicate retries.</td>
+</tr>
+<tr>
+<td><code>webhook-timestamp</code></td>
+<td>Unix seconds. Reject anything more than a few minutes old.</td>
+</tr>
+<tr>
+<td><code>webhook-signature</code></td>
+<td><code>v1,&lt;base64&gt;</code> — HMAC-SHA256 over <code>id.timestamp.body</code></td>
+</tr>
+</tbody></table></div>
+<p>The <code>svix-id</code>, <code>svix-timestamp</code>, and <code>svix-signature</code> aliases carry the same values, for tooling that expects those names.</p>
+<figure class="code"><span class="code-lang">js</span><pre><code>import { createHmac, timingSafeEqual } from &quot;node:crypto&quot;
+
+const verify = (secret, headers, body) =&gt; {
+  const id = headers[&quot;webhook-id&quot;]
+  const timestamp = headers[&quot;webhook-timestamp&quot;]
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) &gt; 300) return false
+
+  const key = Buffer.from(secret.replace(/^whsec_/, &quot;&quot;), &quot;base64&quot;)
+  const expected =
+    &quot;v1,&quot; + createHmac(&quot;sha256&quot;, key).update(`${id}.${timestamp}.${body}`).digest(&quot;base64&quot;)
+
+  return headers[&quot;webhook-signature&quot;]
+    .split(&quot; &quot;)
+    .some((candidate) =&gt; {
+      const a = Buffer.from(expected)
+      const b = Buffer.from(candidate)
+      return a.length === b.length &amp;&amp; timingSafeEqual(a, b)
+    })
+}</code></pre></figure>
+<p>Sign over the <strong>raw request body</strong>, exactly as received. Parsing the JSON and re-serialising it changes the bytes and the signature will not match.</p>
+<h2 id="events">Events<a class="anchor" href="#events" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Event</th>
+<th>When</th>
+</tr></thead><tbody>
+<tr>
+<td><code>message.received</code></td>
+<td>A message was accepted and delivered to a mailbox</td>
+</tr>
+<tr>
+<td><code>message.spam</code></td>
+<td>Accepted, but scored as spam and filed in Junk</td>
+</tr>
+<tr>
+<td><code>message.rejected</code></td>
+<td>Refused at SMTP time — no such user, over quota, filtered</td>
+</tr>
+<tr>
+<td><code>message.sent</code></td>
+<td>Accepted from one of your mailboxes for delivery</td>
+</tr>
+<tr>
+<td><code>message.delivered</code></td>
+<td>The receiving server accepted it</td>
+</tr>
+<tr>
+<td><code>message.deferred</code></td>
+<td>Temporarily refused; Corsair will retry</td>
+</tr>
+<tr>
+<td><code>message.bounced</code></td>
+<td>Permanently failed, or retries ran out</td>
+</tr>
+<tr>
+<td><code>address.created</code> · <code>address.deleted</code> · <code>address.password_changed</code></td>
+<td>Mailbox changes</td>
+</tr>
+<tr>
+<td><code>domain.created</code> · <code>domain.verified</code> · <code>domain.verification_failed</code> · <code>domain.deleted</code></td>
+<td>Domain changes</td>
+</tr>
+<tr>
+<td><code>quota.warning</code> · <code>quota.exceeded</code></td>
+<td>Storage</td>
+</tr>
+<tr>
+<td><code>transfer.completed</code> · <code>transfer.failed</code></td>
+<td>Mailbox migration</td>
+</tr>
+</tbody></table></div>
+<p>Subscribe to exact types, a family with <code>message.<em></code>, or everything with <code></em></code>. A family wildcard is usually what you want — it picks up new event types in that family without you changing anything.</p>
+<h2 id="payload">Payload<a class="anchor" href="#payload" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">json</span><pre><code>{
+  &quot;type&quot;: &quot;message.received&quot;,
+  &quot;created_at&quot;: &quot;2026-08-10T12:00:00.000Z&quot;,
+  &quot;data&quot;: {
+    &quot;recipient&quot;: &quot;me@example.com&quot;,
+    &quot;sender&quot;: &quot;someone@elsewhere.com&quot;,
+    &quot;subject&quot;: &quot;Hello&quot;,
+    &quot;message_id&quot;: &quot;&lt;abc@elsewhere.com&gt;&quot;,
+    &quot;size&quot;: 4821,
+    &quot;spam_score&quot;: 1.5,
+    &quot;authentication&quot;: { &quot;spf&quot;: &quot;pass&quot;, &quot;dkim&quot;: &quot;pass&quot;, &quot;dmarc&quot;: &quot;pass&quot; },
+    &quot;remote_ip&quot;: &quot;203.0.113.9&quot;
+  }
+}</code></pre></figure>
+<h2 id="retries">Retries<a class="anchor" href="#retries" aria-label="Link to this section">#</a></h2>
+<p>Answer with any <code>2xx</code> and quickly — the body is ignored. Anything else is retried after 5s, 30s, 5m, 30m, 2h, 5h, 10h, and 24h, then given up on.</p>
+<p>Retries reuse the same <code>webhook-id</code>, so a receiver that records the id can tell a retry from a new event. Corsair guarantees <em>at least once</em>, not exactly once: your endpoint should be idempotent.</p>
+<p>An endpoint that fails twenty times in a row is disabled automatically, and the panel says so. Re-enable it once it is fixed.</p>
+<h2 id="endpoint-requirements">Endpoint requirements<a class="anchor" href="#endpoint-requirements" aria-label="Link to this section">#</a></h2>
+<p>The URL has to be reachable from the public internet. Private, loopback, and link-local addresses are refused, because the URL is customer-supplied and this server is what fetches it — an open one is a server-side request forgery. A self-hoster whose consumers are on the same private network can set <code>WEBHOOK_ALLOW_PRIVATE=true</code>.</p>
+<p>Use the <strong>Send test</strong> button after adding an endpoint. It delivers a signed sample synchronously and shows you the exact status and body that came back.</p><nav class="pager"><a class="pager-prev" href="./deliverability.html"><span>Previous</span><strong>Deliverability</strong></a><a class="pager-next" href="./plans-billing.html"><span>Next</span><strong>Plans and billing</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#verifying-a-delivery">Verifying a delivery</a></li><li class="toc-h2"><a href="#events">Events</a></li><li class="toc-h2"><a href="#payload">Payload</a></li><li class="toc-h2"><a href="#retries">Retries</a></li><li class="toc-h2"><a href="#endpoint-requirements">Endpoint requirements</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Webmail · Corsair</title>
+<meta name="description" content="The built-in three-pane client, how it signs in, and why message rendering is sanitised on the server." />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/webmail.html" />
+<meta property="og:title" content="Webmail" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="The built-in three-pane client, how it signs in, and why message rendering is sanitised on the server." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/webmail.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html" class="active" aria-current="page">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Using Corsair</p></div><h1 id="webmail">Webmail</h1>
+<p>Corsair ships a three-pane mail client at <code>/webmail</code>. Folders, message list, reading pane.</p>
+<h2 id="signing-in">Signing in<a class="anchor" href="#signing-in" aria-label="Link to this section">#</a></h2>
+<p>With the <strong>mailbox</strong> address and password — not a control-panel login.</p>
+<p>That is the same credential a mail client uses, and it is a deliberately different identity from the panel: a mailbox credential ends up in a phone that gets lost, and it must not also unlock the account that owns every domain.</p>
+<p>The webmail session is its own cookie (<code>corsair_webmail</code>) with a <strong>12-hour</strong> lifetime, shorter than the panel's fourteen days, because a browser session on a shared machine is far more likely to be left open.</p>
+<p>Alias and group addresses have no password and cannot sign in. They are routing entries.</p>
+<h2 id="what-it-does">What it does<a class="anchor" href="#what-it-does" aria-label="Link to this section">#</a></h2>
+<ul><li>Read, reply, reply-all, forward</li><li>Compose with attachments</li><li>Move, delete, mark read or unread, flag</li><li>Create and delete folders</li><li>Search</li><li>Drafts, saved server-side so they follow you between devices</li></ul>
+<p>Sending goes through the same submission path as any client: the From address is proven to belong to the caller, the message is DKIM-signed with the domain's key, a copy is filed in Sent, and delivery is queued.</p>
+<h2 id="sanitisation">Sanitisation<a class="anchor" href="#sanitisation" aria-label="Link to this section">#</a></h2>
+<p>Message bodies are sanitised on the <strong>server</strong>, in <code>src/sanitize</code>, never in the browser. Every message a mail server accepts is attacker-supplied by definition, and the browser is the wrong place to decide what is safe.</p>
+<p>Removed before the browser sees anything:</p>
+<ul><li><code>&lt;script&gt;</code> and every event handler attribute</li><li><code>javascript:</code> and <code>data:</code> URLs</li><li><code>&lt;iframe&gt;</code>, <code>&lt;object&gt;</code>, <code>&lt;embed&gt;</code>, <code>&lt;form&gt;</code></li><li>CSS that can position content outside its container</li><li>Anything else not on the allow-list</li></ul>
+<p>The policy is an <strong>allow-list</strong>: unknown tags and attributes are dropped rather than inspected. A deny-list has to stay complete as browsers change, and it will not.</p>
+<h2 id="remote-images">Remote images<a class="anchor" href="#remote-images" aria-label="Link to this section">#</a></h2>
+<p>Withheld by default, with a banner offering to load them.</p>
+<p>A remote image in an email is a tracking pixel. Loading it tells the sender the message was opened, when, and from roughly where. Corsair does not do that on your behalf — you ask, or it does not happen.</p>
+<p>The banner is per message. There is no &quot;always load&quot; setting, because the point is the decision.</p>
+<h2 id="search">Search<a class="anchor" href="#search" aria-label="Link to this section">#</a></h2>
+<p>Searches the indexed <code>search_text</code> extract maintained alongside each message row, so common searches never read a body from the bucket.</p>
+<p>Subject, sender, recipients, and body text. Scoped to the current folder or across everything.</p>
+<h2 id="attachments">Attachments<a class="anchor" href="#attachments" aria-label="Link to this section">#</a></h2>
+<p>Downloaded through the API, streamed from wherever the body lives. Corsair does not render them — no preview, no inline PDF viewer. Your browser or your operating system opens the file, having been told the correct content type.</p>
+<p>Uploads are bounded by <code>MAX_MESSAGE_BYTES</code> (50 MB by default), which is the wire size after encoding. Base64 costs about a third, so a 50 MB limit is roughly a 35 MB attachment.</p>
+<h2 id="using-something-else-instead">Using something else instead<a class="anchor" href="#using-something-else-instead" aria-label="Link to this section">#</a></h2>
+<p>The IMAP and JMAP servers are standard. Roundcube, SnappyMail, and any JMAP client work against them unchanged — point them at 993 with the full address as the username.</p>
+<p>Corsair's own webmail exists so that a fresh install is usable immediately, without a second thing to deploy. It is not trying to be Roundcube.</p>
+<h2 id="what-it-deliberately-does-not-have">What it deliberately does not have<a class="anchor" href="#what-it-deliberately-does-not-have" aria-label="Link to this section">#</a></h2>
+<p><strong>No calendar or contacts.</strong> Corsair does email. There is no CalDAV or CardDAV server behind this.</p>
+<p><strong>No conversation threading beyond <code>thread_id</code>.</strong> Messages carry a thread id and the API exposes it; the client lists messages rather than collapsing threads.</p>
+<p><strong>No per-user settings store.</strong> Preferences that would need persisting — signature, default folder behaviour — are not there. Use a full client if you need them.</p>
+<p><strong>No offline mode.</strong> It is a web page against an API.</p>
+<p><strong>No keyboard shortcuts.</strong> Navigation is by pointer. A full client is the answer if you work that way.</p>
+<h2 id="troubleshooting">Troubleshooting<a class="anchor" href="#troubleshooting" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Symptom</th>
+<th>Cause</th>
+</tr></thead><tbody>
+<tr>
+<td>&quot;Invalid credentials&quot; with a password you are sure of</td>
+<td>Panel password, not the mailbox password. Or the address is an alias</td>
+</tr>
+<tr>
+<td>Signed out after a few hours</td>
+<td>The 12-hour session expired. Working as designed</td>
+</tr>
+<tr>
+<td>A message renders as plain text</td>
+<td>It had no HTML part, or the HTML was entirely stripped as unsafe</td>
+</tr>
+<tr>
+<td>Images missing</td>
+<td>Withheld by default. Use the banner</td>
+</tr>
+<tr>
+<td>Attachment will not upload</td>
+<td>Over <code>MAX_MESSAGE_BYTES</code>, or the reverse proxy's body limit is lower. Set <code>client_max_body_size</code> to match</td>
+</tr>
+</tbody></table></div>
+<p>The last one catches people: nginx defaults to 1 MB, which silently rejects almost every attachment. Set it above <code>MAX_MESSAGE_BYTES</code>.</p><nav class="pager"><a class="pager-prev" href="./client-setup.html"><span>Previous</span><strong>Client settings</strong></a><a class="pager-next" href="./filters.html"><span>Next</span><strong>Filters</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#signing-in">Signing in</a></li><li class="toc-h2"><a href="#what-it-does">What it does</a></li><li class="toc-h2"><a href="#sanitisation">Sanitisation</a></li><li class="toc-h2"><a href="#remote-images">Remote images</a></li><li class="toc-h2"><a href="#search">Search</a></li><li class="toc-h2"><a href="#attachments">Attachments</a></li><li class="toc-h2"><a href="#using-something-else-instead">Using something else instead</a></li><li class="toc-h2"><a href="#what-it-deliberately-does-not-have">What it deliberately does not have</a></li><li class="toc-h2"><a href="#troubleshooting">Troubleshooting</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

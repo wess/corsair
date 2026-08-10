@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Scaling and performance · Corsair</title>
+<meta name="description" content="Where the limits actually are, what to measure, and what to do when one of them is reached." />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/scaling.html" />
+<meta property="og:title" content="Scaling and performance" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Where the limits actually are, what to measure, and what to do when one of them is reached." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/scaling.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html" class="active" aria-current="page">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Install and operate</p></div><h1 id="scaling-and-performance">Scaling and performance</h1>
+<p>Corsair is one process against one database. That takes you further than people expect, and the things that break first are rarely the ones people plan for.</p>
+<h2 id="where-the-limits-are">Where the limits are<a class="anchor" href="#where-the-limits-are" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Limit</th>
+<th>Reached at roughly</th>
+<th>What happens</th>
+</tr></thead><tbody>
+<tr>
+<td>Postgres connections</td>
+<td><code>DB_POOL_SIZE</code> concurrent queries</td>
+<td>Requests queue</td>
+</tr>
+<tr>
+<td>Worker throughput</td>
+<td><code>WORKER_CONCURRENCY</code> deliveries at once</td>
+<td>The queue grows</td>
+</tr>
+<tr>
+<td>Disk, without a bucket</td>
+<td>Mail volume through the WAL</td>
+<td>Writes slow, then stop</td>
+</tr>
+<tr>
+<td>IMAP sessions</td>
+<td>Memory, one snapshot per selected folder</td>
+<td>RSS climbs</td>
+</tr>
+<tr>
+<td>Receiver rate limits</td>
+<td>Their policy, not yours</td>
+<td>Deferrals</td>
+</tr>
+</tbody></table></div>
+<p>The last one is the real ceiling for outbound volume, and no amount of hardware moves it.</p>
+<h2 id="sizing">Sizing<a class="anchor" href="#sizing" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Mailboxes</th>
+<th>vCPU</th>
+<th>RAM</th>
+<th>Disk (metadata only)</th>
+</tr></thead><tbody>
+<tr>
+<td>1–10</td>
+<td>1</td>
+<td>1 GB</td>
+<td>10 GB</td>
+</tr>
+<tr>
+<td>10–100</td>
+<td>2</td>
+<td>2 GB</td>
+<td>25 GB</td>
+</tr>
+<tr>
+<td>100–1000</td>
+<td>4</td>
+<td>8 GB</td>
+<td>100 GB</td>
+</tr>
+</tbody></table></div>
+<p>With <code>STORAGE_BUCKET</code> set, bodies are in object storage and the disk figure is metadata only — a few kilobytes per message. Without a bucket, add the full size of every message you keep, and expect the WAL to carry all of it.</p>
+<h2 id="configure-the-bucket">Configure the bucket<a class="anchor" href="#configure-the-bucket" aria-label="Link to this section">#</a></h2>
+<p>The single highest-value change for anything beyond a personal server.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>STORAGE_BUCKET=my-mail-bucket
+STORAGE_ENDPOINT=https://nyc3.digitaloceanspaces.com
+STORAGE_REGION=nyc3
+STORAGE_ACCESS_KEY_ID=...
+STORAGE_SECRET_ACCESS_KEY=...</code></pre></figure>
+<p>Metadata — folder, UID, flags, envelope, size, a searchable text extract — stays in Postgres. Bodies go to the bucket.</p>
+<p>That split is what makes IMAP fast. <code>SELECT</code>, <code>FETCH FLAGS</code>, <code>SEARCH</code>, and <code>SORT</code> are what a client runs constantly, and none of them need a body. Only <code>FETCH BODY[…]</code> does, and then exactly one object is read.</p>
+<p>It also takes mail volume out of the WAL, which is what actually kills a busy inline install.</p>
+<h2 id="the-database">The database<a class="anchor" href="#the-database" aria-label="Link to this section">#</a></h2>
+<p><strong>Raise the pool</strong> before anything else. The default of 10 is conservative:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>DB_POOL_SIZE=25</code></pre></figure>
+<p>Keep <code>DB_POOL_SIZE</code> × instances comfortably under Postgres's <code>max_connections</code>. Above a few dozen, put PgBouncer in transaction mode between them.</p>
+<p><strong>Watch for slow queries.</strong></p>
+<figure class="code"><span class="code-lang">sql</span><pre><code>SELECT calls, mean_exec_time, left(query, 90)
+FROM pg_stat_statements
+ORDER BY mean_exec_time DESC
+LIMIT 10;</code></pre></figure>
+<p><strong>Autovacuum matters here.</strong> <code>messages</code> churns — flags update on every read, rows are tombstoned on expunge. Bloat shows up as IMAP getting slower for no visible reason.</p>
+<figure class="code"><span class="code-lang">sql</span><pre><code>SELECT relname, n_dead_tup, last_autovacuum
+FROM pg_stat_user_tables
+WHERE n_dead_tup &gt; 10000
+ORDER BY n_dead_tup DESC;</code></pre></figure>
+<p>For a busy <code>messages</code> table, make autovacuum more aggressive on it specifically:</p>
+<figure class="code"><span class="code-lang">sql</span><pre><code>ALTER TABLE messages SET (autovacuum_vacuum_scale_factor = 0.05);</code></pre></figure>
+<h2 id="the-worker">The worker<a class="anchor" href="#the-worker" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>WORKER_CONCURRENCY=16
+WORKER_POLL_MS=500</code></pre></figure>
+<p>Raise concurrency before adding processes. The queue claims work with <code>FOR UPDATE SKIP LOCKED</code>, so any number of workers can drain it without coordinating and without delivering anything twice — but each one is another set of database connections.</p>
+<p>Lower <code>WORKER_POLL_MS</code> only if queue latency matters to you; it is a poll against Postgres, and 100 ms costs ten times what 1000 ms costs for a benefit nobody perceives in email.</p>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Concurrency does not beat a receiver's rate limit</p><p>Sixteen parallel connections to one provider gets you <code>421 4.7.0</code> faster than one does. The limits that matter for bulk outbound are theirs.</p></aside>
+<h2 id="splitting-the-tiers">Splitting the tiers<a class="anchor" href="#splitting-the-tiers" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>bun src/server.ts                                    # HTTP only
+SMTP_ENABLED=true IMAP_ENABLED=false bun src/start.ts # mail only</code></pre></figure>
+<p>Worth doing when:</p>
+<ul><li><strong>Deploys are disrupting mail clients.</strong> Restart HTTP without dropping IMAP.</li><li><strong>One tier needs different hardware.</strong> HTTP behind a load balancer; the mail listeners on the host that owns the reputable IP.</li><li><strong>The worker needs its own capacity.</strong> Run several; they cannot double-deliver.</li></ul>
+<h2 id="running-more-than-one-mail-host">Running more than one mail host<a class="anchor" href="#running-more-than-one-mail-host" aria-label="Link to this section">#</a></h2>
+<p>Publish two MX records at equal priority, both pointing at Corsair instances sharing one database.</p>
+<figure class="code"><pre><code>example.com.  MX  10  mx1.example.com.
+example.com.  MX  10  mx2.example.com.</code></pre></figure>
+<p>Senders pick one and retry the other on failure. Inbound distributes itself, and you can restart one at a time without losing anything.</p>
+<p>Two things to get right:</p>
+<ul><li><strong>Every host needs its own PTR</strong> matching its own <code>CORSAIR_HOSTNAME</code>.</li><li><strong>SPF must list both.</strong> They send as well as receive.</li></ul>
+<p>The database stays single-writer. That is the actual scaling ceiling, and it is a long way up.</p>
+<h2 id="measuring">Measuring<a class="anchor" href="#measuring" aria-label="Link to this section">#</a></h2>
+<p>Before optimising, find out which resource is the constraint.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code># Is it the database?
+psql &quot;$DATABASE_URL&quot; -c &quot;SELECT count(*), state FROM pg_stat_activity GROUP BY state&quot;
+
+# Is it the queue?
+psql &quot;$DATABASE_URL&quot; -c &quot;SELECT status, count(*) FROM deliveries GROUP BY status&quot;
+
+# Is it the host?
+top -b -n1 | head -15
+iostat -x 1 3</code></pre></figure>
+<p>A growing queue with an idle CPU is not a capacity problem — it is a receiver deferring you, and the fix is reputation, not hardware.</p>
+<h2 id="what-is-genuinely-expensive">What is genuinely expensive<a class="anchor" href="#what-is-genuinely-expensive" aria-label="Link to this section">#</a></h2>
+<p><strong>IMAP SEARCH without an index hit.</strong> A client searching a hundred-thousand-message folder for a body substring reads bodies. <code>search_text</code> is maintained alongside each row precisely so the common cases do not.</p>
+<p><strong>FETCH of large messages.</strong> One object per message, so a client downloading a whole mailbox is bounded by the bucket's throughput, not by Corsair.</p>
+<p><strong>Sub-addressing and catch-all resolution</strong> run per recipient on the inbound path, but they are indexed lookups. This has never been the bottleneck.</p>
+<p><strong>The spam scorer</strong> reads the raw message once. It is heuristic and cheap by construction — deliberately, since it runs on every inbound message.</p>
+<h2 id="retention">Retention<a class="anchor" href="#retention" aria-label="Link to this section">#</a></h2>
+<p>The worker sweeps expired tombstones, logs, bans, and sessions. If <code>mail_log</code> is growing without bound and you do not need the history, prune it — it is what the Overview charts and the daily limits are counted from, so keep at least a few days.</p>
+<figure class="code"><span class="code-lang">sql</span><pre><code>DELETE FROM mail_log WHERE created_at &lt; now() - interval '90 days';</code></pre></figure>
+<p>Do it in batches on a large table, or the lock is noticeable.</p>
+<h2 id="when-you-have-outgrown-this">When you have outgrown this<a class="anchor" href="#when-you-have-outgrown-this" aria-label="Link to this section">#</a></h2>
+<p>Corsair is one Postgres away from being a much bigger system, and the honest answer is that at genuinely large scale you want software designed for shards from the start. The point at which that becomes true is far past where most people self-hosting mail will ever get — thousands of mailboxes on one machine is comfortable.</p><nav class="pager"><a class="pager-prev" href="./upgrading.html"><span>Previous</span><strong>Upgrading</strong></a><a class="pager-next" href="./troubleshooting.html"><span>Next</span><strong>Troubleshooting</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#where-the-limits-are">Where the limits are</a></li><li class="toc-h2"><a href="#sizing">Sizing</a></li><li class="toc-h2"><a href="#configure-the-bucket">Configure the bucket</a></li><li class="toc-h2"><a href="#the-database">The database</a></li><li class="toc-h2"><a href="#the-worker">The worker</a></li><li class="toc-h2"><a href="#splitting-the-tiers">Splitting the tiers</a></li><li class="toc-h2"><a href="#running-more-than-one-mail-host">Running more than one mail host</a></li><li class="toc-h2"><a href="#measuring">Measuring</a></li><li class="toc-h2"><a href="#what-is-genuinely-expensive">What is genuinely expensive</a></li><li class="toc-h2"><a href="#retention">Retention</a></li><li class="toc-h2"><a href="#when-you-have-outgrown-this">When you have outgrown this</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

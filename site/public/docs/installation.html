@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Installation · Corsair</title>
+<meta name="description" content="Docker Compose, bare metal with systemd, and a split deployment — plus what each entrypoint does." />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/installation.html" />
+<meta property="og:title" content="Installation" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Docker Compose, bare metal with systemd, and a split deployment — plus what each entrypoint does." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/installation.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html" class="active" aria-current="page">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Install and operate</p></div><h1 id="installation">Installation</h1>
+<p>Three ways to run Corsair. All of them need the same four things from the host — see <a href="prerequisites.html">Prerequisites</a> — and all of them run the same code.</p>
+<h2 id="entrypoints">Entrypoints<a class="anchor" href="#entrypoints" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>bun src/dev.ts       # everything, with a summary of where it is listening
+bun src/start.ts     # everything, quietly — this is what the container runs
+bun src/server.ts    # the HTTP tier only, for a split deployment</code></pre></figure>
+<figure class="code"><span class="code-lang">sh</span><pre><code>bun scripts/migrate.ts up | down | status | diff
+bun scripts/seed.ts</code></pre></figure>
+<p>Migrations deliberately do not run on startup. Two instances coming up at once would race on the migration table, and this is the one step worth being able to run — and fail — on its own.</p>
+<h2 id="docker-compose">Docker Compose<a class="anchor" href="#docker-compose" aria-label="Link to this section">#</a></h2>
+<p>The shipped <code>compose.yaml</code> is the whole stack: Postgres, a one-shot migration container, and Corsair with the real ports mapped.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>git clone https://github.com/wess/corsair
+cd corsair
+cp .env.example .env</code></pre></figure>
+<p>Edit <code>.env</code> for production values (<a href="configuration.html">Configuration</a>), then:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>export POSTGRES_PASSWORD='pick-something-long'
+mkdir -p certs   # fullchain.pem and privkey.pem go here
+docker compose up -d</code></pre></figure>
+<p>The compose file overrides the ports to the real ones and mounts <code>./certs</code> read-only at <code>/certs</code>:</p>
+<figure class="code"><span class="code-lang">yaml</span><pre><code>environment:
+  SMTP_MX_PORT: 25
+  SMTP_SUBMISSION_PORT: 587
+  SMTP_SUBMISSION_TLS_PORT: 465
+  IMAP_PORT: 143
+  IMAP_TLS_PORT: 993
+  POP3_PORT: 110
+  POP3_TLS_PORT: 995
+  TLS_CERT_PATH: /certs/fullchain.pem
+  TLS_KEY_PATH: /certs/privkey.pem
+volumes:
+  - ./certs:/certs:ro</code></pre></figure>
+<p>The <code>migrate</code> service runs <code>scripts/migrate.ts up</code> once and exits; <code>corsair</code> waits for it with <code>service_completed_successfully</code>, so a fresh stack comes up in the right order without a race.</p>
+<p>Seed the first account:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>docker compose run --rm corsair bun scripts/seed.ts</code></pre></figure>
+<h3 id="the-image">The image<a class="anchor" href="#the-image" aria-label="Link to this section">#</a></h3>
+<p>The <code>Dockerfile</code> builds on <code>oven/bun:1.3-alpine</code>, installs <code>libcap</code>, grants <code>cap_net_bind_service</code> to the Bun binary, then drops to an unprivileged <code>corsair</code> user. Ports below 1024 bind without the process being root.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>docker compose logs -f corsair
+docker compose restart corsair</code></pre></figure>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Mount certificates, do not bake them in</p><p><code>./certs</code> is a bind mount so renewal on the host is picked up by restarting the container. A certificate copied into the image expires inside it.</p></aside>
+<h2 id="bare-metal-with-systemd">Bare metal with systemd<a class="anchor" href="#bare-metal-with-systemd" aria-label="Link to this section">#</a></h2>
+<p>The route with the fewest moving parts, and what <a href="tutorials/first-server.html">the first-server tutorial</a> walks through in full.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo adduser --system --group --home /opt/corsair corsair
+sudo -u corsair git clone https://github.com/wess/corsair /opt/corsair/app
+cd /opt/corsair/app
+sudo -u corsair bun install
+sudo -u corsair cp .env.example .env</code></pre></figure>
+<p>Grant the port capability to the runtime:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo setcap 'cap_net_bind_service=+ep' &quot;$(which bun)&quot;</code></pre></figure>
+<figure class="code"><span class="code-lang">ini</span><pre><code># /etc/systemd/system/corsair.service
+[Unit]
+Description=Corsair mail server
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=corsair
+Group=corsair
+WorkingDirectory=/opt/corsair/app
+ExecStart=/opt/corsair/.bun/bin/bun src/start.ts
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/corsair/app
+
+[Install]
+WantedBy=multi-user.target</code></pre></figure>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo systemctl daemon-reload
+sudo systemctl enable --now corsair</code></pre></figure>
+<aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span><code>setcap</code> and <code>NoNewPrivileges</code></p><p>The capability is on the binary, not granted at exec time, so <code>NoNewPrivileges=true</code> does not interfere with it. If you switch to running as root and dropping privileges instead, that changes.</p></aside>
+<h2 id="split-deployment">Split deployment<a class="anchor" href="#split-deployment" aria-label="Link to this section">#</a></h2>
+<p>The HTTP tier and the mail listeners can run as separate processes against the same database.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>bun src/server.ts                  # HTTP only: API, panel, webmail, JMAP
+SMTP_ENABLED=true IMAP_ENABLED=false POP3_ENABLED=false bun src/start.ts</code></pre></figure>
+<p>Reasons to bother:</p>
+<ul><li><strong>Restart the panel without dropping IMAP sessions.</strong> A deploy of the web tier no longer disconnects every mail client.</li><li><strong>Different machines.</strong> The HTTP tier behind a load balancer, the mail listeners on the host that owns the reputable IP.</li><li><strong>Scale the worker separately.</strong> Several instances can drain the delivery queue; it claims work with <code>FOR UPDATE SKIP LOCKED</code>, so they do not coordinate and cannot deliver anything twice.</li></ul>
+<p>The listener toggles are <code>SMTP_ENABLED</code>, <code>IMAP_ENABLED</code>, and <code>POP3_ENABLED</code>.</p>
+<h2 id="reverse-proxy">Reverse proxy<a class="anchor" href="#reverse-proxy" aria-label="Link to this section">#</a></h2>
+<p>Corsair serves plain HTTP on <code>PORT</code> (default 3000). Terminate TLS in front of it.</p>
+<figure class="code"><span class="code-lang">nginx</span><pre><code>server {
+  listen 443 ssl http2;
+  server_name mail.example.com;
+
+  ssl_certificate     /etc/letsencrypt/live/mail.example.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/mail.example.com/privkey.pem;
+
+  # JMAP blob upload and webmail attachments.
+  client_max_body_size 60m;
+
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}</code></pre></figure>
+<p>Then set <code>TRUSTED_PROXIES</code> or every request appears to come from <code>127.0.0.1</code> and the rate limiter treats the entire internet as one client:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>TRUSTED_PROXIES=127.0.0.1</code></pre></figure>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Never proxy the mail ports</p><p>SMTP, IMAP, and POP3 must reach Corsair directly. Putting an HTTP proxy in front of them does not work, and putting a TCP proxy in front without PROXY protocol support hides the client IP — which SPF, the rate limiter, and the ban list all depend on.</p></aside>
+<h2 id="object-storage">Object storage<a class="anchor" href="#object-storage" aria-label="Link to this section">#</a></h2>
+<p>Set the bucket and message bodies go to object storage, with only headers and flags in Postgres.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>STORAGE_BUCKET=my-mail-bucket
+STORAGE_REGION=nyc3
+STORAGE_ENDPOINT=https://nyc3.digitaloceanspaces.com
+STORAGE_ACCESS_KEY_ID=...
+STORAGE_SECRET_ACCESS_KEY=...
+STORAGE_PREFIX=corsair</code></pre></figure>
+<p>Leave <code>STORAGE_BUCKET</code> empty and bodies stay inline in Postgres. That works and keeps a single-container install to one dependency, but it puts mail volume through the WAL. Configure a bucket for anything real.</p>
+<p>Objects are written with <strong>no ACL</strong>, so they inherit the bucket's default of private. Mail must never be publicly readable — check the bucket's default before pointing Corsair at it.</p>
+<h2 id="verifying-the-install">Verifying the install<a class="anchor" href="#verifying-the-install" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo ss -lntp | grep bun          # every enabled listener
+curl -s localhost:3000/api/plans  # the API answers
+bun scripts/migrate.ts status     # every migration applied
+bun scripts/migrate.ts diff       # &quot;schema in sync&quot;</code></pre></figure>
+<p>Then open <code>/app</code>, sign in with the seeded account, and add a domain.</p>
+<h2 id="upgrading">Upgrading<a class="anchor" href="#upgrading" aria-label="Link to this section">#</a></h2>
+<p>See <a href="upgrading.html">Upgrading</a>. The short version: pull, install, run migrations, restart — and read the migration list before you do.</p><nav class="pager"><a class="pager-prev" href="./tutorials/backup-drill.html"><span>Previous</span><strong>A backup and restore drill</strong></a><a class="pager-next" href="./configuration.html"><span>Next</span><strong>Configuration</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#entrypoints">Entrypoints</a></li><li class="toc-h2"><a href="#docker-compose">Docker Compose</a></li><li class="toc-h3"><a href="#the-image">The image</a></li><li class="toc-h2"><a href="#bare-metal-with-systemd">Bare metal with systemd</a></li><li class="toc-h2"><a href="#split-deployment">Split deployment</a></li><li class="toc-h2"><a href="#reverse-proxy">Reverse proxy</a></li><li class="toc-h2"><a href="#object-storage">Object storage</a></li><li class="toc-h2"><a href="#verifying-the-install">Verifying the install</a></li><li class="toc-h2"><a href="#upgrading">Upgrading</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

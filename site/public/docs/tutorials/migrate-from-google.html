@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Migrating from Google Workspace · Corsair</title>
+<meta name="description" content="Copy an existing mailbox across with the MX untouched, verify it, cut over, then catch the tail." />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/tutorials/migrate-from-google.html" />
+<meta property="og:title" content="Migrating from Google Workspace" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Copy an existing mailbox across with the MX untouched, verify it, cut over, then catch the tail." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/tutorials/migrate-from-google.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="../index.html">Docs</a><a href="./index.html" class="on">Tutorials</a><a href="../../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="../index.html">Overview</a></li><li><a href="../introduction.html">Introduction</a></li><li><a href="../quickstart.html">Quickstart</a></li><li><a href="../concepts.html">Core concepts</a></li><li><a href="../prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./index.html">All tutorials</a></li><li><a href="./first-server.html">First server</a></li><li><a href="./migrate-from-google.html" class="active" aria-current="page">Migrate from Google</a></li><li><a href="./household.html">Household setup</a></li><li><a href="./filter-cookbook.html">Filter cookbook</a></li><li><a href="./webhook-consumer.html">Webhook consumer</a></li><li><a href="./backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="../installation.html">Installation</a></li><li><a href="../configuration.html">Configuration</a></li><li><a href="../dns-setup.html">DNS setup</a></li><li><a href="../tls.html">TLS</a></li><li><a href="../production-checklist.html">Go-live checklist</a></li><li><a href="../backups.html">Backups</a></li><li><a href="../monitoring.html">Monitoring</a></li><li><a href="../upgrading.html">Upgrading</a></li><li><a href="../scaling.html">Scaling</a></li><li><a href="../troubleshooting.html">Troubleshooting</a></li><li><a href="../security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="../control-panel.html">Control panel</a></li><li><a href="../domains.html">Domains</a></li><li><a href="../addresses.html">Addresses</a></li><li><a href="../client-setup.html">Client settings</a></li><li><a href="../webmail.html">Webmail</a></li><li><a href="../filters.html">Filters</a></li><li><a href="../transfers.html">Transfers</a></li><li><a href="../deliverability.html">Deliverability</a></li><li><a href="../webhooks.html">Event hooks</a></li><li><a href="../plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="../architecture.html">Architecture</a></li><li><a href="../api.html">HTTP API</a></li><li><a href="../smtp.html">SMTP</a></li><li><a href="../imap.html">IMAP</a></li><li><a href="../jmap.html">JMAP</a></li><li><a href="../pop3.html">POP3</a></li><li><a href="../cli.html">Command line</a></li><li><a href="../database.html">Database</a></li><li><a href="../smtp-errors.html">SMTP errors</a></li><li><a href="../glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Tutorial</p></div><h1 id="migrating-from-google-workspace">Migrating from Google Workspace</h1>
+<p>Move a domain off Google without losing mail and without a window where messages land nowhere. The shape is the same for Fastmail, Zoho, Microsoft 365, or any other host that speaks IMAP — Google is used here because it is the most common source and the fussiest about credentials.</p>
+<p>The plan: copy everything while the MX still points at Google, verify, cut over, then run a second pass to catch what arrived during the DNS change.</p>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Order matters</p><p>Do not change the MX first. If you do, mail arrives at Corsair while the bulk of the mailbox is still at Google, and you spend the migration reconciling two live mailboxes instead of one live and one frozen.</p></aside>
+<h2 id="before-you-start">Before you start<a class="anchor" href="#before-you-start" aria-label="Link to this section">#</a></h2>
+<ul><li>Corsair running, with the domain <strong>added and active</strong> (<a href="first-server.html">first server</a>)</li><li>The destination mailbox <strong>already created</strong> — a transfer copies <em>into</em> an existing address</li><li>Admin access to the Google account, or the user's cooperation</li><li>A plan that includes transfers, or an unmetered instance (<a href="../plans-billing.html">Plans</a>)</li></ul>
+<h2 id="1-create-the-destination-addresses">1. Create the destination addresses<a class="anchor" href="#1-create-the-destination-addresses" aria-label="Link to this section">#</a></h2>
+<p>For every mailbox you are moving, create the matching address in Corsair first. <strong>Domains → example.com → New mailbox.</strong></p>
+<p>Match the local parts exactly. <code>sam@example.com</code> at Google becomes <code>sam@example.com</code> here, or the mail arrives correctly and the person's own references to their address stop working.</p>
+<p>Aliases and groups do not need transfers — they have no mailbox. Recreate them as <a href="../addresses.html">alias or group addresses</a> and move on.</p>
+<h2 id="2-get-an-app-password-from-google">2. Get an app password from Google<a class="anchor" href="#2-get-an-app-password-from-google" aria-label="Link to this section">#</a></h2>
+<p>Google will not accept an account password over IMAP. For each mailbox:</p>
+<ol><li>Sign in to the Google account.</li><li>Turn on 2-Step Verification if it is not already on. App passwords are not offered without it.</li><li>Go to <strong>App passwords</strong>, generate one, and copy the sixteen characters.</li><li>Confirm IMAP is enabled in <strong>Gmail → Settings → Forwarding and POP/IMAP</strong>.</li></ol>
+<aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span>Why an app password</p><p>It is a credential scoped to one client that you can revoke without changing anything else. Corsair encrypts it at rest and erases it the moment the transfer reaches a terminal state — it is someone else's credential and there is no reason to keep it once the copy is done.</p></aside>
+<h2 id="3-start-the-transfer">3. Start the transfer<a class="anchor" href="#3-start-the-transfer" aria-label="Link to this section">#</a></h2>
+<p><strong>Transfers → New transfer.</strong></p>
+<div class='table-wrap'><table><thead><tr>
+<th>Field</th>
+<th>Value</th>
+</tr></thead><tbody>
+<tr>
+<td>Source host</td>
+<td><code>imap.gmail.com</code></td>
+</tr>
+<tr>
+<td>Source port</td>
+<td><code>993</code></td>
+</tr>
+<tr>
+<td>Security</td>
+<td>SSL/TLS</td>
+</tr>
+<tr>
+<td>Username</td>
+<td>the full address, <code>sam@example.com</code></td>
+</tr>
+<tr>
+<td>Password</td>
+<td>the app password</td>
+</tr>
+<tr>
+<td>Destination</td>
+<td>the Corsair address you created</td>
+</tr>
+</tbody></table></div>
+<p>Leave the limits empty for the first pass — you want everything.</p>
+<p>Press <strong>Start</strong>. The worker picks it up, connects, lists the folders, and begins copying. The panel shows progress per folder.</p>
+<h2 id="4-what-gets-copied">4. What gets copied<a class="anchor" href="#4-what-gets-copied" aria-label="Link to this section">#</a></h2>
+<p>Every selectable folder. Common names are mapped onto the local special-use folders so you do not end up with two of each:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Google</th>
+<th>Corsair</th>
+</tr></thead><tbody>
+<tr>
+<td><code>INBOX</code></td>
+<td><code>INBOX</code></td>
+</tr>
+<tr>
+<td><code>[Gmail]/Sent Mail</code></td>
+<td><code>Sent</code></td>
+</tr>
+<tr>
+<td><code>[Gmail]/Drafts</code></td>
+<td><code>Drafts</code></td>
+</tr>
+<tr>
+<td><code>[Gmail]/Trash</code></td>
+<td><code>Trash</code></td>
+</tr>
+<tr>
+<td><code>[Gmail]/Spam</code></td>
+<td><code>Junk</code></td>
+</tr>
+<tr>
+<td><code>[Gmail]/All Mail</code></td>
+<td>skipped — every message is already in its own folder</td>
+</tr>
+<tr>
+<td>anything else</td>
+<td>a folder of the same name</td>
+</tr>
+</tbody></table></div>
+<p>Flags are preserved, so read stays read and flagged stays flagged. <strong>Message dates are preserved</strong>, which matters more than it sounds: without it a transferred mailbox sorts as though every message arrived today.</p>
+<p>Labels are the one thing that does not survive cleanly. Gmail labels are not folders — a message with three labels appears in three IMAP folders — so a multi-labelled message is copied into each. Deduplicate afterwards or accept it.</p>
+<h2 id="5-verify-before-you-cut-over">5. Verify before you cut over<a class="anchor" href="#5-verify-before-you-cut-over" aria-label="Link to this section">#</a></h2>
+<p>Compare counts per folder. In the panel, the address's folder list shows message counts; in Gmail, each label shows its own.</p>
+<p>They will not match exactly, and that is expected:</p>
+<ul><li><code>[Gmail]/All Mail</code> is skipped, so its count has no counterpart</li><li>Multi-labelled messages appear more than once on the Corsair side</li><li>Chat and Google-internal messages are not real mail</li></ul>
+<p>What you are checking is that INBOX and Sent are close, and that nothing is obviously empty.</p>
+<p>Sign into the webmail as the mailbox and read a few old messages. Check that attachments open and that dates look right.</p>
+<h2 id="6-cut-over">6. Cut over<a class="anchor" href="#6-cut-over" aria-label="Link to this section">#</a></h2>
+<p>Now change the MX. In the domain's DNS, replace the Google MX records with the one Corsair gave you.</p>
+<figure class="code"><pre><code>example.com.   MX   10   mail.example.com.</code></pre></figure>
+<p>Delete the five <code>aspmx.l.google.com</code> records. Leaving them in place with a worse priority means Google keeps receiving mail whenever your server is briefly unreachable, which is the opposite of a clean cutover.</p>
+<p>Also update SPF. If your record was:</p>
+<figure class="code"><pre><code>v=spf1 include:_spf.google.com ~all</code></pre></figure>
+<p>it becomes:</p>
+<figure class="code"><pre><code>v=spf1 include:mail.example.com -all</code></pre></figure>
+<p>Keep any other legitimate sender you had in there — a marketing platform, a ticketing system — or their mail starts failing SPF the moment you tighten to <code>-all</code>.</p>
+<h2 id="7-wait-out-the-ttl">7. Wait out the TTL<a class="anchor" href="#7-wait-out-the-ttl" aria-label="Link to this section">#</a></h2>
+<p>For as long as the old MX's TTL, some senders will still resolve to Google. During that window mail can arrive at either host. This is unavoidable and it is why there is a step 8.</p>
+<p>Watch it arrive:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>journalctl -u corsair -f | grep -i 'accepted\|rcpt'</code></pre></figure>
+<h2 id="8-run-a-second-pass">8. Run a second pass<a class="anchor" href="#8-run-a-second-pass" aria-label="Link to this section">#</a></h2>
+<p>Once the TTL has expired and new mail is clearly arriving at Corsair, run the transfer again with <strong>Newer than</strong> set to the day you changed the MX.</p>
+<p>The date filter is applied by the <em>source</em> server, so old mail is never transferred and then discarded — it is never fetched at all. That makes the second pass fast.</p>
+<p>Already-copied messages are copied again, so without the date filter you get duplicates for the whole mailbox. Set it.</p>
+<h2 id="9-turn-google-off">9. Turn Google off<a class="anchor" href="#9-turn-google-off" aria-label="Link to this section">#</a></h2>
+<p>Wait a week. Watch for anything still arriving at Google — a forgotten alias, a group, a calendar invite path. Then delete the Workspace account.</p>
+<p>Do not skip the week. Cancelling immediately is how you discover that <code>billing@example.com</code> was a Google group nobody had written down.</p>
+<h2 id="transfer-limits">Transfer limits<a class="anchor" href="#transfer-limits" aria-label="Link to this section">#</a></h2>
+<p>For very large mailboxes, the three limits exist to make a transfer resumable rather than all-or-nothing:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Limit</th>
+<th>Effect</th>
+</tr></thead><tbody>
+<tr>
+<td>Message limit</td>
+<td>Stop after this many messages</td>
+</tr>
+<tr>
+<td>Size limit</td>
+<td>Stop once this many megabytes have been copied</td>
+</tr>
+<tr>
+<td>Newer than</td>
+<td>Only messages at or after this date, filtered by the source</td>
+</tr>
+</tbody></table></div>
+<p>Run repeatedly with a moving <strong>Newer than</strong> date to walk backwards through a mailbox that is too big for one sitting.</p>
+<h2 id="when-it-fails">When it fails<a class="anchor" href="#when-it-fails" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Message</th>
+<th>Cause</th>
+</tr></thead><tbody>
+<tr>
+<td><code>AUTHENTICATIONFAILED</code></td>
+<td>Account password used instead of an app password, or IMAP disabled</td>
+</tr>
+<tr>
+<td>Connection refused</td>
+<td>Wrong host or port. It is <code>imap.gmail.com:993</code>, not the webmail address</td>
+</tr>
+<tr>
+<td>Stalls partway</td>
+<td>Google rate-limits sustained IMAP. It resumes; let it</td>
+</tr>
+<tr>
+<td><code>transfer.failed</code> webhook</td>
+<td>The panel shows the error against the transfer</td>
+</tr>
+</tbody></table></div>
+<p>A failed transfer erases the stored source password, same as a successful one. Restarting means entering it again — that is deliberate.</p>
+<h2 id="what-you-did-not-migrate">What you did not migrate<a class="anchor" href="#what-you-did-not-migrate" aria-label="Link to this section">#</a></h2>
+<p>Filters, forwarding rules, and vacation responders do not come across. Rebuild them as <a href="../filters.html">Sieve filters</a>; the <a href="filter-cookbook.html">filter cookbook</a> has the common shapes.</p>
+<p>Contacts and calendars are not email and Corsair does not host them. Export them from Google and put them somewhere that does.</p><nav class="pager"><a class="pager-prev" href="./first-server.html"><span>Previous</span><strong>Your first production server</strong></a><a class="pager-next" href="./household.html"><span>Next</span><strong>Mail for a household or small team</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#before-you-start">Before you start</a></li><li class="toc-h2"><a href="#1-create-the-destination-addresses">1. Create the destination addresses</a></li><li class="toc-h2"><a href="#2-get-an-app-password-from-google">2. Get an app password from Google</a></li><li class="toc-h2"><a href="#3-start-the-transfer">3. Start the transfer</a></li><li class="toc-h2"><a href="#4-what-gets-copied">4. What gets copied</a></li><li class="toc-h2"><a href="#5-verify-before-you-cut-over">5. Verify before you cut over</a></li><li class="toc-h2"><a href="#6-cut-over">6. Cut over</a></li><li class="toc-h2"><a href="#7-wait-out-the-ttl">7. Wait out the TTL</a></li><li class="toc-h2"><a href="#8-run-a-second-pass">8. Run a second pass</a></li><li class="toc-h2"><a href="#9-turn-google-off">9. Turn Google off</a></li><li class="toc-h2"><a href="#transfer-limits">Transfer limits</a></li><li class="toc-h2"><a href="#when-it-fails">When it fails</a></li><li class="toc-h2"><a href="#what-you-did-not-migrate">What you did not migrate</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../../index.html">Overview</a></li><li><a href="../introduction.html">What it is</a></li><li><a href="../architecture.html">Architecture</a></li><li><a href="../../faq.html">Questions</a></li><li><a href="../../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="../index.html">All documentation</a></li><li><a href="../quickstart.html">Quickstart</a></li><li><a href="./index.html">Tutorials</a></li><li><a href="../configuration.html">Configuration</a></li><li><a href="../api.html">HTTP API</a></li><li><a href="../troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../../policies/privacy.html">Privacy</a></li><li><a href="../../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../../docs.js" defer></script>
+</body>
+</html>

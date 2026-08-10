@@ -26,6 +26,7 @@
     "test:jmap": "bun tests/jmap.ts",
     "test:mailflow": "bun tests/mailflow.ts",
     "site:build": "bun site/build.ts",
+    "site:check": "bun site/build.ts && bun site/check.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint src/ scripts/ site/ tests/",
     "format": "biome format src/ scripts/ site/ tests/",
