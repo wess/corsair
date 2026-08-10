@@ -6,12 +6,12 @@
 <meta name="color-scheme" content="light dark" />
 <title>Monitoring · Corsair</title>
 <meta name="description" content="What to watch, what to alert on, and the queries that tell you whether mail is actually flowing." />
-<link rel="canonical" href="https://wess.github.io/corsair/docs/monitoring.html" />
+<link rel="canonical" href="https://corsair.wess.dev/docs/monitoring.html" />
 <meta property="og:title" content="Monitoring" />
 <meta property="og:site_name" content="Corsair" />
 <meta property="og:description" content="What to watch, what to alert on, and the queries that tell you whether mail is actually flowing." />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://wess.github.io/corsair/docs/monitoring.html" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/monitoring.html" />
 <meta name="twitter:card" content="summary" />
 <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="../style.css" />
@@ -34,7 +34,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
     <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
     </button>
-    <a class="cta" href="/app">Control panel</a>
+    <a class="cta" href="./quickstart.html">Get started</a>
   </nav>
 </header>
 <div id="content">
@@ -111,8 +111,10 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tbody></table></div>
 <h2 id="is-it-running">Is it running<a class="anchor" href="#is-it-running" aria-label="Link to this section">#</a></h2>
 <figure class="code"><span class="code-lang">sh</span><pre><code>systemctl is-active corsair
-curl -sf localhost:3000/api/plans &gt;/dev/null &amp;&amp; echo ok</code></pre></figure>
-<p><code>/api/plans</code> needs no authentication and touches the database, so a 200 means the HTTP tier is up <em>and</em> Postgres is reachable. That makes it a reasonable liveness check.</p>
+curl -sf localhost:3000/.well-known/mta-sts.txt &gt;/dev/null &amp;&amp; echo &quot;http ok&quot;</code></pre></figure>
+<p><code>/.well-known/mta-sts.txt</code> is served without authentication, so it is a clean HTTP liveness probe. It does <strong>not</strong> touch the database — every <code>/api</code> route either requires a session or is a POST, so there is no single endpoint that proves both. Check Postgres separately:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>psql &quot;$DATABASE_URL&quot; -Atc &quot;SELECT 1&quot; &gt;/dev/null &amp;&amp; echo &quot;db ok&quot;</code></pre></figure>
+<p>Probing an authenticated endpoint and treating 401 as healthy works too, but it proves only that the HTTP tier is answering — a 401 is returned before anything queries the database.</p>
 <p>For the mail listeners, check the sockets:</p>
 <figure class="code"><span class="code-lang">sh</span><pre><code>for p in 25 587 465 143 993 110 995; do
   nc -z localhost $p &amp;&amp; echo &quot;$p ok&quot; || echo &quot;$p DOWN&quot;

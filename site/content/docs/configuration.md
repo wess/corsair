@@ -85,11 +85,9 @@ selectors let a key be rotated without a gap in signing.
 | `POP3_ENABLED` | `true` | |
 
 The defaults are unprivileged so development needs no root. Ports below 1024 need
-`CAP_NET_BIND_SERVICE`:
-
-```sh
-sudo setcap 'cap_net_bind_service=+ep' "$(which bun)"
-```
+`CAP_NET_BIND_SERVICE` — granted in the systemd unit with `AmbientCapabilities`,
+or with `setcap` on the binary when running outside a service manager. See
+[Installation](installation.html); the two are not interchangeable.
 
 The `*_ENABLED` flags accept `true`, `1`, or `yes`. Turning listeners off is how
 you [split the deployment](installation.html).

@@ -6,12 +6,12 @@
 <meta name="color-scheme" content="light dark" />
 <title>Installation · Corsair</title>
 <meta name="description" content="Docker Compose, bare metal with systemd, and a split deployment — plus what each entrypoint does." />
-<link rel="canonical" href="https://wess.github.io/corsair/docs/installation.html" />
+<link rel="canonical" href="https://corsair.wess.dev/docs/installation.html" />
 <meta property="og:title" content="Installation" />
 <meta property="og:site_name" content="Corsair" />
 <meta property="og:description" content="Docker Compose, bare metal with systemd, and a split deployment — plus what each entrypoint does." />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://wess.github.io/corsair/docs/installation.html" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/installation.html" />
 <meta name="twitter:card" content="summary" />
 <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="../style.css" />
@@ -34,7 +34,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
     <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
     </button>
-    <a class="cta" href="/app">Control panel</a>
+    <a class="cta" href="./quickstart.html">Get started</a>
   </nav>
 </header>
 <div id="content">
@@ -105,8 +105,6 @@ sudo -u corsair git clone https://github.com/wess/corsair /opt/corsair/app
 cd /opt/corsair/app
 sudo -u corsair bun install
 sudo -u corsair cp .env.example .env</code></pre></figure>
-<p>Grant the port capability to the runtime:</p>
-<figure class="code"><span class="code-lang">sh</span><pre><code>sudo setcap 'cap_net_bind_service=+ep' &quot;$(which bun)&quot;</code></pre></figure>
 <figure class="code"><span class="code-lang">ini</span><pre><code># /etc/systemd/system/corsair.service
 [Unit]
 Description=Corsair mail server
@@ -123,6 +121,10 @@ Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
 
+# Ports below 1024, granted to the service rather than to the binary.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
@@ -133,7 +135,9 @@ ReadWritePaths=/opt/corsair/app
 WantedBy=multi-user.target</code></pre></figure>
 <figure class="code"><span class="code-lang">sh</span><pre><code>sudo systemctl daemon-reload
 sudo systemctl enable --now corsair</code></pre></figure>
-<aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span><code>setcap</code> and <code>NoNewPrivileges</code></p><p>The capability is on the binary, not granted at exec time, so <code>NoNewPrivileges=true</code> does not interfere with it. If you switch to running as root and dropping privileges instead, that changes.</p></aside>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Under systemd, use AmbientCapabilities — not <code>setcap</code></p><p><code>NoNewPrivileges=true</code> <strong>blocks file capabilities outright</strong>. A <code>setcap cap_net_bind_service=+ep</code> on the Bun binary silently does nothing under this unit, and the service fails with <code>EACCES</code> on port 25 while the HTTP tier on 3000 comes up fine — which makes it look like a mail-specific problem rather than a permissions one.</p>
+<p><code>AmbientCapabilities</code> is the correct mechanism and is strictly better anyway: it survives <code>bun upgrade</code> replacing the binary, and nothing on disk carries a capability.</p>
+<p>Use <code>setcap</code> only when running Corsair <strong>outside</strong> systemd — by hand, or under a supervisor that does not set <code>NoNewPrivileges</code>.</p></aside>
 <h2 id="split-deployment">Split deployment<a class="anchor" href="#split-deployment" aria-label="Link to this section">#</a></h2>
 <p>The HTTP tier and the mail listeners can run as separate processes against the same database.</p>
 <figure class="code"><span class="code-lang">sh</span><pre><code>bun src/server.ts                  # HTTP only: API, panel, webmail, JMAP

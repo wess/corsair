@@ -6,12 +6,12 @@
 <meta name="color-scheme" content="light dark" />
 <title>Prerequisites · Corsair</title>
 <meta name="description" content="The four things that decide whether your mail is delivered, none of which are code." />
-<link rel="canonical" href="https://wess.github.io/corsair/docs/prerequisites.html" />
+<link rel="canonical" href="https://corsair.wess.dev/docs/prerequisites.html" />
 <meta property="og:title" content="Prerequisites" />
 <meta property="og:site_name" content="Corsair" />
 <meta property="og:description" content="The four things that decide whether your mail is delivered, none of which are code." />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://wess.github.io/corsair/docs/prerequisites.html" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/prerequisites.html" />
 <meta name="twitter:card" content="summary" />
 <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="../style.css" />
@@ -34,7 +34,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
     <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
     </button>
-    <a class="cta" href="/app">Control panel</a>
+    <a class="cta" href="./quickstart.html">Get started</a>
   </nav>
 </header>
 <div id="content">
@@ -117,6 +117,10 @@ TLS_KEY_PATH=/etc/letsencrypt/live/mail.example.com/privkey.pem</code></pre></fi
 <p>Let's Encrypt via DNS-01 is the least painful route because it does not need port 80 open. See <a href="tls.html">TLS certificates</a>.</p>
 <h2 id="4-permission-to-bind-privileged-ports">4. Permission to bind privileged ports<a class="anchor" href="#4-permission-to-bind-privileged-ports" aria-label="Link to this section">#</a></h2>
 <p>Ports below 1024 need root or the capability. Granting the capability is the alternative to running a mail server as root, which it should not be:</p>
+<p>Under <strong>systemd</strong>, grant it in the unit — this is the usual case, and the only one that works alongside <code>NoNewPrivileges=true</code>:</p>
+<figure class="code"><span class="code-lang">ini</span><pre><code>AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE</code></pre></figure>
+<p>Running it <strong>by hand</strong>, outside a service manager, put the capability on the binary instead:</p>
 <figure class="code"><span class="code-lang">sh</span><pre><code>sudo setcap 'cap_net_bind_service=+ep' &quot;$(which bun)&quot;</code></pre></figure>
 <p>Then set the ports to the real ones:</p>
 <figure class="code"><pre><code>SMTP_MX_PORT=25

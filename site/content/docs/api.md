@@ -234,7 +234,7 @@ endpoint that has lost its secret should rotate rather than read it back.
 
 | Method | Path | Does |
 | --- | --- | --- |
-| GET | `/api/plans` | Available plans. No authentication needed |
+| GET | `/api/plans` | Visible plans, ordered by position |
 | GET | `/api/entitlement` | The current account's entitlement and usage |
 | POST | `/api/subscription` | Subscribe to a plan |
 | POST | `/api/subscription/cancel` | Cancel at period end |

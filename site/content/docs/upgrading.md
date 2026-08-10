@@ -166,14 +166,17 @@ older than its messages.
 
 ```sh
 bun upgrade
-sudo setcap 'cap_net_bind_service=+ep' "$(which bun)"
 sudo systemctl restart corsair
 ```
 
-:::warning Re-apply setcap after every Bun upgrade
-`bun upgrade` replaces the binary, and file capabilities do not survive that.
-The symptom is a service that starts and then fails to bind port 25 — easy to
-miss, because the HTTP tier on 3000 comes up fine.
+:::note Nothing to re-grant, if you are on systemd
+`bun upgrade` replaces the binary, and file capabilities do not survive that —
+so a `setcap`-based setup breaks on every upgrade, with the service failing to
+bind port 25 while the HTTP tier on 3000 comes up fine.
+
+The unit in [Installation](installation.html) uses `AmbientCapabilities`, which
+is granted to the service rather than the file and is therefore unaffected. If
+you inherited a `setcap` setup, this is a good moment to switch.
 :::
 
 ## After any upgrade

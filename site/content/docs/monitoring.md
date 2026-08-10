@@ -31,12 +31,21 @@ These are the things worth watching, in the order they matter.
 
 ```sh
 systemctl is-active corsair
-curl -sf localhost:3000/api/plans >/dev/null && echo ok
+curl -sf localhost:3000/.well-known/mta-sts.txt >/dev/null && echo "http ok"
 ```
 
-`/api/plans` needs no authentication and touches the database, so a 200 means the
-HTTP tier is up *and* Postgres is reachable. That makes it a reasonable liveness
-check.
+`/.well-known/mta-sts.txt` is served without authentication, so it is a clean
+HTTP liveness probe. It does **not** touch the database — every `/api` route
+either requires a session or is a POST, so there is no single endpoint that
+proves both. Check Postgres separately:
+
+```sh
+psql "$DATABASE_URL" -Atc "SELECT 1" >/dev/null && echo "db ok"
+```
+
+Probing an authenticated endpoint and treating 401 as healthy works too, but it
+proves only that the HTTP tier is answering — a 401 is returned before anything
+queries the database.
 
 For the mail listeners, check the sockets:
 

@@ -146,13 +146,20 @@ created.
 
 Every setting is listed in [Configuration](../configuration.html).
 
-## 6. Let it bind the privileged ports
+## 6. Decide how it binds the privileged ports
 
-```sh
-sudo setcap 'cap_net_bind_service=+ep' /opt/corsair/.bun/bin/bun
-```
+Ports below 1024 need a capability. Under systemd — which is what step 8 sets up —
+that is granted in the unit with `AmbientCapabilities`, so there is nothing to do
+here.
 
-This is the alternative to running the mail server as root.
+:::danger Do not use `setcap` under systemd
+`NoNewPrivileges=true` blocks file capabilities. A
+`setcap cap_net_bind_service=+ep` on the Bun binary silently does nothing, and
+the service dies with `EACCES` on port 25 while the HTTP tier on 3000 starts
+normally — which sends you looking at the mail code instead of the unit file.
+
+Use `setcap` only when running Corsair outside systemd.
+:::
 
 ## 7. Migrate and seed
 
@@ -183,7 +190,11 @@ Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
 
-# The capability is on the binary; nothing here needs to be privileged.
+# Ports below 1024. This is what makes 25/465/587/143/993/110/995 bindable by
+# an unprivileged user, and it survives `bun upgrade` replacing the binary.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict

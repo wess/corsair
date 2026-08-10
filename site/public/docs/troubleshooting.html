@@ -6,12 +6,12 @@
 <meta name="color-scheme" content="light dark" />
 <title>Troubleshooting · Corsair</title>
 <meta name="description" content="Symptom first — find what you are seeing, then the cause and the fix." />
-<link rel="canonical" href="https://wess.github.io/corsair/docs/troubleshooting.html" />
+<link rel="canonical" href="https://corsair.wess.dev/docs/troubleshooting.html" />
 <meta property="og:title" content="Troubleshooting" />
 <meta property="og:site_name" content="Corsair" />
 <meta property="og:description" content="Symptom first — find what you are seeing, then the cause and the fix." />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://wess.github.io/corsair/docs/troubleshooting.html" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/troubleshooting.html" />
 <meta name="twitter:card" content="summary" />
 <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="../style.css" />
@@ -34,7 +34,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
     <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
     </button>
-    <a class="cta" href="/app">Control panel</a>
+    <a class="cta" href="./quickstart.html">Get started</a>
   </nav>
 </header>
 <div id="content">
@@ -76,10 +76,12 @@ nc -zv mail.example.com 25</code></pre></figure>
 <p>Test from off the host. A firewall or security group blocking inbound 25 is invisible from inside.</p>
 <p><strong>3. Is the listener up?</strong></p>
 <figure class="code"><span class="code-lang">sh</span><pre><code>sudo ss -lntp | grep ':25 '</code></pre></figure>
-<p>Nothing there means <code>SMTP_ENABLED=false</code>, or the process could not bind the port:</p>
-<figure class="code"><span class="code-lang">sh</span><pre><code>sudo setcap 'cap_net_bind_service=+ep' &quot;$(which bun)&quot;
-sudo systemctl restart corsair</code></pre></figure>
-<p>This is also what happens after a <code>bun upgrade</code> — the new binary has no capability.</p>
+<p>Nothing there means <code>SMTP_ENABLED=false</code>, or the process could not bind the port. Check the log for <code>EACCES</code>:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>journalctl -u corsair -n 40 | grep -A3 EACCES</code></pre></figure>
+<p><code>errno: 13</code> on port 25 while port 3000 came up fine is a capability problem. The unit needs:</p>
+<figure class="code"><span class="code-lang">ini</span><pre><code>AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE</code></pre></figure>
+<p><strong>A <code>setcap</code> on the Bun binary will not work here.</strong> <code>NoNewPrivileges=true</code> blocks file capabilities, so the grant silently has no effect. This is also the failure after a <code>bun upgrade</code> on a <code>setcap</code>-based setup, since the replacement binary carries no capability.</p>
 <p><strong>4. Is the domain added?</strong> Corsair only accepts mail for domains it hosts. Everything else is refused, correctly.</p>
 <p><strong>5. Watch a live delivery.</strong></p>
 <figure class="code"><span class="code-lang">sh</span><pre><code>journalctl -u corsair -f</code></pre></figure>

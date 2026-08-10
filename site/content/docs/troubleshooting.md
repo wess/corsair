@@ -49,15 +49,25 @@ invisible from inside.
 sudo ss -lntp | grep ':25 '
 ```
 
-Nothing there means `SMTP_ENABLED=false`, or the process could not bind the port:
+Nothing there means `SMTP_ENABLED=false`, or the process could not bind the
+port. Check the log for `EACCES`:
 
 ```sh
-sudo setcap 'cap_net_bind_service=+ep' "$(which bun)"
-sudo systemctl restart corsair
+journalctl -u corsair -n 40 | grep -A3 EACCES
 ```
 
-This is also what happens after a `bun upgrade` — the new binary has no
-capability.
+`errno: 13` on port 25 while port 3000 came up fine is a capability problem. The
+unit needs:
+
+```ini
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+```
+
+**A `setcap` on the Bun binary will not work here.** `NoNewPrivileges=true`
+blocks file capabilities, so the grant silently has no effect. This is also the
+failure after a `bun upgrade` on a `setcap`-based setup, since the replacement
+binary carries no capability.
 
 **4. Is the domain added?** Corsair only accepts mail for domains it hosts.
 Everything else is refused, correctly.

@@ -104,12 +104,6 @@ sudo -u corsair bun install
 sudo -u corsair cp .env.example .env
 ```
 
-Grant the port capability to the runtime:
-
-```sh
-sudo setcap 'cap_net_bind_service=+ep' "$(which bun)"
-```
-
 ```ini
 # /etc/systemd/system/corsair.service
 [Unit]
@@ -127,6 +121,10 @@ Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
 
+# Ports below 1024, granted to the service rather than to the binary.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
@@ -142,10 +140,19 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now corsair
 ```
 
-:::note `setcap` and `NoNewPrivileges`
-The capability is on the binary, not granted at exec time, so
-`NoNewPrivileges=true` does not interfere with it. If you switch to running as
-root and dropping privileges instead, that changes.
+:::danger Under systemd, use AmbientCapabilities — not `setcap`
+`NoNewPrivileges=true` **blocks file capabilities outright**. A
+`setcap cap_net_bind_service=+ep` on the Bun binary silently does nothing under
+this unit, and the service fails with `EACCES` on port 25 while the HTTP tier on
+3000 comes up fine — which makes it look like a mail-specific problem rather
+than a permissions one.
+
+`AmbientCapabilities` is the correct mechanism and is strictly better anyway: it
+survives `bun upgrade` replacing the binary, and nothing on disk carries a
+capability.
+
+Use `setcap` only when running Corsair **outside** systemd — by hand, or under a
+supervisor that does not set `NoNewPrivileges`.
 :::
 
 ## Split deployment

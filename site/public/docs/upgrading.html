@@ -6,12 +6,12 @@
 <meta name="color-scheme" content="light dark" />
 <title>Upgrading · Corsair</title>
 <meta name="description" content="Pull, migrate, restart — and the parts of that sequence which are not safe to do in the wrong order." />
-<link rel="canonical" href="https://wess.github.io/corsair/docs/upgrading.html" />
+<link rel="canonical" href="https://corsair.wess.dev/docs/upgrading.html" />
 <meta property="og:title" content="Upgrading" />
 <meta property="og:site_name" content="Corsair" />
 <meta property="og:description" content="Pull, migrate, restart — and the parts of that sequence which are not safe to do in the wrong order." />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://wess.github.io/corsair/docs/upgrading.html" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/upgrading.html" />
 <meta name="twitter:card" content="summary" />
 <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="../style.css" />
@@ -34,7 +34,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
     <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
     </button>
-    <a class="cta" href="/app">Control panel</a>
+    <a class="cta" href="./quickstart.html">Get started</a>
   </nav>
 </header>
 <div id="content">
@@ -124,9 +124,9 @@ pg_restore --no-owner --dbname &quot;postgres://…/corsair&quot; full.dump</cod
 <p>Stop Corsair first. A dump taken while mail is arriving is a dump of a moving target, and the one thing you cannot tolerate is a folder whose <code>uid_next</code> is older than its messages.</p>
 <h2 id="upgrading-bun">Upgrading Bun<a class="anchor" href="#upgrading-bun" aria-label="Link to this section">#</a></h2>
 <figure class="code"><span class="code-lang">sh</span><pre><code>bun upgrade
-sudo setcap 'cap_net_bind_service=+ep' &quot;$(which bun)&quot;
 sudo systemctl restart corsair</code></pre></figure>
-<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Re-apply setcap after every Bun upgrade</p><p><code>bun upgrade</code> replaces the binary, and file capabilities do not survive that. The symptom is a service that starts and then fails to bind port 25 — easy to miss, because the HTTP tier on 3000 comes up fine.</p></aside>
+<aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span>Nothing to re-grant, if you are on systemd</p><p><code>bun upgrade</code> replaces the binary, and file capabilities do not survive that — so a <code>setcap</code>-based setup breaks on every upgrade, with the service failing to bind port 25 while the HTTP tier on 3000 comes up fine.</p>
+<p>The unit in <a href="installation.html">Installation</a> uses <code>AmbientCapabilities</code>, which is granted to the service rather than the file and is therefore unaffected. If you inherited a <code>setcap</code> setup, this is a good moment to switch.</p></aside>
 <h2 id="after-any-upgrade">After any upgrade<a class="anchor" href="#after-any-upgrade" aria-label="Link to this section">#</a></h2>
 <ul><li class="task"><span class="box" aria-hidden="true"></span>Send a message out, check for <code>dkim=pass</code></li><li class="task"><span class="box" aria-hidden="true"></span>Receive one from outside</li><li class="task"><span class="box" aria-hidden="true"></span>Connect a client over IMAP</li><li class="task"><span class="box" aria-hidden="true"></span><code>bun scripts/migrate.ts diff</code> reports in sync</li><li class="task"><span class="box" aria-hidden="true"></span>The queue is draining</li><li class="task"><span class="box" aria-hidden="true"></span>Nothing new in <code>journalctl -u corsair --since &quot;10 minutes ago&quot; | grep -i error</code></li></ul>
 <p>Then delete the pre-upgrade dump — or keep it for a week, which is cheaper than regretting it.</p><nav class="pager"><a class="pager-prev" href="./monitoring.html"><span>Previous</span><strong>Monitoring</strong></a><a class="pager-next" href="./scaling.html"><span>Next</span><strong>Scaling and performance</strong></a></nav></main>

@@ -6,12 +6,12 @@
 <meta name="color-scheme" content="light dark" />
 <title>Your first production server · Corsair</title>
 <meta name="description" content="Take a blank VPS to delivered, authenticated mail — host, DNS, TLS, domain, mailbox, and a verified round trip." />
-<link rel="canonical" href="https://wess.github.io/corsair/docs/tutorials/first-server.html" />
+<link rel="canonical" href="https://corsair.wess.dev/docs/tutorials/first-server.html" />
 <meta property="og:title" content="Your first production server" />
 <meta property="og:site_name" content="Corsair" />
 <meta property="og:description" content="Take a blank VPS to delivered, authenticated mail — host, DNS, TLS, domain, mailbox, and a verified round trip." />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://wess.github.io/corsair/docs/tutorials/first-server.html" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/tutorials/first-server.html" />
 <meta name="twitter:card" content="summary" />
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="../../style.css" />
@@ -34,7 +34,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
     <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
     </button>
-    <a class="cta" href="/app">Control panel</a>
+    <a class="cta" href="../quickstart.html">Get started</a>
   </nav>
 </header>
 <div id="content">
@@ -132,9 +132,10 @@ SIGNUPS=closed</code></pre></figure>
 <figure class="code"><span class="code-lang">sh</span><pre><code>openssl rand -base64 48</code></pre></figure>
 <aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>SIGNUPS=closed</p><p>Leave signups open only if you intend to run mail for strangers. On a personal server, <code>closed</code> means the first account — yours — is the only one that can be created.</p></aside>
 <p>Every setting is listed in <a href="../configuration.html">Configuration</a>.</p>
-<h2 id="6-let-it-bind-the-privileged-ports">6. Let it bind the privileged ports<a class="anchor" href="#6-let-it-bind-the-privileged-ports" aria-label="Link to this section">#</a></h2>
-<figure class="code"><span class="code-lang">sh</span><pre><code>sudo setcap 'cap_net_bind_service=+ep' /opt/corsair/.bun/bin/bun</code></pre></figure>
-<p>This is the alternative to running the mail server as root.</p>
+<h2 id="6-decide-how-it-binds-the-privileged-ports">6. Decide how it binds the privileged ports<a class="anchor" href="#6-decide-how-it-binds-the-privileged-ports" aria-label="Link to this section">#</a></h2>
+<p>Ports below 1024 need a capability. Under systemd — which is what step 8 sets up — that is granted in the unit with <code>AmbientCapabilities</code>, so there is nothing to do here.</p>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Do not use <code>setcap</code> under systemd</p><p><code>NoNewPrivileges=true</code> blocks file capabilities. A <code>setcap cap_net_bind_service=+ep</code> on the Bun binary silently does nothing, and the service dies with <code>EACCES</code> on port 25 while the HTTP tier on 3000 starts normally — which sends you looking at the mail code instead of the unit file.</p>
+<p>Use <code>setcap</code> only when running Corsair outside systemd.</p></aside>
 <h2 id="7-migrate-and-seed">7. Migrate and seed<a class="anchor" href="#7-migrate-and-seed" aria-label="Link to this section">#</a></h2>
 <figure class="code"><span class="code-lang">sh</span><pre><code>sudo -u corsair ~/.bun/bin/bun scripts/migrate.ts up
 sudo -u corsair SEED_PASSWORD='something-long' ~/.bun/bin/bun scripts/seed.ts</code></pre></figure>
@@ -156,7 +157,11 @@ Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
 
-# The capability is on the binary; nothing here needs to be privileged.
+# Ports below 1024. This is what makes 25/465/587/143/993/110/995 bindable by
+# an unprivileged user, and it survives `bun upgrade` replacing the binary.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
@@ -320,7 +325,7 @@ sudo systemctl status corsair</code></pre></figure>
 </tr>
 </tbody></table></div>
 <p><a href="../troubleshooting.html">Troubleshooting</a> goes symptom by symptom.</p><nav class="pager"><a class="pager-prev" href="./index.html"><span>Previous</span><strong>Tutorials</strong></a><a class="pager-next" href="./migrate-from-google.html"><span>Next</span><strong>Migrating from Google Workspace</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#before-you-start">Before you start</a></li><li class="toc-h2"><a href="#1-point-the-hostname-at-the-box">1. Point the hostname at the box</a></li><li class="toc-h2"><a href="#2-install-the-runtime-and-the-database">2. Install the runtime and the database</a></li><li class="toc-h2"><a href="#3-get-corsair">3. Get Corsair</a></li><li class="toc-h2"><a href="#4-get-a-certificate">4. Get a certificate</a></li><li class="toc-h2"><a href="#5-configure">5. Configure</a></li><li class="toc-h2"><a href="#6-let-it-bind-the-privileged-ports">6. Let it bind the privileged ports</a></li><li class="toc-h2"><a href="#7-migrate-and-seed">7. Migrate and seed</a></li><li class="toc-h2"><a href="#8-run-it-as-a-service">8. Run it as a service</a></li><li class="toc-h2"><a href="#9-put-the-panel-behind-https">9. Put the panel behind HTTPS</a></li><li class="toc-h2"><a href="#10-add-the-domain">10. Add the domain</a></li><li class="toc-h2"><a href="#11-publish-the-records">11. Publish the records</a></li><li class="toc-h2"><a href="#12-check-dns">12. Check DNS</a></li><li class="toc-h2"><a href="#13-create-a-mailbox">13. Create a mailbox</a></li><li class="toc-h2"><a href="#14-prove-it-works">14. Prove it works</a></li><li class="toc-h2"><a href="#15-before-you-call-it-done">15. Before you call it done</a></li><li class="toc-h2"><a href="#if-mail-does-not-flow">If mail does not flow</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#before-you-start">Before you start</a></li><li class="toc-h2"><a href="#1-point-the-hostname-at-the-box">1. Point the hostname at the box</a></li><li class="toc-h2"><a href="#2-install-the-runtime-and-the-database">2. Install the runtime and the database</a></li><li class="toc-h2"><a href="#3-get-corsair">3. Get Corsair</a></li><li class="toc-h2"><a href="#4-get-a-certificate">4. Get a certificate</a></li><li class="toc-h2"><a href="#5-configure">5. Configure</a></li><li class="toc-h2"><a href="#6-decide-how-it-binds-the-privileged-ports">6. Decide how it binds the privileged ports</a></li><li class="toc-h2"><a href="#7-migrate-and-seed">7. Migrate and seed</a></li><li class="toc-h2"><a href="#8-run-it-as-a-service">8. Run it as a service</a></li><li class="toc-h2"><a href="#9-put-the-panel-behind-https">9. Put the panel behind HTTPS</a></li><li class="toc-h2"><a href="#10-add-the-domain">10. Add the domain</a></li><li class="toc-h2"><a href="#11-publish-the-records">11. Publish the records</a></li><li class="toc-h2"><a href="#12-check-dns">12. Check DNS</a></li><li class="toc-h2"><a href="#13-create-a-mailbox">13. Create a mailbox</a></li><li class="toc-h2"><a href="#14-prove-it-works">14. Prove it works</a></li><li class="toc-h2"><a href="#15-before-you-call-it-done">15. Before you call it done</a></li><li class="toc-h2"><a href="#if-mail-does-not-flow">If mail does not flow</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

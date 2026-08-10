@@ -88,6 +88,17 @@ Let's Encrypt via DNS-01 is the least painful route because it does not need por
 Ports below 1024 need root or the capability. Granting the capability is the
 alternative to running a mail server as root, which it should not be:
 
+Under **systemd**, grant it in the unit — this is the usual case, and the only
+one that works alongside `NoNewPrivileges=true`:
+
+```ini
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+```
+
+Running it **by hand**, outside a service manager, put the capability on the
+binary instead:
+
 ```sh
 sudo setcap 'cap_net_bind_service=+ep' "$(which bun)"
 ```

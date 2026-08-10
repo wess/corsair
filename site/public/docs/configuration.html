@@ -6,12 +6,12 @@
 <meta name="color-scheme" content="light dark" />
 <title>Configuration · Corsair</title>
 <meta name="description" content="Every environment variable Corsair reads, its default, and what changes when you set it." />
-<link rel="canonical" href="https://wess.github.io/corsair/docs/configuration.html" />
+<link rel="canonical" href="https://corsair.wess.dev/docs/configuration.html" />
 <meta property="og:title" content="Configuration" />
 <meta property="og:site_name" content="Corsair" />
 <meta property="og:description" content="Every environment variable Corsair reads, its default, and what changes when you set it." />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://wess.github.io/corsair/docs/configuration.html" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/configuration.html" />
 <meta name="twitter:card" content="summary" />
 <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="../style.css" />
@@ -34,7 +34,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
     <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
     </button>
-    <a class="cta" href="/app">Control panel</a>
+    <a class="cta" href="./quickstart.html">Get started</a>
   </nav>
 </header>
 <div id="content">
@@ -217,8 +217,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td></td>
 </tr>
 </tbody></table></div>
-<p>The defaults are unprivileged so development needs no root. Ports below 1024 need <code>CAP_NET_BIND_SERVICE</code>:</p>
-<figure class="code"><span class="code-lang">sh</span><pre><code>sudo setcap 'cap_net_bind_service=+ep' &quot;$(which bun)&quot;</code></pre></figure>
+<p>The defaults are unprivileged so development needs no root. Ports below 1024 need <code>CAP_NET_BIND_SERVICE</code> — granted in the systemd unit with <code>AmbientCapabilities</code>, or with <code>setcap</code> on the binary when running outside a service manager. See <a href="installation.html">Installation</a>; the two are not interchangeable.</p>
 <p>The <code>*_ENABLED</code> flags accept <code>true</code>, <code>1</code>, or <code>yes</code>. Turning listeners off is how you <a href="installation.html">split the deployment</a>.</p>
 <h2 id="tls">TLS<a class="anchor" href="#tls" aria-label="Link to this section">#</a></h2>
 <div class='table-wrap'><table><thead><tr>
