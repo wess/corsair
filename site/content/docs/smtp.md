@@ -8,18 +8,24 @@ eyebrow: Reference
 
 # SMTP
 
-Three listeners, two jobs. Port 25 receives mail from the internet; 587 and 465
-accept mail from your own users.
+Three listeners, two jobs. Port 25 receives mail from the internet; 465 accepts
+mail from your own users.
 
 | Port | Role | TLS | Authentication |
 | --- | --- | --- | --- |
-| 25 | MX — inbound from anywhere | STARTTLS, opportunistic | None |
-| 587 | Submission | STARTTLS, required before AUTH | Address credential |
+| 25 | MX — inbound from anywhere | none | None |
 | 465 | Submission | Implicit from the first byte | Address credential |
+| 587 | Submission | none — **cannot authenticate** | — |
 
-Port 25 never requires STARTTLS. A sending server that does not support it still
-has legitimate mail to deliver, and refusing means losing that mail. Every other
-port requires encryption before a credential crosses it.
+:::danger STARTTLS is not offered
+Bun cannot upgrade an accepted socket to TLS, so Corsair has no server-side
+STARTTLS and deliberately does not advertise it. A peer that issues the command
+has already committed and cannot fall back, so advertising a broken STARTTLS
+turns "delivered in plaintext" into "not delivered".
+
+Senders on port 25 therefore deliver in plaintext, which is what opportunistic
+encryption degrades to. Submission works only on **465**. See [TLS](tls.html).
+:::
 
 ## Extensions advertised
 
@@ -30,16 +36,17 @@ port requires encryption before a credential crosses it.
 250-SMTPUTF8
 250-PIPELINING
 250-ENHANCEDSTATUSCODES
-250-STARTTLS
 250-AUTH PLAIN LOGIN
 250 HELP
 ```
 
-`STARTTLS` appears only on a connection that is not already encrypted, and
-**`AUTH` only on one that is**. On a server with no certificate configured, AUTH
-is never advertised at all — which is the correct failure. A self-hoster who has
-not set up TLS should discover it there rather than after their users' passwords
-have crossed the network.
+**`AUTH` is advertised only on an already-encrypted connection**, which in
+practice means port 465. On a server with no certificate configured it is never
+advertised at all — the correct failure. A self-hoster who has not set up TLS
+should discover it there rather than after their users' passwords have crossed
+the network.
+
+`STARTTLS` is not advertised at all; see [TLS](tls.html).
 
 `CHUNKING` is deliberately not advertised. It invites `BDAT`, and a sender that
 switches to BDAT against a server without it gets a hard failure rather than
@@ -101,7 +108,7 @@ The score is recorded on the message row and in `mail_log`, and goes out on the
 
 ## Submission
 
-Authenticated sending, on 587 and 465.
+Authenticated sending, on 465.
 
 1. **Authenticate.** `PLAIN` or `LOGIN`, only over an encrypted connection.
 2. **Prove the sender.** The From address must belong to the authenticated
@@ -187,10 +194,10 @@ Body text.
 QUIT
 ```
 
-Submission, which needs TLS first:
+Submission, which is encrypted from the first byte:
 
 ```sh
-openssl s_client -starttls smtp -connect mail.example.com:587 -crlf
+openssl s_client -connect mail.example.com:465 -crlf
 ```
 
 ```

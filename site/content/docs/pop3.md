@@ -8,8 +8,11 @@ eyebrow: Reference
 
 # POP3
 
-POP3 on 110 (STLS) and 995 (implicit TLS). Full email address as the username,
-mailbox password as the password.
+POP3 on **995** (implicit TLS). Full email address as the username, mailbox
+password as the password.
+
+Port 110 listens but cannot be used: there is no server-side STLS, and Corsair
+will not take a credential unencrypted. See [TLS](tls.html).
 
 It exists for the clients that still want it.
 
@@ -18,7 +21,6 @@ It exists for the clients that still want it.
 | Command | Notes |
 | --- | --- |
 | `CAPA` | Advertised capabilities |
-| `STLS` | Upgrade a plaintext connection |
 | `USER`, `PASS` | Standard authentication |
 | `APOP` | Digest authentication |
 | `STAT` | Message count and total size |
@@ -31,8 +33,8 @@ It exists for the clients that still want it.
 | `NOOP` | |
 | `QUIT` | Commits the deletions |
 
-That is the whole of RFC 1939 plus `STLS`, `UIDL`, and `TOP`. There is nothing
-else in POP3 to implement.
+That is the whole of RFC 1939 plus `UIDL` and `TOP`. `STLS` is present in the
+command table but cannot complete; use 995.
 
 ## INBOX only
 

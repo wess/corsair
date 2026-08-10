@@ -193,9 +193,10 @@ entirely. There must be exactly one.
 **"Certificate not trusted"** — self-signed, or the chain is incomplete. You need
 `fullchain.pem`, not the leaf.
 
-**"Server does not support authentication"** — Corsair advertises `LOGINDISABLED`
-on an unencrypted connection. Use 993 or 465, or STARTTLS first. This is
-deliberate: a password in the clear is worse than no service.
+**"Server does not support authentication"** — you are on 587, 143, or 110.
+Corsair has no server-side STARTTLS (Bun cannot upgrade an accepted socket), so
+those ports can never become encrypted, and Corsair will not take a credential in
+the clear. **Use 465, 993, or 995.** See [TLS](tls.html).
 
 **"Wrong password"** — the mailbox password, not the control-panel password. They
 are separate identities. Alias and group addresses have no password at all; they

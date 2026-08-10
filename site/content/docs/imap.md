@@ -8,8 +8,11 @@ eyebrow: Reference
 
 # IMAP
 
-IMAP4rev1 on 143 (STARTTLS) and 993 (implicit TLS). Username is the full email
-address; password is the mailbox password.
+IMAP4rev1 on **993** (implicit TLS). Username is the full email address;
+password is the mailbox password.
+
+Port 143 listens but cannot be used: Corsair has no server-side STARTTLS, and it
+will not accept a credential unencrypted. See [TLS](tls.html).
 
 ## Capabilities
 
@@ -22,12 +25,12 @@ Plus, depending on connection state:
 
 | Advertised | When |
 | --- | --- |
-| `STARTTLS` | On a plaintext port with TLS configured |
 | `LOGINDISABLED` | Not authenticated, connection not encrypted |
 | `AUTH=PLAIN AUTH=LOGIN` | Not authenticated, connection encrypted |
 
 `LOGINDISABLED` rather than accepting the password is deliberate. A client fails
-at connect rather than after putting a credential on the wire in the clear.
+at connect rather than after putting a credential on the wire in the clear — which
+is what port 143 does here, since it can never be upgraded.
 
 ## Commands
 
@@ -45,7 +48,6 @@ at connect rather than after putting a credential on the wire in the clear.
 
 | Command | Notes |
 | --- | --- |
-| `STARTTLS` | Plaintext ports only |
 | `LOGIN` | Refused without encryption when TLS is configured |
 | `AUTHENTICATE` | `PLAIN` and `LOGIN`, with `SASL-IR` initial response |
 

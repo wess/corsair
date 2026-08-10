@@ -165,19 +165,29 @@ certificate` means the chain is incomplete — you gave it the leaf, not
 
 ## Which ports use which
 
-| Port | Protocol | TLS |
-| --- | --- | --- |
-| 25 | SMTP (MX) | STARTTLS, opportunistic — never required, or you refuse legitimate mail |
-| 587 | Submission | STARTTLS, required before AUTH |
-| 465 | Submission | Implicit TLS from the first byte |
-| 143 | IMAP | STARTTLS, required before LOGIN |
-| 993 | IMAP | Implicit TLS |
-| 110 | POP3 | STLS, required before PASS |
-| 995 | POP3 | Implicit TLS |
+| Port | Protocol | TLS | Usable |
+| --- | --- | --- | --- |
+| 25 | SMTP (MX) | none — plaintext | Yes, for server-to-server delivery |
+| 465 | Submission | Implicit, from the first byte | **Yes** |
+| 993 | IMAP | Implicit | **Yes** |
+| 995 | POP3 | Implicit | **Yes** |
+| 587 | Submission | — | No: cannot authenticate |
+| 143 | IMAP | — | No: cannot authenticate |
+| 110 | POP3 | — | No: cannot authenticate |
 
-Port 25 is the exception: a sending server that does not support STARTTLS still
-has legitimate mail to deliver, and refusing it means losing that mail. Every
-other port requires encryption before a credential crosses it.
+:::danger STARTTLS is unavailable
+Bun cannot upgrade an accepted socket to TLS, so Corsair has no server-side
+STARTTLS on any protocol. It deliberately does not advertise it: a peer that
+takes up the offer has already committed and cannot fall back, so advertising a
+broken STARTTLS turns "delivered in plaintext" into "not delivered at all".
+
+Because Corsair also refuses a credential over an unencrypted connection, the
+three STARTTLS ports cannot be used to log in. **Configure clients for 465, 993,
+and 995.**
+
+Port 25 is unaffected in practice — senders that would have used STARTTLS simply
+deliver in plaintext, which is what opportunistic means.
+:::
 
 ## Self-signed, for local testing only
 

@@ -6,12 +6,12 @@
 <meta name="color-scheme" content="light dark" />
 <title>Client settings · Corsair</title>
 <meta name="description" content="Hostnames, ports, and per-client notes for every mail client worth naming." />
-<link rel="canonical" href="https://corsair.wess.dev/docs/client-setup.html" />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/client-setup.html" />
 <meta property="og:title" content="Client settings" />
 <meta property="og:site_name" content="Corsair" />
 <meta property="og:description" content="Hostnames, ports, and per-client notes for every mail client worth naming." />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://corsair.wess.dev/docs/client-setup.html" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/client-setup.html" />
 <meta name="twitter:card" content="summary" />
 <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="../style.css" />
@@ -34,7 +34,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
     <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
     </button>
-    <a class="cta" href="./quickstart.html">Get started</a>
+    <a class="cta" href="/app">Control panel</a>
   </nav>
 </header>
 <div id="content">
@@ -70,45 +70,30 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tr></thead><tbody>
 <tr>
 <td>IMAP</td>
-<td>993</td>
-<td>SSL/TLS</td>
-<td>Normal password</td>
-</tr>
-<tr>
-<td>IMAP</td>
-<td>143</td>
-<td>STARTTLS</td>
-<td>Normal password</td>
-</tr>
-<tr>
-<td>POP3</td>
-<td>995</td>
+<td><strong>993</strong></td>
 <td>SSL/TLS</td>
 <td>Normal password</td>
 </tr>
 <tr>
 <td>POP3</td>
-<td>110</td>
-<td>STLS</td>
+<td><strong>995</strong></td>
+<td>SSL/TLS</td>
 <td>Normal password</td>
 </tr>
 <tr>
 <td>SMTP</td>
-<td>465</td>
+<td><strong>465</strong></td>
 <td>SSL/TLS (implicit)</td>
 <td>Normal password</td>
 </tr>
-<tr>
-<td>SMTP</td>
-<td>587</td>
-<td>STARTTLS</td>
-<td>Normal password</td>
-</tr>
 </tbody></table></div>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Use the implicit-TLS ports. STARTTLS is not available.</p><p>Bun cannot upgrade an accepted socket to TLS, so Corsair has no server-side STARTTLS. It deliberately does <strong>not</strong> advertise it — advertising and then failing loses mail outright, because a peer that has committed to the upgrade cannot fall back.</p>
+<p>The practical consequence: <strong>587, 143, and 110 cannot authenticate.</strong> Corsair refuses a credential on an unencrypted connection, and those ports have no way to become encrypted. A client configured for them will fail to log in.</p>
+<p>Configure 993, 995, and 465. Port 25 is unaffected — it accepts mail from other servers in plaintext, which is what they fall back to.</p></aside>
 <p><strong>Hostname</strong> is whatever the operator set — <code>MAIL_IMAP_HOST</code>, <code>MAIL_SMTP_HOST</code>, and so on. On most installs they are all the same name. The panel's Client Configuration tab shows the exact values for your server.</p>
 <p><strong>Username is always the full email address</strong>, not the part before the <code>@</code>. A bare local part would be ambiguous across the domains on the server.</p>
 <p><strong>Password is the mailbox password</strong>, which is not your control-panel password. They are separate identities on purpose: a mailbox credential ends up in a phone that gets lost, and it must not also unlock the panel.</p>
-<p>Prefer 993 and 465 — implicit TLS from the first byte — over the STARTTLS ports where the client offers a choice. STARTTLS is fine; implicit is simply harder to downgrade.</p>
+<p>993 and 465 are encrypted from the first byte, which is both the stronger option and — on this server — the only one that works.</p>
 <h2 id="automatic-configuration">Automatic configuration<a class="anchor" href="#automatic-configuration" aria-label="Link to this section">#</a></h2>
 <p>If the operator published the <code>autoconfig</code> and <code>autodiscover</code> CNAMEs, Thunderbird and Outlook find all of this from the email address alone.</p>
 <div class='table-wrap'><table><thead><tr>
@@ -127,7 +112,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p>Try the address first. Fall back to manual only when it does not take.</p>
 <h2 id="apple-mail-and-ios">Apple Mail and iOS<a class="anchor" href="#apple-mail-and-ios" aria-label="Link to this section">#</a></h2>
 <p>Choose <strong>Other Mail Account</strong>, not any of the branded options.</p>
-<p>Apple Mail sometimes offers to configure automatically and gets the outgoing port wrong. If receiving works but sending fails, set the outgoing server explicitly: port 587, STARTTLS, and <strong>authentication on</strong> — Apple defaults it off often enough to be worth checking.</p>
+<p>Apple Mail sometimes offers to configure automatically and gets the outgoing port wrong. If receiving works but sending fails, set the outgoing server explicitly: <strong>port 465, SSL/TLS</strong>, and <strong>authentication on</strong> — Apple defaults it off often enough to be worth checking, and it will otherwise try 587, which cannot authenticate here.</p>
 <p>On iOS: <strong>Settings → Mail → Accounts → Add Account → Other → Add Mail Account.</strong> Enter the address and password, then correct the hostnames on the next screen.</p>
 <h2 id="thunderbird">Thunderbird<a class="anchor" href="#thunderbird" aria-label="Link to this section">#</a></h2>
 <p>Works from the address alone if <code>autoconfig</code> is published.</p>
@@ -157,7 +142,7 @@ set from      = &quot;you@example.com&quot;</code></pre></figure>
 <h2 id="any-jmap-client">Any JMAP client<a class="anchor" href="#any-jmap-client" aria-label="Link to this section">#</a></h2>
 <p>Session resource at <code>https://mail.example.com/.well-known/jmap</code>, authenticated with HTTP Basic using the address and mailbox password. See <a href="jmap.html">JMAP</a>.</p>
 <h2 id="roundcube-snappymail-and-other-webmail">Roundcube, SnappyMail, and other webmail<a class="anchor" href="#roundcube-snappymail-and-other-webmail" aria-label="Link to this section">#</a></h2>
-<p>The IMAP and SMTP servers are standard, so any of them work unchanged. Point them at 993 and 587 with the full address as the username.</p>
+<p>The IMAP and SMTP servers are standard, so any of them work unchanged. Point them at <strong>993 and 465</strong> with the full address as the username.</p>
 <p>Corsair also ships <a href="webmail.html">its own webmail</a> at <code>/webmail</code> if you would rather not run another thing.</p>
 <h2 id="alias-and-group-addresses">Alias and group addresses<a class="anchor" href="#alias-and-group-addresses" aria-label="Link to this section">#</a></h2>
 <p>They have <strong>no password</strong> and cannot be signed into. They are routing entries: mail addressed to them is forwarded.</p>
@@ -177,7 +162,7 @@ set from      = &quot;you@example.com&quot;</code></pre></figure>
 </tr>
 <tr>
 <td>&quot;Server does not support authentication&quot;</td>
-<td>You are on a plaintext port. Corsair advertises <code>LOGINDISABLED</code> rather than accepting a password in the clear. Use 993 or 465</td>
+<td>You are on 587, 143, or 110. Those cannot be encrypted on this server, and Corsair will not accept a password in the clear. Use 993, 995, or 465</td>
 </tr>
 <tr>
 <td>&quot;Wrong password&quot;</td>
@@ -196,7 +181,7 @@ a LOGOUT</code></pre></figure>
 <h2 id="pop3-and-why-you-probably-do-not-want-it">POP3, and why you probably do not want it<a class="anchor" href="#pop3-and-why-you-probably-do-not-want-it" aria-label="Link to this section">#</a></h2>
 <p>POP3 downloads and, by default, deletes. It has no folders, no flags shared between devices, and no concept of a second client.</p>
 <p>It exists for the clients that still want it, and for a device that genuinely should drain a mailbox to local storage. For anything else, use IMAP.</p>
-<p>If you must: 995 with SSL/TLS, full address as the username, and turn <strong>off</strong> &quot;delete from server&quot; unless removal is the point.</p><nav class="pager"><a class="pager-prev" href="./addresses.html"><span>Previous</span><strong>Addresses</strong></a><a class="pager-next" href="./webmail.html"><span>Next</span><strong>Webmail</strong></a></nav></main>
+<p>If you must: <strong>995 with SSL/TLS</strong> (not 110, which cannot authenticate), full address as the username, and turn <strong>off</strong> &quot;delete from server&quot; unless removal is the point.</p><nav class="pager"><a class="pager-prev" href="./addresses.html"><span>Previous</span><strong>Addresses</strong></a><a class="pager-next" href="./webmail.html"><span>Next</span><strong>Webmail</strong></a></nav></main>
 <nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#the-settings">The settings</a></li><li class="toc-h2"><a href="#automatic-configuration">Automatic configuration</a></li><li class="toc-h2"><a href="#apple-mail-and-ios">Apple Mail and iOS</a></li><li class="toc-h2"><a href="#thunderbird">Thunderbird</a></li><li class="toc-h2"><a href="#outlook">Outlook</a></li><li class="toc-h2"><a href="#gmail-app-and-gmail-on-the-web">Gmail app and Gmail on the web</a></li><li class="toc-h2"><a href="#mutt-aerc-and-friends">Mutt, aerc, and friends</a></li><li class="toc-h2"><a href="#any-jmap-client">Any JMAP client</a></li><li class="toc-h2"><a href="#roundcube-snappymail-and-other-webmail">Roundcube, SnappyMail, and other webmail</a></li><li class="toc-h2"><a href="#alias-and-group-addresses">Alias and group addresses</a></li><li class="toc-h2"><a href="#when-a-client-will-not-connect">When a client will not connect</a></li><li class="toc-h2"><a href="#pop3-and-why-you-probably-do-not-want-it">POP3, and why you probably do not want it</a></li></ul></nav>
 </div>
 </div>

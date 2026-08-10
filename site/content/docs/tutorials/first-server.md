@@ -331,7 +331,7 @@ deliverability goes strange.
 | Protocol | Host | Port | Security |
 | --- | --- | --- | --- |
 | IMAP | `mail.example.com` | 993 | SSL/TLS |
-| SMTP | `mail.example.com` | 587 | STARTTLS |
+| SMTP | `mail.example.com` | 465 | SSL/TLS |
 
 ## 15. Before you call it done
 

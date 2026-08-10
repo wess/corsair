@@ -6,12 +6,12 @@
 <meta name="color-scheme" content="light dark" />
 <title>SMTP · Corsair</title>
 <meta name="description" content="The MX listener, authenticated submission, the inbound pipeline, and how outbound delivery retries." />
-<link rel="canonical" href="https://corsair.wess.dev/docs/smtp.html" />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/smtp.html" />
 <meta property="og:title" content="SMTP" />
 <meta property="og:site_name" content="Corsair" />
 <meta property="og:description" content="The MX listener, authenticated submission, the inbound pipeline, and how outbound delivery retries." />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://corsair.wess.dev/docs/smtp.html" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/smtp.html" />
 <meta name="twitter:card" content="summary" />
 <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="../style.css" />
@@ -34,7 +34,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
     <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
     </button>
-    <a class="cta" href="./quickstart.html">Get started</a>
+    <a class="cta" href="/app">Control panel</a>
   </nav>
 </header>
 <div id="content">
@@ -60,7 +60,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html" class="active" aria-current="page">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
 </div></nav>
 <main class="prose"><div class="page-head"><p class="eyebrow">Reference</p></div><h1 id="smtp">SMTP</h1>
-<p>Three listeners, two jobs. Port 25 receives mail from the internet; 587 and 465 accept mail from your own users.</p>
+<p>Three listeners, two jobs. Port 25 receives mail from the internet; 465 accepts mail from your own users.</p>
 <div class='table-wrap'><table><thead><tr>
 <th>Port</th>
 <th>Role</th>
@@ -70,14 +70,8 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <tr>
 <td>25</td>
 <td>MX — inbound from anywhere</td>
-<td>STARTTLS, opportunistic</td>
+<td>none</td>
 <td>None</td>
-</tr>
-<tr>
-<td>587</td>
-<td>Submission</td>
-<td>STARTTLS, required before AUTH</td>
-<td>Address credential</td>
 </tr>
 <tr>
 <td>465</td>
@@ -85,8 +79,15 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td>Implicit from the first byte</td>
 <td>Address credential</td>
 </tr>
+<tr>
+<td>587</td>
+<td>Submission</td>
+<td>none — <strong>cannot authenticate</strong></td>
+<td>—</td>
+</tr>
 </tbody></table></div>
-<p>Port 25 never requires STARTTLS. A sending server that does not support it still has legitimate mail to deliver, and refusing means losing that mail. Every other port requires encryption before a credential crosses it.</p>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>STARTTLS is not offered</p><p>Bun cannot upgrade an accepted socket to TLS, so Corsair has no server-side STARTTLS and deliberately does not advertise it. A peer that issues the command has already committed and cannot fall back, so advertising a broken STARTTLS turns &quot;delivered in plaintext&quot; into &quot;not delivered&quot;.</p>
+<p>Senders on port 25 therefore deliver in plaintext, which is what opportunistic encryption degrades to. Submission works only on <strong>465</strong>. See <a href="tls.html">TLS</a>.</p></aside>
 <h2 id="extensions-advertised">Extensions advertised<a class="anchor" href="#extensions-advertised" aria-label="Link to this section">#</a></h2>
 <figure class="code"><pre><code>250-mail.example.com at your service
 250-SIZE 52428800
@@ -94,10 +95,10 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 250-SMTPUTF8
 250-PIPELINING
 250-ENHANCEDSTATUSCODES
-250-STARTTLS
 250-AUTH PLAIN LOGIN
 250 HELP</code></pre></figure>
-<p><code>STARTTLS</code> appears only on a connection that is not already encrypted, and <strong><code>AUTH</code> only on one that is</strong>. On a server with no certificate configured, AUTH is never advertised at all — which is the correct failure. A self-hoster who has not set up TLS should discover it there rather than after their users' passwords have crossed the network.</p>
+<p><strong><code>AUTH</code> is advertised only on an already-encrypted connection</strong>, which in practice means port 465. On a server with no certificate configured it is never advertised at all — the correct failure. A self-hoster who has not set up TLS should discover it there rather than after their users' passwords have crossed the network.</p>
+<p><code>STARTTLS</code> is not advertised at all; see <a href="tls.html">TLS</a>.</p>
 <p><code>CHUNKING</code> is deliberately not advertised. It invites <code>BDAT</code>, and a sender that switches to BDAT against a server without it gets a hard failure rather than falling back to <code>DATA</code>.</p>
 <p><code>SIZE</code> is <code>MAX_MESSAGE_BYTES</code>, 50 MB by default. That is the wire size after encoding — base64 costs about a third, so it is roughly a 35 MB attachment.</p>
 <h2 id="the-inbound-pipeline">The inbound pipeline<a class="anchor" href="#the-inbound-pipeline" aria-label="Link to this section">#</a></h2>
@@ -113,7 +114,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p>A message scoring at or above the junk threshold is <strong>filed in <code>Junk</code></strong>, not rejected. Rejecting on a heuristic score loses real mail silently, which is a much worse failure than a message in the wrong folder.</p>
 <p>The score is recorded on the message row and in <code>mail_log</code>, and goes out on the <code>message.spam</code> webhook.</p>
 <h2 id="submission">Submission<a class="anchor" href="#submission" aria-label="Link to this section">#</a></h2>
-<p>Authenticated sending, on 587 and 465.</p>
+<p>Authenticated sending, on 465.</p>
 <ol><li><strong>Authenticate.</strong> <code>PLAIN</code> or <code>LOGIN</code>, only over an encrypted connection.</li><li><strong>Prove the sender.</strong> The From address must belong to the authenticated address. This is the difference between a mail server and an open relay.</li><li><strong>Check the daily limit</strong> from the plan.</li><li><strong>Complete the headers</strong> the client left off — <code>Date</code>, <code>Message-ID</code>, <code>MIME-Version</code>.</li><li><strong>Sign</strong> with the domain's active DKIM key.</li><li><strong>File a copy</strong> in <code>Sent</code>.</li><li><strong>Queue</strong> one row per recipient.</li></ol>
 <p>Header values are sanitised on the way out. A bare CR or LF in a subject, a display name, or a custom header injects a header, so <code>stripControls</code> runs on every value this codebase emits. There are regression tests for it.</p>
 <h2 id="outbound-delivery">Outbound delivery<a class="anchor" href="#outbound-delivery" aria-label="Link to this section">#</a></h2>
@@ -164,8 +165,8 @@ Subject: Test
 Body text.
 .
 QUIT</code></pre></figure>
-<p>Submission, which needs TLS first:</p>
-<figure class="code"><span class="code-lang">sh</span><pre><code>openssl s_client -starttls smtp -connect mail.example.com:587 -crlf</code></pre></figure>
+<p>Submission, which is encrypted from the first byte:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>openssl s_client -connect mail.example.com:465 -crlf</code></pre></figure>
 <figure class="code"><pre><code>EHLO test
 AUTH PLAIN &lt;base64 of \0user@example.com\0password&gt;
 MAIL FROM:&lt;you@example.com&gt;

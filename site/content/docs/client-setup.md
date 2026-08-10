@@ -15,12 +15,23 @@ The settings, then the clients that need help.
 
 | Protocol | Port | Security | Authentication |
 | --- | --- | --- | --- |
-| IMAP | 993 | SSL/TLS | Normal password |
-| IMAP | 143 | STARTTLS | Normal password |
-| POP3 | 995 | SSL/TLS | Normal password |
-| POP3 | 110 | STLS | Normal password |
-| SMTP | 465 | SSL/TLS (implicit) | Normal password |
-| SMTP | 587 | STARTTLS | Normal password |
+| IMAP | **993** | SSL/TLS | Normal password |
+| POP3 | **995** | SSL/TLS | Normal password |
+| SMTP | **465** | SSL/TLS (implicit) | Normal password |
+
+:::danger Use the implicit-TLS ports. STARTTLS is not available.
+Bun cannot upgrade an accepted socket to TLS, so Corsair has no server-side
+STARTTLS. It deliberately does **not** advertise it — advertising and then
+failing loses mail outright, because a peer that has committed to the upgrade
+cannot fall back.
+
+The practical consequence: **587, 143, and 110 cannot authenticate.** Corsair
+refuses a credential on an unencrypted connection, and those ports have no way
+to become encrypted. A client configured for them will fail to log in.
+
+Configure 993, 995, and 465. Port 25 is unaffected — it accepts mail from other
+servers in plaintext, which is what they fall back to.
+:::
 
 **Hostname** is whatever the operator set — `MAIL_IMAP_HOST`, `MAIL_SMTP_HOST`, and
 so on. On most installs they are all the same name. The panel's Client
@@ -33,9 +44,8 @@ local part would be ambiguous across the domains on the server.
 They are separate identities on purpose: a mailbox credential ends up in a phone
 that gets lost, and it must not also unlock the panel.
 
-Prefer 993 and 465 — implicit TLS from the first byte — over the STARTTLS ports
-where the client offers a choice. STARTTLS is fine; implicit is simply harder to
-downgrade.
+993 and 465 are encrypted from the first byte, which is both the stronger
+option and — on this server — the only one that works.
 
 ## Automatic configuration
 
@@ -55,8 +65,9 @@ Choose **Other Mail Account**, not any of the branded options.
 
 Apple Mail sometimes offers to configure automatically and gets the outgoing port
 wrong. If receiving works but sending fails, set the outgoing server explicitly:
-port 587, STARTTLS, and **authentication on** — Apple defaults it off often enough
-to be worth checking.
+**port 465, SSL/TLS**, and **authentication on** — Apple defaults it off often
+enough to be worth checking, and it will otherwise try 587, which cannot
+authenticate here.
 
 On iOS: **Settings → Mail → Accounts → Add Account → Other → Add Mail Account.**
 Enter the address and password, then correct the hostnames on the next screen.
@@ -118,7 +129,7 @@ with HTTP Basic using the address and mailbox password. See [JMAP](jmap.html).
 ## Roundcube, SnappyMail, and other webmail
 
 The IMAP and SMTP servers are standard, so any of them work unchanged. Point them
-at 993 and 587 with the full address as the username.
+at **993 and 465** with the full address as the username.
 
 Corsair also ships [its own webmail](webmail.html) at `/webmail` if you would
 rather not run another thing.
@@ -138,7 +149,7 @@ as".
 | --- | --- |
 | "Certificate not trusted" | Self-signed, or the chain is incomplete. The server needs `fullchain.pem`, not the leaf |
 | "Name does not match" | The certificate is for a different hostname than you dialled |
-| "Server does not support authentication" | You are on a plaintext port. Corsair advertises `LOGINDISABLED` rather than accepting a password in the clear. Use 993 or 465 |
+| "Server does not support authentication" | You are on 587, 143, or 110. Those cannot be encrypted on this server, and Corsair will not accept a password in the clear. Use 993, 995, or 465 |
 | "Wrong password" | Mailbox password, not the panel password. Or the address is an alias, which has none |
 | "Cannot find server" | Check the hostname against the panel's Client Configuration tab |
 
@@ -159,5 +170,6 @@ between devices, and no concept of a second client.
 It exists for the clients that still want it, and for a device that genuinely
 should drain a mailbox to local storage. For anything else, use IMAP.
 
-If you must: 995 with SSL/TLS, full address as the username, and turn **off**
-"delete from server" unless removal is the point.
+If you must: **995 with SSL/TLS** (not 110, which cannot authenticate), full
+address as the username, and turn **off** "delete from server" unless removal is
+the point.

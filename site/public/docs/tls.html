@@ -6,12 +6,12 @@
 <meta name="color-scheme" content="light dark" />
 <title>TLS certificates · Corsair</title>
 <meta name="description" content="Getting a certificate, wiring it in, renewing it, and why Corsair refuses to authenticate without one." />
-<link rel="canonical" href="https://corsair.wess.dev/docs/tls.html" />
+<link rel="canonical" href="https://wess.github.io/corsair/docs/tls.html" />
 <meta property="og:title" content="TLS certificates" />
 <meta property="og:site_name" content="Corsair" />
 <meta property="og:description" content="Getting a certificate, wiring it in, renewing it, and why Corsair refuses to authenticate without one." />
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://corsair.wess.dev/docs/tls.html" />
+<meta property="og:url" content="https://wess.github.io/corsair/docs/tls.html" />
 <meta name="twitter:card" content="summary" />
 <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="../style.css" />
@@ -34,7 +34,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
     <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
     </button>
-    <a class="cta" href="./quickstart.html">Get started</a>
+    <a class="cta" href="/app">Control panel</a>
   </nav>
 </header>
 <div id="content">
@@ -132,44 +132,54 @@ openssl s_client -starttls smtp -connect mail.example.com:587 -servername mail.e
 <th>Port</th>
 <th>Protocol</th>
 <th>TLS</th>
+<th>Usable</th>
 </tr></thead><tbody>
 <tr>
 <td>25</td>
 <td>SMTP (MX)</td>
-<td>STARTTLS, opportunistic — never required, or you refuse legitimate mail</td>
-</tr>
-<tr>
-<td>587</td>
-<td>Submission</td>
-<td>STARTTLS, required before AUTH</td>
+<td>none — plaintext</td>
+<td>Yes, for server-to-server delivery</td>
 </tr>
 <tr>
 <td>465</td>
 <td>Submission</td>
-<td>Implicit TLS from the first byte</td>
-</tr>
-<tr>
-<td>143</td>
-<td>IMAP</td>
-<td>STARTTLS, required before LOGIN</td>
+<td>Implicit, from the first byte</td>
+<td><strong>Yes</strong></td>
 </tr>
 <tr>
 <td>993</td>
 <td>IMAP</td>
-<td>Implicit TLS</td>
-</tr>
-<tr>
-<td>110</td>
-<td>POP3</td>
-<td>STLS, required before PASS</td>
+<td>Implicit</td>
+<td><strong>Yes</strong></td>
 </tr>
 <tr>
 <td>995</td>
 <td>POP3</td>
-<td>Implicit TLS</td>
+<td>Implicit</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr>
+<td>587</td>
+<td>Submission</td>
+<td>—</td>
+<td>No: cannot authenticate</td>
+</tr>
+<tr>
+<td>143</td>
+<td>IMAP</td>
+<td>—</td>
+<td>No: cannot authenticate</td>
+</tr>
+<tr>
+<td>110</td>
+<td>POP3</td>
+<td>—</td>
+<td>No: cannot authenticate</td>
 </tr>
 </tbody></table></div>
-<p>Port 25 is the exception: a sending server that does not support STARTTLS still has legitimate mail to deliver, and refusing it means losing that mail. Every other port requires encryption before a credential crosses it.</p>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>STARTTLS is unavailable</p><p>Bun cannot upgrade an accepted socket to TLS, so Corsair has no server-side STARTTLS on any protocol. It deliberately does not advertise it: a peer that takes up the offer has already committed and cannot fall back, so advertising a broken STARTTLS turns &quot;delivered in plaintext&quot; into &quot;not delivered at all&quot;.</p>
+<p>Because Corsair also refuses a credential over an unencrypted connection, the three STARTTLS ports cannot be used to log in. <strong>Configure clients for 465, 993, and 995.</strong></p>
+<p>Port 25 is unaffected in practice — senders that would have used STARTTLS simply deliver in plaintext, which is what opportunistic means.</p></aside>
 <h2 id="self-signed-for-local-testing-only">Self-signed, for local testing only<a class="anchor" href="#self-signed-for-local-testing-only" aria-label="Link to this section">#</a></h2>
 <p><code>test:mailflow</code> needs a certificate because Corsair refuses authentication without one:</p>
 <figure class="code"><span class="code-lang">sh</span><pre><code>mkdir -p certs
