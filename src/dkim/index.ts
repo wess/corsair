@@ -187,19 +187,59 @@ const parseTags = (value: string): Record<string, string> => {
 const pemFromRecord = (record: string): string | null => {
   const tags = parseTags(record)
   if (!tags.p) return null
-  const lines = tags.p.match(/.{1,64}/g) ?? []
+
+  // The key comes from DNS controlled by whoever sent the message, so it is
+  // attacker-supplied. Reject anything that is not base64 here rather than
+  // letting OpenSSL throw on it later.
+  const key = tags.p.replace(/\s+/g, "")
+  if (!key || !/^[A-Za-z0-9+/]+={0,2}$/.test(key) || key.length % 4 !== 0) return null
+
+  const lines = key.match(/.{1,64}/g) ?? []
   return `-----BEGIN PUBLIC KEY-----\n${lines.join("\n")}\n-----END PUBLIC KEY-----\n`
 }
 
 export const lookupDkimKey = async (domain: string, selector: string): Promise<string | null> => {
   try {
     const records = await resolveTxt(`${selector}._domainkey.${domain}`)
-    // A long key is published as several quoted strings that concatenate.
-    const joined = records.map((chunks) => chunks.join("")).find((r) => r.includes("p="))
-    return joined ?? null
+    return reassembleTxt(records)
   } catch {
     return null
   }
+}
+
+/**
+ * Rebuilds one DKIM record from whatever shape the resolver returned.
+ *
+ * A DNS TXT string cannot exceed 255 bytes, so every 2048-bit DKIM key is
+ * published as several strings that the reader concatenates. **Node and Bun
+ * disagree about how to present them.** Node returns one record with several
+ * chunks — `[[a, b]]` — while Bun 1.3 returns each string as its own record —
+ * `[[a], [b]]`.
+ *
+ * Taking the first record that merely *contains* `p=` therefore yields a
+ * truncated key under Bun, and a truncated key is not a soft failure: the PEM
+ * fails to base64-decode and `crypto.verify` **throws**. Since the selector is
+ * chosen by whoever sent the message, that turned any DKIM-signed mail from a
+ * domain with a normal-length key — which is to say most mail — into a crash.
+ *
+ * So: try each record on its own first, because a name may legitimately hold
+ * more than one TXT record and only one of them is the DKIM key. Only if none
+ * of them parses do we treat the set as one record split across entries and
+ * concatenate it, which is the Bun case.
+ */
+export const reassembleTxt = (records: (string | string[])[]): string | null => {
+  const flat = records.map((r) => (Array.isArray(r) ? r.join("") : r))
+
+  const whole = flat.find((r) => r.includes("p=") && pemFromRecord(r) !== null)
+  if (whole) return whole
+
+  const concatenated = flat.join("")
+  if (concatenated.includes("p=") && pemFromRecord(concatenated) !== null) return concatenated
+
+  // Nothing usable. Returning the best candidate rather than null keeps the
+  // caller's "published key is unreadable" permerror, which is more accurate
+  // than "no key published".
+  return flat.find((r) => r.includes("p=")) ?? null
 }
 
 /**
@@ -261,9 +301,23 @@ export const verifySignature = async (
   const stripped = sigHeader.value.replace(/\bb=[^;]*/, "b=")
   canon += canonHeader("dkim-signature", stripped)
 
-  const ok = createVerify("RSA-SHA256")
-    .update(Buffer.from(canon, "latin1"))
-    .verify(pem, tags.b.replace(/\s+/g, ""), "base64")
+  // Both the key and the signature come from the message and from DNS the sender
+  // controls, and OpenSSL throws rather than returning false on malformed input.
+  // An unhandled throw here kills the process from the delivery path, so a
+  // sender could take the server down with one message.
+  let ok = false
+  try {
+    ok = createVerify("RSA-SHA256")
+      .update(Buffer.from(canon, "latin1"))
+      .verify(pem, tags.b.replace(/\s+/g, ""), "base64")
+  } catch (e) {
+    return {
+      result: "permerror",
+      domain,
+      selector,
+      reason: `key or signature is malformed: ${(e as Error).message}`,
+    }
+  }
 
   return ok
     ? { result: "pass", domain, selector }
