@@ -29,7 +29,7 @@ const OUT = new URL("./public/", import.meta.url).pathname
  * where `/app` would 404.
  */
 const MODE = process.env.SITE_MODE === "pages" ? "pages" : "app"
-const SITE_URL = (process.env.SITE_URL ?? "https://wess.github.io/corsair").replace(/\/+$/, "")
+const SITE_URL = (process.env.SITE_URL ?? "https://wess.io/corsair").replace(/\/+$/, "")
 const REPO = "https://github.com/wess/corsair"
 
 // ------------------------------------------------------------ front matter --

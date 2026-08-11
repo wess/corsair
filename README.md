@@ -8,10 +8,10 @@ Corsair is a self-hostable alternative to a hosted mail provider. It is the mail
 server *and* the panel: you add a domain, publish the DNS records it gives you,
 create mailboxes, and point any mail client at it.
 
-**[Documentation](https://wess.github.io/corsair/docs/)** —
-[quickstart](https://wess.github.io/corsair/docs/quickstart.html) (ten minutes on
+**[Documentation](https://corsair.wess.dev/docs/)** —
+[quickstart](https://corsair.wess.dev/docs/quickstart.html) (ten minutes on
 your laptop),
-[your first production server](https://wess.github.io/corsair/docs/tutorials/first-server.html)
+[your first production server](https://corsair.wess.dev/docs/tutorials/first-server.html)
 (an hour, on a real VPS), and reference for every setting, endpoint, and
 protocol.
 

@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://corsair.wess.dev/sitemap.xml
+Sitemap: https://wess.io/corsair/sitemap.xml
