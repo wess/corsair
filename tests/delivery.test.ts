@@ -33,6 +33,7 @@ let other: Domain
 const envelopeFor = (recipients: string[], mailFrom = "sender@far-away.invalid"): Envelope => ({
   helo: "far-away.invalid",
   mailFrom,
+  hasSender: true,
   rcptTo: recipients,
   size: null,
   smtputf8: false,

@@ -264,3 +264,66 @@ describe("abuse", () => {
     expect(h.session.shouldClose()).toBe(true)
   })
 })
+
+describe("the null reverse-path", () => {
+  /**
+   * `MAIL FROM:<>` is mandatory, not exotic. RFC 5321 §4.5.5 requires it on
+   * every delivery status notification, so a server that cannot accept it
+   * cannot receive a bounce from anybody — not from Gmail, not from its own
+   * queue.
+   *
+   * The bug this pins down was worse than a flat rejection: MAIL FROM:<> was
+   * answered **250**, and then the RCPT that followed got
+   * "503 Send MAIL FROM first". The envelope used `mailFrom: ""` as the
+   * sentinel for "no transaction yet", and the null reverse-path legitimately
+   * *is* the empty string. Found by sending a real bounce that the server then
+   * refused to accept from itself.
+   */
+  test("MAIL FROM:<> begins a transaction that RCPT can continue", async () => {
+    const h = harness()
+    await h.send("EHLO probe.test")
+
+    const mail = await h.send("MAIL FROM:<>")
+    expect(mail).toContain("250")
+
+    const rcpt = await h.send("RCPT TO:<someone@mx1.test>")
+    expect(rcpt).not.toContain("503")
+    expect(rcpt).toContain("250")
+  })
+
+  test("a bounce can be delivered end to end", async () => {
+    const h = harness()
+    await h.send("EHLO probe.test")
+    await h.send("MAIL FROM:<>")
+    await h.send("RCPT TO:<someone@mx1.test>")
+    await h.send("DATA")
+
+    const done = await h.send(
+      "From: Mail Delivery System <postmaster@elsewhere.test>",
+      "To: <someone@mx1.test>",
+      "Subject: Undelivered Mail Returned to Sender",
+      "",
+      "Your message could not be delivered.",
+      ".",
+    )
+    expect(done).toContain("250")
+    expect(h.delivered).toHaveLength(1)
+    expect(h.delivered[0]?.envelope.mailFrom).toBe("")
+    expect(h.delivered[0]?.envelope.hasSender).toBe(true)
+  })
+
+  test("RCPT with no MAIL FROM at all is still refused", async () => {
+    const h = harness()
+    await h.send("EHLO probe.test")
+    // The guard still has to work; the fix was to stop conflating "empty
+    // address" with "no command yet".
+    expect(await h.send("RCPT TO:<someone@mx1.test>")).toContain("503")
+  })
+
+  test("a second MAIL FROM after a null one is refused", async () => {
+    const h = harness()
+    await h.send("EHLO probe.test")
+    await h.send("MAIL FROM:<>")
+    expect(await h.send("MAIL FROM:<other@probe.test>")).toContain("503")
+  })
+})

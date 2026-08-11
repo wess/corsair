@@ -93,6 +93,7 @@ const run = async () => {
       {
         helo: "far.invalid",
         mailFrom: "sender@far.invalid",
+        hasSender: true,
         rcptTo: [email],
         size: null,
         smtputf8: false,

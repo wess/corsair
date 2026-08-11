@@ -100,6 +100,7 @@ const deliverInbound = async (input: {
     {
       helo: "far-away.invalid",
       mailFrom: "sender@far-away.invalid",
+      hasSender: true,
       rcptTo: [input.to],
       size: null,
       smtputf8: false,

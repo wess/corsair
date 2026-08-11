@@ -95,6 +95,14 @@ infers it from the server's own environment. Without the `define` in
 `src/bundle`, React ships its development build: 488 KB instead of 257 KB, prop
 validation on every render, and a double render under StrictMode.
 
+**`MAIL FROM:<>` is legal and mandatory.** RFC 5321 requires the null
+reverse-path on every delivery status notification, so the empty string is a
+valid sender and cannot double as "no transaction yet". `Envelope.hasSender`
+answers that question; `envelope.mailFrom` answers a different one. Conflating
+them made the server answer `MAIL FROM:<>` with 250 and then reject the
+following RCPT with "503 Send MAIL FROM first", which meant Corsair could not
+receive a bounce from anyone — including from its own queue.
+
 **Forwarding without SRS breaks.** An alias that forwards keeps the original
 envelope sender, whose SPF does not list us, and the next hop sees a forgery.
 `packages/smtp/srs` rewrites it. The HMAC is not optional — without it the

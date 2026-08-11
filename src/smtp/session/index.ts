@@ -11,7 +11,18 @@ export type SessionMode = "mx" | "submission"
 
 export type Envelope = {
   helo: string
+  /**
+   * The reverse-path. **The empty string is a legal value** — RFC 5321 §4.5.5
+   * requires `MAIL FROM:<>` on every delivery status notification, and a server
+   * that cannot accept it cannot receive bounces from anyone.
+   *
+   * Use `hasSender` to ask whether a transaction has begun. Treating this
+   * string's emptiness as that question rejected every DSN on the internet with
+   * "Send MAIL FROM first" after having just answered the MAIL command 250.
+   */
   mailFrom: string
+  /** Whether MAIL FROM has been accepted, regardless of the address in it. */
+  hasSender: boolean
   rcptTo: string[]
   size: number | null
   smtputf8: boolean
@@ -106,6 +117,7 @@ const parsePath = (input: string): { address: string; params: Record<string, str
 const emptyEnvelope = (helo: string): Envelope => ({
   helo,
   mailFrom: "",
+  hasSender: false,
   rcptTo: [],
   size: null,
   smtputf8: false,
@@ -237,7 +249,7 @@ export const createSession = (hooks: SessionHooks): Session => {
     if (identity) {
       return format({ code: 503, enhanced: "5.5.1", message: "Already authenticated." })
     }
-    if (envelope.mailFrom) {
+    if (envelope.hasSender) {
       return format({
         code: 503,
         enhanced: "5.5.1",
@@ -321,7 +333,7 @@ export const createSession = (hooks: SessionHooks): Session => {
       case "MAIL": {
         const pending = requireGreeting()
         if (pending) return pending
-        if (envelope.mailFrom) {
+        if (envelope.hasSender) {
           return badCommand({ code: 503, enhanced: "5.5.1", message: "Sender already specified." })
         }
         const match = argument.match(/^FROM:\s*(.*)$/i)
@@ -352,6 +364,9 @@ export const createSession = (hooks: SessionHooks): Session => {
         envelope = {
           ...emptyEnvelope(helo),
           mailFrom: path.address,
+          // Set here rather than inferred from `mailFrom`, which is "" for the
+          // null reverse-path every bounce uses.
+          hasSender: true,
           size: declared,
           smtputf8: "SMTPUTF8" in path.params,
         }
@@ -361,7 +376,7 @@ export const createSession = (hooks: SessionHooks): Session => {
       case "RCPT": {
         const pending = requireGreeting()
         if (pending) return pending
-        if (!envelope.mailFrom) {
+        if (!envelope.hasSender) {
           return badCommand({ code: 503, enhanced: "5.5.1", message: "Send MAIL FROM first." })
         }
         if (envelope.rcptTo.length >= MAX_RECIPIENTS) {
@@ -390,7 +405,7 @@ export const createSession = (hooks: SessionHooks): Session => {
       case "DATA": {
         const pending = requireGreeting()
         if (pending) return pending
-        if (!envelope.mailFrom) {
+        if (!envelope.hasSender) {
           return badCommand({ code: 503, enhanced: "5.5.1", message: "Send MAIL FROM first." })
         }
         if (!envelope.rcptTo.length) {
