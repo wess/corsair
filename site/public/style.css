@@ -735,7 +735,27 @@ td code {
 .docs-shell .prose {
   padding-left: 0;
   padding-right: 0;
-  max-width: var(--measure);
+  /*
+   * `min()` with 100%, not the measure alone.
+   *
+   * The prose is a grid item, and a bare `max-width: 44rem` lets it settle at
+   * its content's min-content width when the track is narrower — which on a
+   * phone is whatever the widest code block wants. Measured at 567px inside a
+   * 300px viewport, taking the whole page sideways with it. `min-width: 0`
+   * does not help; clamping the maximum to the track does.
+   */
+  max-width: min(var(--measure), 100%);
+}
+
+/*
+ * The scroll containers must be able to shrink, or they hand their content's
+ * min-content width up to the column they are meant to be scrolling inside.
+ */
+.docs-shell .prose > *,
+.docs-shell .prose figure.code,
+.docs-shell .prose .table-wrap {
+  max-width: 100%;
+  min-width: 0;
 }
 
 .sidebar {

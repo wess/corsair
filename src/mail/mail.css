@@ -295,6 +295,17 @@
     padding: 12px 14px;
   }
 
+  /* The subject and its back button lead. The toolbar above them wraps to two
+     lines at this width, which pushed the only way back to the message list
+     below the fold. */
+  .mail-reader-head {
+    order: -1;
+  }
+  .mail-reader > .row {
+    flex-wrap: wrap;
+    padding-bottom: 4px;
+  }
+
   /* Under 16px, iOS zooms the page the moment a field takes focus. */
   input,
   select,
