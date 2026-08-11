@@ -9,9 +9,9 @@ import {
 import { db, num } from "../src/db/index.ts"
 import { type Domain, domains, filters, users } from "../src/schema/index.ts"
 import { buildBounce, sendBounce } from "../src/smtp/bounce/index.ts"
-import { handleMessage, validateRecipient } from "../src/smtp/inbound/index.ts"
+import { handleMessage, isLoopback, validateRecipient } from "../src/smtp/inbound/index.ts"
 import type { Envelope } from "../src/smtp/session/index.ts"
-import { messagesIn } from "../src/store/index.ts"
+import { folderOf, messagesIn } from "../src/store/index.ts"
 
 /**
  * Exercises the real delivery path against a real database: routing, filters,
@@ -415,5 +415,105 @@ describe("a permanent failure tells the sender", () => {
         reason: "rejected",
       }),
     ).toBe(false)
+  })
+})
+
+describe("mail this server generates for itself", () => {
+  let bounced: Awaited<ReturnType<typeof createAddress>>
+
+  /**
+   * A bounce is delivered by connecting to our own MX, which lands on loopback.
+   * There is no meaningful SPF answer for 127.0.0.1 — it is in nobody's record,
+   * so it fails, DMARC then fails with it, and the message is scored as a
+   * forgery. Every "Undelivered Mail Returned to Sender" went to Junk, which is
+   * the one place a delivery failure must not go.
+   *
+   * Found by watching a real bounce land there.
+   *
+   * This case asserts *placement* — a bounce reaches the inbox. It does not on
+   * its own prove the loopback rule, because the test domain has no SPF record
+   * so the check returns `none` rather than `fail` and no penalty applies
+   * either way. Verified by removing the rule and watching this still pass.
+   * The rule itself is pinned by the `isLoopback` cases below.
+   */
+  test("a bounce from loopback reaches the inbox", async () => {
+    const local = { remoteIp: "127.0.0.1", helo: "mx1.test" }
+    const bounce = [
+      `From: Mail Delivery System <postmaster@mx1.test>`,
+      `To: <bounced@${domainName}>`,
+      "Subject: Undelivered Mail Returned to Sender",
+      `Message-ID: <dsn-${Date.now()}@mx1.test>`,
+      `Date: ${new Date().toUTCString()}`,
+      "Content-Type: text/plain; charset=utf-8",
+      "",
+      "Your message could not be delivered.",
+      "",
+    ].join("\r\n")
+
+    bounced = await createAddress({
+      domainId: domain.id,
+      localPart: "bounced",
+      type: "standard",
+      password: "mailbox-password-for-bounces",
+    })
+
+    // The null reverse-path every bounce carries.
+    const envelope = { ...envelopeFor([`bounced@${domainName}`]), mailFrom: "" }
+    const reply = await handleMessage(envelope, bounce, local)
+    expect(reply.code).toBe(250)
+
+    const inbox = await inboxOf(bounced.address.id)
+    const subjects = (await messagesIn(inbox.id)).map((m) => m.subject)
+    expect(subjects).toContain("Undelivered Mail Returned to Sender")
+  })
+
+  test("a forged sender from a real IP is still caught", async () => {
+    // The loopback rule must not become a general amnesty.
+    const forged = [
+      "From: Someone <ceo@big-bank.invalid>",
+      `To: <bounced@${domainName}>`,
+      "Subject: urgent wire transfer",
+      "",
+      "please send money",
+      "",
+    ].join("\r\n")
+
+    const envelope = envelopeFor([`bounced@${domainName}`], "ceo@big-bank.invalid")
+    await handleMessage(envelope, forged, { remoteIp: "203.0.113.9", helo: "nope" })
+
+    const junk = await folderOf(bounced.address.id, "Junk")
+    expect(junk).toBeTruthy()
+    const subjects = (await messagesIn(junk!.id)).map((m) => m.subject)
+    expect(subjects).toContain("urgent wire transfer")
+  })
+})
+
+describe("isLoopback", () => {
+  /**
+   * The end-to-end case above cannot discriminate: it would pass with the rule
+   * removed, because a `.test` domain has no SPF record and so scores nothing
+   * either way. Production differs — `mx.wess.dev` publishes
+   * `v=spf1 ip4:... -all`, which 127.0.0.1 fails outright.
+   *
+   * So the rule is pinned here instead, on the one thing that can actually
+   * regress: which addresses count as this machine.
+   */
+  test.each([
+    ["127.0.0.1", true],
+    ["127.0.0.53", true],
+    ["::1", true],
+    ["::ffff:127.0.0.1", true],
+    ["203.0.113.9", false],
+    ["10.0.0.1", false],
+    ["192.168.1.1", false],
+    ["", false],
+  ])("%s -> %s", (ip, expected) => {
+    expect(isLoopback(ip as string)).toBe(expected)
+  })
+
+  test("a private address is not loopback", () => {
+    // Trusting the whole private range would trust anything else on the VPC,
+    // which is a different and much larger claim than "a process on this box".
+    expect(isLoopback("172.16.4.9")).toBe(false)
   })
 })

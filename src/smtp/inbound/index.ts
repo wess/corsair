@@ -85,6 +85,22 @@ type AuthResults = {
   reverseDns: string | null
 }
 
+/**
+ * A connection from this machine to itself.
+ *
+ * Mail this server generates for one of its own mailboxes — a bounce, most
+ * often — is delivered by connecting to its own MX, which lands on loopback.
+ * There is no meaningful SPF answer for 127.0.0.1: it is in nobody's record, so
+ * it fails, and the message is then scored as a forgery. That put every
+ * "Undelivered Mail Returned to Sender" straight into Junk, which is the one
+ * place a delivery failure must not go.
+ *
+ * Anything reaching port 25 from loopback is a process on this box, which is
+ * us. Nothing outside can spoof it without already being inside.
+ */
+export const isLoopback = (ip: string): boolean =>
+  ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1" || ip.startsWith("127.")
+
 const authenticate = async (
   raw: string,
   parsed: mime.ParsedMessage,
@@ -92,7 +108,9 @@ const authenticate = async (
   ctx: InboundContext,
 ): Promise<AuthResults> => {
   const [spf, dkim, ptr] = await Promise.all([
-    checkSpf({ ip: ctx.remoteIp, mailFrom: envelope.mailFrom, helo: ctx.helo }),
+    isLoopback(ctx.remoteIp)
+      ? Promise.resolve({ result: "pass" as const, domain: ctx.helo })
+      : checkSpf({ ip: ctx.remoteIp, mailFrom: envelope.mailFrom, helo: ctx.helo }),
     verifySignature(raw, parsed),
     reverseDns(ctx.remoteIp).then(
       (names) => names[0] ?? null,
