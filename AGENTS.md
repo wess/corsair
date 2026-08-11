@@ -264,6 +264,23 @@ built the site from a checkout without the source, so the page vanished from
 every sidebar and became reachable only by typing its URL. Anchor repo-root
 ignores with a leading slash.
 
+**There are three copies of the docs and they update separately.** The mail
+server serves the committed `site/public` (app mode); GitHub Pages rebuilds from
+`site/content` in CI; and `corsair.wess.dev` is a static copy on gohan that only
+changes when it is rsynced. Deploying the server updates the first two and does
+nothing to the third:
+
+```sh
+SITE_MODE=pages SITE_URL=https://corsair.wess.dev bun site/build.ts
+bun site/check.ts
+rsync -az --delete site/public/ gohan:/srv/corsair.wess.dev/
+bun run site:build   # back to app mode before committing
+```
+
+That last line matters: `site/public` is committed and the server serves it, so
+leaving a pages-mode build in the tree swaps the panel link for a docs link on
+the running instance.
+
 A docs page's place in the sidebar comes from its front matter — `section` (one
 of the keys in `SECTIONS`) and `order`. A page with no `section` renders without
 a sidebar entry and drops out of the previous/next chain, which is the failure
