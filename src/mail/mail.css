@@ -211,21 +211,41 @@
   color: var(--text-faint);
 }
 
+/*
+ * Tablets and phones: one pane at a time.
+ *
+ * Three columns cannot be squeezed into a narrow screen, so the folder list and
+ * the message list collapse away once a message is open. The reader carries a
+ * back button, which is the only way out of that state.
+ */
 @media (max-width: 1000px) {
   .mail {
     grid-template-columns: 1fr;
+    /* Without explicit rows the folder strip and the list share the height
+       evenly and the list ends up a few messages tall. */
+    grid-template-rows: auto 1fr;
   }
-  /* One pane at a time: the folder list and the list collapse away once a
-     message is open, rather than being squeezed into unusable columns. */
+
   .mail-folders {
     flex-direction: row;
     border-right: 0;
     border-bottom: 1px solid var(--border);
     overflow-x: auto;
+    overflow-y: hidden;
     padding: 10px;
+    scrollbar-width: none;
+  }
+  .mail-folders::-webkit-scrollbar {
+    display: none;
   }
   .mail-folders .nav-item {
     width: auto;
+    white-space: nowrap;
+    padding: 11px 13px;
+  }
+
+  .mail.reading {
+    grid-template-rows: 1fr;
   }
   .mail.reading .mail-list,
   .mail.reading .mail-folders {
@@ -234,7 +254,59 @@
   .mail:not(.reading) .mail-reader {
     display: none;
   }
+
   .mail-list {
     border-right: 0;
+  }
+}
+
+/*
+ * Phones.
+ */
+@media (max-width: 620px) {
+  /* The reader's actions are a row of buttons that will not fit beside a
+     subject line; let them wrap onto their own line rather than truncate. */
+  .mail-reader-head .row.spread {
+    flex-wrap: wrap;
+  }
+  .mail-reader-head h2 {
+    font-size: 17px;
+  }
+
+  .mail-reader-body,
+  .mail-reader-head {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  /* A message body is the one thing here written by someone else, and it will
+     contain a 900px table sooner or later. Let it scroll inside its pane
+     instead of stretching the page. */
+  .mail-reader-body {
+    overflow-x: auto;
+  }
+  .mail-reader-body img,
+  .mail-reader-body table {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .mail-item {
+    padding: 12px 14px;
+  }
+
+  /* Under 16px, iOS zooms the page the moment a field takes focus. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  dialog.dialog {
+    max-width: none;
+    margin: auto 0 0;
+  }
+  dialog.dialog > .card {
+    border-radius: 14px 14px 0 0;
   }
 }

@@ -641,31 +641,132 @@ dialog.dialog::backdrop {
   height: 100%;
 }
 
+/*
+ * Phones and small tablets.
+ *
+ * The sidebar becomes a horizontally scrolling strip across the top. That means
+ * flattening `nav` as well as `.sidebar` — a row whose only child is a block
+ * still stacks its buttons, which is what this used to do: one tall column of
+ * links with the page pushed off the bottom of the screen.
+ *
+ * The footer is folded into the same strip rather than hidden. Hiding it took
+ * Sign out with it, and an account you cannot sign out of on the device most
+ * likely to be lost is the wrong trade.
+ */
 @media (max-width: 860px) {
   .shell {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
   }
+
   .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
     flex-direction: row;
     align-items: center;
     gap: 6px;
-    overflow-x: auto;
+    padding: 8px 10px;
     border-right: 0;
     border-bottom: 1px solid var(--border);
-    padding: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    /* Momentum scrolling without a visible bar eating vertical space. */
+    scrollbar-width: none;
   }
-  .brand,
-  .sidebar-footer {
+  .sidebar::-webkit-scrollbar {
     display: none;
   }
+
+  .sidebar nav {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  /* `contents` puts Account and Sign out into the same scrolling row instead of
+     leaving them in a column that has nowhere to go. */
+  .sidebar-footer {
+    display: contents;
+  }
+  .sidebar-footer .nav-item {
+    border-top: 0;
+  }
+
+  .brand {
+    display: none;
+  }
+
   .nav-item {
     width: auto;
+    white-space: nowrap;
+    /* A comfortable thumb target; 9px padding alone is under 40px tall. */
+    padding: 11px 13px;
   }
+  .nav-item .truncate {
+    max-width: 12ch;
+  }
+
+  .topbar {
+    padding: 14px 18px;
+  }
+  .topbar h1 {
+    font-size: 18px;
+  }
+
   .content {
     padding: 18px;
   }
+
   /* A table that must scroll should scroll inside its card, not push the page. */
   .card {
     overflow-x: auto;
+  }
+
+  /* Full width, bottom-anchored: a centred box on a phone leaves the keyboard
+     covering the field you are typing into. */
+  dialog.dialog {
+    max-width: none;
+    margin: auto 0 0;
+    max-height: 92vh;
+  }
+  dialog.dialog > .card {
+    max-height: 92vh;
+    border-radius: 14px 14px 0 0;
+  }
+
+  /* Under 16px, iOS zooms the page the moment a field takes focus and never
+     zooms back out. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .toast {
+    right: 12px;
+    left: 12px;
+    bottom: 12px;
+  }
+
+  /* Stacked, full width — side-by-side buttons at this width truncate to
+     nothing. */
+  .row.actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Narrow phones. */
+@media (max-width: 420px) {
+  .content {
+    padding: 14px;
+  }
+  .card-body,
+  .card > .card-body {
+    padding: 14px;
+  }
+  .topbar {
+    padding: 12px 14px;
   }
 }

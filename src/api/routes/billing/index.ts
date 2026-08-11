@@ -6,7 +6,7 @@ import { allColumns, db } from "../../../db/index.ts"
 import { conflict, invalidParameter, notFound } from "../../../errors/index.ts"
 import { paginate, parsePageQuery } from "../../../pagination/index.ts"
 import * as payments from "../../../payments/index.ts"
-import { usageOf } from "../../../plans/index.ts"
+import { entitlementOf, usageOf } from "../../../plans/index.ts"
 import {
   type PaymentMethod,
   type Plan,
@@ -69,10 +69,22 @@ export const billingRoutes: Route[] = [
         .orderBy("position", "ASC"),
     )
     const current = await activeSubscription(principalOf(c).userId)
+
+    // The owner has no subscription row and never will — their entitlement is
+    // computed, not sold. Reporting `null` here left the panel marking the free
+    // trial as active and offering to sell them their own server.
+    const entitlement = await entitlementOf(principalOf(c).userId)
+    const owned = await db().one<{ is_owner: boolean }>(
+      from(users)
+        .select("is_owner")
+        .where((q) => q("id").equals(principalOf(c).userId)),
+    )
+
     return json(c, 200, {
       object: "list",
       data: rows.map(planObject),
-      current_plan_id: current?.plan_id ?? null,
+      current_plan_id: current?.plan_id ?? (owned?.is_owner ? entitlement.plan.id : null),
+      owner: Boolean(owned?.is_owner),
     })
   }),
 

@@ -48,7 +48,7 @@ export const PlansPage = () => {
   const [cancelling, setCancelling] = useState(false)
 
   const { data, loading, reload } = useLoad(() =>
-    get<{ data: Plan[]; current_plan_id: string | null }>("/api/plans"),
+    get<{ data: Plan[]; current_plan_id: string | null; owner: boolean }>("/api/plans"),
   )
 
   if (loading) return <Loading />
@@ -89,18 +89,21 @@ export const PlansPage = () => {
       <div className="grid grid-3">
         {data?.data.map((plan) => {
           const active = plan.id === data.current_plan_id
+          // The owner is not a customer of their own server: nothing to buy,
+          // nothing to cancel.
+          const owner = data.owner === true
           const price = interval === "monthly" ? plan.monthly_cents : plan.yearly_cents
           return (
             <button
               key={plan.id}
               type="button"
               className={`plan-card${active ? " active" : ""}`}
-              onClick={() => !active && choose(plan)}
-              disabled={busy !== null}
+              onClick={() => !active && !owner && choose(plan)}
+              disabled={busy !== null || owner}
             >
               {active && (
                 <div style={{ marginBottom: 8 }}>
-                  <Pill kind="good">Active</Pill>
+                  <Pill kind="good">{owner ? "Owner" : "Active"}</Pill>
                 </div>
               )}
               <h3>{plan.name}</h3>
@@ -127,11 +130,18 @@ export const PlansPage = () => {
         })}
       </div>
 
-      <div style={{ textAlign: "center" }}>
-        <button type="button" className="btn btn-danger" onClick={() => setCancelling(true)}>
-          Cancel subscription
-        </button>
-      </div>
+      {data?.owner ? (
+        <p className="muted" style={{ textAlign: "center" }}>
+          You own this server, so every feature is on and there is nothing to pay. Plans apply to
+          the accounts you host on it.
+        </p>
+      ) : (
+        <div style={{ textAlign: "center" }}>
+          <button type="button" className="btn btn-danger" onClick={() => setCancelling(true)}>
+            Cancel subscription
+          </button>
+        </div>
+      )}
 
       {cancelling && (
         <Dialog title="Cancel subscription" onClose={() => setCancelling(false)}>
