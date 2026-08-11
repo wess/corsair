@@ -104,6 +104,35 @@ const run = async () => {
   })
   check("a short password is rejected", weak.status === 422, weak.body)
 
+  section("client configuration")
+  const clientConfig = await call("GET", "/api/client-config")
+  check("client config loads", clientConfig.status === 200, clientConfig.body)
+  {
+    // Every port offered to a human to type into a mail client has to be one
+    // the server actually listens on with the encryption named. Advertising
+    // 587/STARTTLS on a server without STARTTLS is silent and total: the
+    // account is created and every send fails.
+    const servers = (clientConfig.body?.servers ?? []) as {
+      protocol: string
+      port: number
+      security: string
+    }[]
+    check("it names at least one incoming and one outgoing server", servers.length >= 3, servers)
+    check(
+      "every entry is encrypted",
+      servers.every((s2) => s2.security === "SSL/TLS" || s2.security === "STARTTLS"),
+      servers.map((s2) => s2.security),
+    )
+
+    const mtaSts = await (await fetch(`${BASE}/.well-known/mta-sts.txt`)).text()
+    const startTls = /^mode: (testing|enforce)$/m.test(mtaSts)
+    check(
+      "a STARTTLS port is offered only when the server can perform it",
+      servers.some((s2) => s2.security === "STARTTLS") === startTls,
+      { startTls, securities: servers.map((s2) => s2.security) },
+    )
+  }
+
   section("overview")
   const overview = await call("GET", "/api/overview")
   check("overview loads", overview.status === 200, overview.body)

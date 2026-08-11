@@ -3,6 +3,7 @@ import { config } from "../../../config/index.ts"
 import { db } from "../../../db/index.ts"
 import { formatBytes, usageOf } from "../../../plans/index.ts"
 import { entitlementObject } from "../../../serialize/index.ts"
+import { canUpgradeServerSocketToTls } from "../../../starttls/index.ts"
 import { authedWithPlan, entitlementFrom, principalOf } from "../../pipes/index.ts"
 
 /**
@@ -96,7 +97,16 @@ export const dashboardRoutes: Route[] = [
     })
   }),
 
-  /** Client Configuration — the same values, on their own for the settings tab. */
+  /**
+   * Client Configuration — the same values, on their own for the settings tab.
+   *
+   * These are read by a person who then types them into a mail client, so a
+   * port listed here that does not work is the same failure as autoconfig
+   * naming one: the account is created and every send fails. The STARTTLS row
+   * appears only when the server can actually perform the upgrade, and the
+   * ports come from configuration rather than being assumed — an install on
+   * non-standard ports would otherwise be told to use the standard ones.
+   */
   getR("/api/client-config", { before: authedWithPlan, assigns: {} as never }, async (c) =>
     json(c, 200, {
       object: "client_config",
@@ -104,29 +114,34 @@ export const dashboardRoutes: Route[] = [
         {
           protocol: "Incoming Server (IMAP)",
           host: config.mail.imap,
-          port: 993,
-          security: "Secure",
-        },
-        {
-          protocol: "Outgoing Server (SMTP)",
-          host: config.mail.smtp,
-          port: 465,
-          security: "Secure (Implicit)",
-        },
-        {
-          protocol: "Outgoing Server (SMTP)",
-          host: config.mail.smtp,
-          port: 587,
-          security: "Secure (Explicit)",
+          port: config.imap.tlsPort,
+          security: "SSL/TLS",
         },
         {
           protocol: "Incoming Server (POP3)",
           host: config.mail.pop,
-          port: 995,
-          security: "Secure",
+          port: config.pop3.tlsPort,
+          security: "SSL/TLS",
         },
+        {
+          protocol: "Outgoing Server (SMTP)",
+          host: config.mail.smtp,
+          port: config.smtp.submissionTlsPort,
+          security: "SSL/TLS",
+        },
+        ...(canUpgradeServerSocketToTls()
+          ? [
+              {
+                protocol: "Outgoing Server (SMTP)",
+                host: config.mail.smtp,
+                port: config.smtp.submissionPort,
+                security: "STARTTLS",
+              },
+            ]
+          : []),
       ],
       username_hint: "Your full email address",
+      password_hint: "Your mailbox password, not your control-panel password",
       webmail_url: `${config.publicUrl}/webmail`,
     }),
   ),
