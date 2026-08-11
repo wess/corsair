@@ -34,7 +34,8 @@
     "lint:fix": "biome lint --write src/ scripts/ site/ tests/",
     "format:fix": "biome format --write src/ scripts/ site/ tests/",
     "tidy": "bun run format:fix && bun run lint:fix",
-    "test:starttls": "bun tests/starttls.ts"
+    "test:starttls": "bun tests/starttls.ts",
+    "test:dns": "bun tests/dns.ts"
   },
   "dependencies": {
     "atlas": "github:wess/atlas#main",
