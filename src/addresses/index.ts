@@ -113,6 +113,13 @@ export type CreateAddressInput = {
   password?: string | null
   destinations?: string[]
   filterId?: string | null
+  /**
+   * Create this mailbox signed in with the owner's account password rather than
+   * one of its own. `ownerId` must be the account that owns the domain — every
+   * route setting this has already proved that.
+   */
+  useAccountPassword?: boolean
+  ownerId?: string | null
 }
 
 /**
@@ -155,7 +162,14 @@ export const createAddress = async (
   // Resolved before the password check: a mailbox that is its owner's own
   // account already has a password, and demanding a second one is the thing
   // this is meant to stop.
-  const userId = isMailbox ? await accountFor(input.domainId, localPart) : null
+  //
+  // `useAccountPassword` is the explicit form, for the common case where the
+  // panel sign-in address and the mailbox address are simply different — the
+  // automatic match only fires when they are identical.
+  const userId = isMailbox
+    ? ((input.useAccountPassword ? (input.ownerId ?? null) : null) ??
+      (await accountFor(input.domainId, localPart)))
+    : null
 
   if (isMailbox && !input.password && !userId) {
     throw invalidParameter("A mailbox needs a password.")
@@ -251,6 +265,62 @@ export const setPassword = async (addressId: string, password: string): Promise<
     from(addresses)
       .where((q) => q("id").equals(addressId))
       .update({
+        password_hash: await hashPassword(password),
+        password_changed_at: new Date(),
+        updated_at: new Date(),
+      }),
+  )
+}
+
+/**
+ * Makes a mailbox sign in with its owner's account password.
+ *
+ * The caller must already own the domain — every route reaching this has gone
+ * through `ownedAddress`, which is the same condition `accountFor` enforces
+ * when a link is made automatically. An account can back several of its own
+ * mailboxes; they all open with the one password, which is the point.
+ *
+ * The mailbox's own hash is cleared rather than kept as a fallback. Leaving it
+ * would mean two working passwords where the panel shows one, and revoking the
+ * account password would not revoke mail access.
+ */
+export const linkToAccount = async (addressId: string, userId: string): Promise<void> => {
+  const address = await db().one<Address>(from(addresses).where((q) => q("id").equals(addressId)))
+  if (!address) throw notFound("That address does not exist.")
+  if (address.type === "alias" || address.type === "group") {
+    throw invalidParameter("Forwarding addresses have no password to unify.")
+  }
+
+  await db().execute(
+    from(addresses)
+      .where((q) => q("id").equals(addressId))
+      .update({
+        user_id: userId,
+        password_hash: null,
+        password_changed_at: new Date(),
+        updated_at: new Date(),
+      }),
+  )
+}
+
+/**
+ * Gives a mailbox a password of its own again, so it can be handed to someone
+ * who must not have the panel.
+ *
+ * A password is required rather than optional: unlinking without one would
+ * leave a mailbox nothing can sign into, and the failure would show up later as
+ * a client that has simply stopped working.
+ */
+export const unlinkFromAccount = async (addressId: string, password: string): Promise<void> => {
+  const address = await db().one<Address>(from(addresses).where((q) => q("id").equals(addressId)))
+  if (!address) throw notFound("That address does not exist.")
+  if (!address.user_id) throw invalidParameter("That mailbox already has its own password.")
+
+  await db().execute(
+    from(addresses)
+      .where((q) => q("id").equals(addressId))
+      .update({
+        user_id: null,
         password_hash: await hashPassword(password),
         password_changed_at: new Date(),
         updated_at: new Date(),

@@ -1,7 +1,13 @@
 import { from } from "@atlas/db"
 import { delR, getR, json, patchR, postR, type Route } from "@atlas/server"
 import { z } from "zod"
-import { createAddress, destinationsOf, setPassword } from "../../../addresses/index.ts"
+import {
+  createAddress,
+  destinationsOf,
+  linkToAccount,
+  setPassword,
+  unlinkFromAccount,
+} from "../../../addresses/index.ts"
 import { allColumns, db, num } from "../../../db/index.ts"
 import { conflict, invalidParameter, notFound } from "../../../errors/index.ts"
 import { emit } from "../../../events/index.ts"
@@ -92,6 +98,7 @@ export const addressRoutes: Route[] = [
         type: z.enum(["standard", "alias", "catchall", "group"]),
         name: z.string().max(120).nullable().optional(),
         password: z.string().min(8).max(200).nullable().optional(),
+        use_account_password: z.boolean().optional(),
         destinations: z.array(z.string().email().max(320)).max(50).optional(),
         filter_id: z.string().uuid().nullable().optional(),
       }),
@@ -121,6 +128,10 @@ export const addressRoutes: Route[] = [
         type: c.body.type,
         name: c.body.name ?? null,
         password: c.body.password ?? null,
+        // `ownedDomain` above is the proof that this caller owns the domain,
+        // which is the condition the whole arrangement rests on.
+        useAccountPassword: c.body.use_account_password === true,
+        ownerId: principalOf(c).userId,
         destinations: c.body.destinations,
         filterId: c.body.filter_id ?? null,
       })
@@ -298,6 +309,52 @@ export const addressRoutes: Route[] = [
         data: { address_id: address.id, local_part: address.local_part },
       })
       return json(c, 200, { object: "address", id: address.id, password_changed: true })
+    },
+  ),
+
+  /**
+   * Make this mailbox sign in with the account password, or give it one of its
+   * own again.
+   *
+   * `ownedAddress` proves the caller owns the domain, which is the same
+   * condition an automatic link requires. Unlinking demands a password rather
+   * than accepting none: a mailbox nothing can sign into fails later, as a
+   * client that has quietly stopped working.
+   */
+  postR(
+    "/api/addresses/:address_id/link",
+    {
+      params: addressParam,
+      body: z.object({
+        use_account_password: z.boolean(),
+        password: z.string().min(8).max(200).optional(),
+      }),
+      before: authed,
+      assigns: {} as never,
+    },
+    async (c) => {
+      const { address } = await ownedAddress(principalOf(c).userId, c.params.address_id)
+
+      if (c.body.use_account_password) {
+        await linkToAccount(address.id, principalOf(c).userId)
+      } else {
+        if (!c.body.password) {
+          throw invalidParameter("Set a password for this mailbox before separating it.")
+        }
+        await unlinkFromAccount(address.id, c.body.password)
+      }
+
+      void emit({
+        userId: principalOf(c).userId,
+        domainId: address.domain_id,
+        type: "address.password_changed",
+        data: { address_id: address.id, local_part: address.local_part },
+      })
+      return json(c, 200, {
+        object: "address",
+        id: address.id,
+        uses_account_password: c.body.use_account_password,
+      })
     },
   ),
 

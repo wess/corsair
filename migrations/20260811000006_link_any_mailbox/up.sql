@@ -1,0 +1,12 @@
+-- An account may back more than one of its own mailboxes.
+--
+-- The original unique index assumed one account meant one mailbox, on the
+-- grounds that two would make a password change ambiguous. It does not:
+-- `setPassword` refuses on a linked mailbox outright, and the account password
+-- is the only one there is. Meanwhile the restriction blocked the ordinary
+-- case — someone who owns `you@example.com` and `hello@example.com` and wants
+-- one password for both.
+--
+-- The non-unique index stays; it is what makes "which mailboxes does this
+-- account open?" cheap.
+DROP INDEX IF EXISTS addresses_user_unique_idx;

@@ -374,7 +374,12 @@ const CreateAddressDialog = ({
     `${localPart.trim().toLowerCase()}@${domain.name.toLowerCase()}` ===
       account?.email.toLowerCase()
 
-  const needsPassword = isMailbox && !isOwnMailbox
+  // Explicit opt-in, for the ordinary case where the panel sign-in address and
+  // the mailbox address are simply different. The automatic match only fires
+  // when they are identical, which yours often will not be.
+  const [useAccountPassword, setUseAccountPassword] = useState(false)
+  const sharesAccountPassword = isMailbox && (isOwnMailbox || useAccountPassword)
+  const needsPassword = isMailbox && !sharesAccountPassword
 
   const description: Record<typeof type, string> = {
     standard: "A standard address with a mailbox.",
@@ -396,6 +401,7 @@ const CreateAddressDialog = ({
               type,
               name: name || null,
               password: needsPassword ? password : null,
+              use_account_password: sharesAccountPassword,
               destinations: needsDestinations
                 ? destinations
                     .split(/[,\n]/)
@@ -456,6 +462,22 @@ const CreateAddressDialog = ({
               </span>
             </Banner>
           </div>
+        )}
+
+        {isMailbox && !isOwnMailbox && (
+          <Field
+            label="Password"
+            hint="A mailbox you keep can use your account password. One you hand to someone else needs its own — a mailbox password never opens this panel."
+          >
+            <label className="row" style={{ gap: 8, alignItems: "center" }}>
+              <input
+                type="checkbox"
+                checked={useAccountPassword}
+                onChange={(e) => setUseAccountPassword(e.target.checked)}
+              />
+              <span>This mailbox is mine — sign in with my account password</span>
+            </label>
+          </Field>
         )}
 
         {needsPassword && (
@@ -1226,17 +1248,96 @@ const ChangeAddressPassword = ({ address }: { address: Address }) => {
   // password. Offering a second field here would let someone set a password
   // that never works, with nothing to say why.
   if (address.uses_account_password) {
-    return (
-      <Card title="Password">
-        <p className="muted" style={{ margin: 0 }}>
-          This mailbox signs in with <strong>your account password</strong> — the same one you used
-          for this panel. Change it under Account and it changes here too.
-        </p>
-      </Card>
-    )
+    return <LinkedAddressPassword address={address} />
   }
 
   return <ChangeOwnAddressPassword address={address} />
+}
+
+/**
+ * A mailbox that signs in with the account password. The only action offered is
+ * the way back out — giving it a password of its own, for when it is handed to
+ * someone who must not have the panel.
+ */
+const LinkedAddressPassword = ({ address }: { address: Address }) => {
+  const [separating, setSeparating] = useState(false)
+  const [password, setPassword] = useState("")
+  const [show, setShow] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+  const [busy, setBusy] = useState(false)
+
+  return (
+    <Card title="Password">
+      <p className="muted" style={{ marginTop: 0 }}>
+        This mailbox signs in with <strong>your account password</strong> — the same one you used
+        for this panel. Change it under Account and it changes here too.
+      </p>
+
+      {!separating && (
+        <button type="button" className="btn btn-sm" onClick={() => setSeparating(true)}>
+          Give this mailbox its own password
+        </button>
+      )}
+
+      {separating && (
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault()
+            setBusy(true)
+            setError(null)
+            try {
+              await post(`/api/addresses/${address.id}/link`, {
+                use_account_password: false,
+                password,
+              })
+              window.location.reload()
+            } catch (e) {
+              setError(e)
+            } finally {
+              setBusy(false)
+            }
+          }}
+        >
+          <Field
+            label="Mailbox password"
+            hint="Use this when someone else reads this mailbox. It opens mail and never this panel."
+          >
+            <div className="row" style={{ flexWrap: "nowrap" }}>
+              <input
+                required
+                minLength={8}
+                type={show ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button type="button" className="btn btn-sm" onClick={() => setShow(!show)}>
+                <Icon path={icons.eye} size={14} />
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => {
+                  setPassword(generatePassword())
+                  setShow(true)
+                }}
+              >
+                Generate
+              </button>
+            </div>
+          </Field>
+          <ErrorText error={error} />
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn btn-primary btn-sm" disabled={busy} type="submit">
+              {busy ? <Spinner /> : "Separate this mailbox"}
+            </button>
+            <button type="button" className="btn btn-sm" onClick={() => setSeparating(false)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+    </Card>
+  )
 }
 
 const ChangeOwnAddressPassword = ({ address }: { address: Address }) => {

@@ -1,6 +1,11 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { from } from "@atlas/db"
-import { createAddress, setPassword } from "../src/addresses/index.ts"
+import {
+  createAddress,
+  linkToAccount,
+  setPassword,
+  unlinkFromAccount,
+} from "../src/addresses/index.ts"
 import { authenticateAddress, hashPassword } from "../src/auth/index.ts"
 import { db } from "../src/db/index.ts"
 import { type Domain, users } from "../src/schema/index.ts"
@@ -179,5 +184,82 @@ describe("the domain-ownership condition", () => {
     expect(address.user_id).toBeNull()
     expect(await authenticateAddress(`ceo@${zone}`, "squatter-password-5150")).toBeNull()
     expect(await authenticateAddress(`ceo@${zone}`, MAILBOX_PASSWORD)).not.toBeNull()
+  })
+})
+
+describe("linking a mailbox explicitly", () => {
+  /**
+   * The automatic match only fires when the panel sign-in address and the
+   * mailbox address are identical. Most people sign in as one address and read
+   * another, so without an explicit link they would still hold two passwords —
+   * which was the whole complaint.
+   */
+  test("an owner can adopt a mailbox that is not their sign-in address", async () => {
+    const { address } = await createAddress({
+      domainId: domain.id,
+      localPart: "adopted",
+      type: "standard",
+      password: MAILBOX_PASSWORD,
+    })
+    expect(address.user_id).toBeNull()
+
+    await linkToAccount(address.id, ownerId)
+
+    expect(await authenticateAddress(`adopted@${zone}`, ACCOUNT_PASSWORD)).not.toBeNull()
+    // The mailbox's own password is cleared, not kept as a fallback. Two
+    // working passwords where the panel shows one means revoking the account
+    // password would not revoke mail access.
+    expect(await authenticateAddress(`adopted@${zone}`, MAILBOX_PASSWORD)).toBeNull()
+  })
+
+  test("one account can back several of its own mailboxes", async () => {
+    const { address } = await createAddress({
+      domainId: domain.id,
+      localPart: "second",
+      type: "standard",
+      password: MAILBOX_PASSWORD,
+    })
+    await linkToAccount(address.id, ownerId)
+
+    // Both open with the one password. The unique index that forbade this was
+    // removed precisely for this case.
+    expect(await authenticateAddress(`adopted@${zone}`, ACCOUNT_PASSWORD)).not.toBeNull()
+    expect(await authenticateAddress(`second@${zone}`, ACCOUNT_PASSWORD)).not.toBeNull()
+  })
+
+  test("a mailbox can be separated again for someone else to read", async () => {
+    const address = await db().one<{ id: string }>({
+      text: "SELECT id FROM addresses WHERE domain_id = $1 AND local_part = 'second'",
+      values: [domain.id],
+    })
+    const handover = "handed-over-password-8890"
+    await unlinkFromAccount(address!.id, handover)
+
+    expect(await authenticateAddress(`second@${zone}`, handover)).not.toBeNull()
+    expect(await authenticateAddress(`second@${zone}`, ACCOUNT_PASSWORD)).toBeNull()
+  })
+
+  test("a forwarding address has no password to unify", async () => {
+    const { address } = await createAddress({
+      domainId: domain.id,
+      localPart: "fwd",
+      type: "alias",
+      destinations: ["elsewhere@example.com"],
+    })
+    await expect(linkToAccount(address.id, ownerId)).rejects.toThrow(/no password/i)
+  })
+
+  test("created directly with the account password, no mailbox password needed", async () => {
+    const { address } = await createAddress({
+      domainId: domain.id,
+      localPart: "direct",
+      type: "standard",
+      useAccountPassword: true,
+      ownerId,
+    })
+
+    expect(address.user_id).toBe(ownerId)
+    expect(address.password_hash).toBeNull()
+    expect(await authenticateAddress(`direct@${zone}`, ACCOUNT_PASSWORD)).not.toBeNull()
   })
 })
