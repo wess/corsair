@@ -58,6 +58,24 @@ const startTrial = async (userId: string): Promise<void> => {
 }
 
 export const authRoutes: Route[] = [
+  /**
+   * Whether a signup would be accepted, so the sign-in screen can stop offering
+   * a form that answers 403.
+   *
+   * This reveals nothing that `/api/auth/signup` does not already reveal to
+   * anyone who submits it once — including the fact that an instance has no
+   * accounts yet and is still there to be claimed. It is the same answer, one
+   * request earlier and without making someone choose a password first.
+   */
+  getR("/api/auth/signups", { before: [publicLimit], assigns: {} as never }, async (c) => {
+    if (config.signups === "open") return json(c, 200, { open: true })
+    const existing = await db().one<{ id: string }>({
+      text: "SELECT id FROM users LIMIT 1",
+      values: [],
+    })
+    return json(c, 200, { open: !existing })
+  }),
+
   postR(
     "/api/auth/signup",
     {

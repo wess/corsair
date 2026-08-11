@@ -80,6 +80,13 @@ const run = async () => {
   const anonymous = await call("GET", "/api/auth/me")
   check("an unauthenticated caller is refused", anonymous.status === 401, anonymous.body)
 
+  // The sign-in screen asks this before offering a signup form, so that a
+  // server with SIGNUPS=closed does not invite someone to choose a password
+  // and then answer 403.
+  const signupsOpen = await call("GET", "/api/auth/signups")
+  check("the signup state is public", signupsOpen.status === 200, signupsOpen.body)
+  check("it answers a boolean", typeof signupsOpen.body?.open === "boolean", signupsOpen.body)
+
   const signup = await call("POST", "/api/auth/signup", { email, password, name: "Smoke Test" })
   check("signup succeeds", signup.status === 201, signup.body)
   check("signup sets a session cookie", cookie.startsWith("corsair_session="))

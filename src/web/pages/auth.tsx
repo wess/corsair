@@ -1,7 +1,7 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { Me } from "../app.tsx"
 import { Card, ErrorText, Field, Spinner } from "../components/index.tsx"
-import { post } from "../lib/api.ts"
+import { get, post } from "../lib/api.ts"
 
 type Mode = "login" | "signup"
 
@@ -23,6 +23,22 @@ export const AuthPage = ({
   const [needsCode, setNeedsCode] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
+  // Whether this server would accept a signup. Undefined until the answer
+  // arrives; the toggle stays hidden until then rather than appearing and then
+  // vanishing, which reads as a glitch.
+  const [signupsOpen, setSignupsOpen] = useState<boolean | undefined>(undefined)
+
+  useEffect(() => {
+    let live = true
+    get<{ open: boolean }>("/api/auth/signups")
+      .then((r) => live && setSignupsOpen(r.open))
+      // A server too old to have the endpoint, or one that is briefly
+      // unreachable, should not lose the only way to make the first account.
+      .catch(() => live && setSignupsOpen(true))
+    return () => {
+      live = false
+    }
+  }, [])
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -132,17 +148,19 @@ export const AuthPage = ({
                 Forgot your password?
               </button>
             )}
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => {
-                setMode(mode === "login" ? "signup" : "login")
-                setNeedsCode(false)
-                setError(null)
-              }}
-            >
-              {mode === "login" ? "Create an account" : "I already have an account"}
-            </button>
+            {signupsOpen && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  setMode(mode === "login" ? "signup" : "login")
+                  setNeedsCode(false)
+                  setError(null)
+                }}
+              >
+                {mode === "login" ? "Create an account" : "I already have an account"}
+              </button>
+            )}
           </div>
 
           {referredBy && mode === "signup" && (

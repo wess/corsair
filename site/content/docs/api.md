@@ -120,6 +120,7 @@ count, and every table is scoped to one account so the offset never walks far.
 
 | Method | Path | Does |
 | --- | --- | --- |
+| GET | `/api/auth/signups` | Whether a signup would be accepted. Unauthenticated |
 | POST | `/api/auth/signup` | Create an account. The first one owns the instance |
 | POST | `/api/auth/login` | Sign in |
 | POST | `/api/auth/logout` | Sign out |
