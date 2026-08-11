@@ -911,9 +911,9 @@ const ClientConfigTab = () => {
       <div className="card-body" style={{ paddingBottom: 0 }}>
         <p className="muted" style={{ marginTop: 0 }}>
           Use these settings to set up a mail client. The username is always{" "}
-          <strong>{data?.username_hint.toLowerCase()}</strong>, and the password is{" "}
-          <strong>{data?.password_hint.toLowerCase()}</strong>.
+          <strong>{data?.username_hint.toLowerCase()}</strong>.
         </p>
+        <p className="muted">{data?.password_hint}</p>
         <p className="muted">
           Most clients find these on their own — enter the address and let it configure itself. Only
           the ports listed here will accept a connection.

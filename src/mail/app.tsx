@@ -150,7 +150,10 @@ const LoginPage = ({ onSignedIn }: { onSignedIn: (mailbox: Mailbox) => void }) =
                 autoComplete="username"
               />
             </Field>
-            <Field label="Password" hint="Your mailbox password, not your control-panel one.">
+            <Field
+              label="Password"
+              hint="Your account password if this mailbox is your own; otherwise the mailbox's own password."
+            >
               <input
                 required
                 type="password"

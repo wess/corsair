@@ -141,7 +141,8 @@ export const dashboardRoutes: Route[] = [
           : []),
       ],
       username_hint: "Your full email address",
-      password_hint: "Your mailbox password, not your control-panel password",
+      password_hint:
+        "Your account password if this mailbox is your own; otherwise the mailbox's own password.",
       webmail_url: `${config.publicUrl}/webmail`,
     }),
   ),
