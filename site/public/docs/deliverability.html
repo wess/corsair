@@ -147,8 +147,31 @@ ORDER BY updated_at DESC LIMIT 20;</code></pre></figure>
 <p>The aggregate reports tell you which senders are failing alignment — which is how you discover the marketing platform, the ticketing system, or the CI server that also sends as your domain and that you had forgotten about.</p>
 <p>Move to <code>p=reject</code> only once those reports are clean. Going straight there means silently killing a legitimate sender you did not know you had.</p>
 <h2 id="mta-sts">MTA-STS<a class="anchor" href="#mta-sts" aria-label="Link to this section">#</a></h2>
-<p>Corsair serves an MTA-STS policy at <code>/.well-known/mta-sts.txt</code> in <strong>testing</strong> mode. In testing, a sender that cannot establish TLS reports it but still delivers.</p>
-<p>Once you have watched the reports and are confident the MX list is right, change it to <code>enforce</code>.</p>
+<p>Corsair serves an MTA-STS policy at <code>/.well-known/mta-sts.txt</code>. Its mode tracks what the MX can actually do:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Mode</th>
+<th>When</th>
+<th>What a sender does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>none</code></td>
+<td>STARTTLS is unavailable on this runtime</td>
+<td>Nothing. The policy is published and deliberately not in effect</td>
+</tr>
+<tr>
+<td><code>testing</code></td>
+<td>STARTTLS works</td>
+<td>Reports a TLS failure but still delivers</td>
+</tr>
+<tr>
+<td><code>enforce</code></td>
+<td>You set it, after watching the reports</td>
+<td>Refuses to deliver without TLS</td>
+</tr>
+</tbody></table></div>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Today this is <code>none</code></p><p>Bun cannot upgrade an accepted socket to TLS, so port 25 does not offer STARTTLS — see <a href="./tls.html">TLS</a>. An MTA-STS policy is a promise that it does, and Corsair will not make a promise it cannot keep: every MTA-STS-aware sender would attempt TLS, fail, and file a report against a policy nobody could safely enforce.</p>
+<p>Mail arriving on port 25 is therefore <strong>unencrypted in transit</strong>. Submission (465), IMAP (993), and POP3 (995) are unaffected — they are encrypted from the first byte.</p></aside>
+<p>Once STARTTLS is available the mode becomes <code>testing</code> on its own. Change it to <code>enforce</code> after you have watched the reports and are confident the MX list is right.</p>
 <aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Going straight to enforce</p><p>A wrong MX list under <code>enforce</code> silently blackholes your inbound mail — senders refuse to deliver rather than falling back to plaintext, and you get no bounce because they never connected.</p></aside>
 <h2 id="forwarding">Forwarding<a class="anchor" href="#forwarding" aria-label="Link to this section">#</a></h2>
 <p>Forwarding breaks SPF: the original sender's SPF does not list your server, so the next hop sees a forgery.</p>

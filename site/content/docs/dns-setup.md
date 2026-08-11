@@ -160,11 +160,14 @@ and retry the other on failure.
 Tells senders to require TLS when delivering to you, and to refuse to fall back to
 plaintext if it fails.
 
-Corsair serves the policy at `/.well-known/mta-sts.txt`, in `testing` mode:
+Corsair serves the policy at `/.well-known/mta-sts.txt`. The mode reflects
+whether the MX can actually offer STARTTLS — on a runtime where it cannot, the
+policy is published as `none` rather than claiming a capability that is not
+there. See [Deliverability](./deliverability.html).
 
 ```
 version: STSv1
-mode: testing
+mode: none
 mx: mail.example.com
 max_age: 604800
 ```

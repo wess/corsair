@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
+import { canUpgradeServerSocketToTls } from "../src/starttls/index.ts"
 
 /**
  * The panel and the webmail are the only two documents this process serves that
@@ -14,6 +15,10 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test"
  * actually runs is the whole point — the previous bug was invisible to any test
  * that called `buildFetch()` directly, since the headers are added a layer
  * above it.
+ *
+ * The MTA-STS policy is asserted here too. It is not a header, but it is the
+ * other claim this server makes about its own security posture, and it needs
+ * the same harness: a real response from the process an operator runs.
  */
 
 const API = new URL("../src/api/index.ts", import.meta.url).pathname
@@ -159,5 +164,30 @@ describe("caching", () => {
     const etag = res.headers.get("etag") as string
     const again = await fetch(`${base}/app`, { headers: { "if-none-match": etag } })
     expect(again.status).toBe(304)
+  })
+})
+
+describe("the MTA-STS policy", () => {
+  /**
+   * An MTA-STS policy is a promise that this host answers STARTTLS on port 25.
+   * Bun cannot upgrade an accepted socket, so on this runtime it does not — and
+   * a policy in `testing` or `enforce` would be advertising a capability that
+   * is not there. Every MTA-STS-aware sender would attempt TLS, fail, and file
+   * a report against a policy nobody could safely enforce.
+   *
+   * The two have to agree. This is the assertion that keeps them agreeing when
+   * Bun grows the upgrade and `src/starttls` starts answering true.
+   */
+  test("its mode matches what the MX can actually do", async () => {
+    const body = await (await fetch(`${base}/.well-known/mta-sts.txt`)).text()
+    expect(body).toContain("version: STSv1")
+
+    const mode = body.match(/^mode: (\w+)$/m)?.[1]
+    expect(mode).toBe(canUpgradeServerSocketToTls() ? "testing" : "none")
+  })
+
+  test("it names an MX", async () => {
+    const body = await (await fetch(`${base}/.well-known/mta-sts.txt`)).text()
+    expect(body).toMatch(/^mx: \S+$/m)
   })
 })

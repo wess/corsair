@@ -185,9 +185,9 @@ dig +short TXT   corsair-1._domainkey.example.com</code></pre></figure>
 <p>Two MX records at equal priority is how you run two mail hosts — senders pick one and retry the other on failure.</p>
 <h2 id="mta-sts">MTA-STS<a class="anchor" href="#mta-sts" aria-label="Link to this section">#</a></h2>
 <p>Tells senders to require TLS when delivering to you, and to refuse to fall back to plaintext if it fails.</p>
-<p>Corsair serves the policy at <code>/.well-known/mta-sts.txt</code>, in <code>testing</code> mode:</p>
+<p>Corsair serves the policy at <code>/.well-known/mta-sts.txt</code>. The mode reflects whether the MX can actually offer STARTTLS — on a runtime where it cannot, the policy is published as <code>none</code> rather than claiming a capability that is not there. See <a href="./deliverability.html">Deliverability</a>.</p>
 <figure class="code"><pre><code>version: STSv1
-mode: testing
+mode: none
 mx: mail.example.com
 max_age: 604800</code></pre></figure>
 <p>Corsair generates the <code>mta-sts</code> CNAME. The <strong><code>_mta-sts</code> TXT record carrying the policy id is not generated for you</strong> — MTA-STS requires one, and senders will not notice a policy change without it, so add it by hand if you are using MTA-STS seriously:</p>

@@ -1,5 +1,6 @@
 import { get, post, type Route, text } from "@atlas/server"
 import { config } from "../../../config/index.ts"
+import { canUpgradeServerSocketToTls } from "../../../starttls/index.ts"
 
 /**
  * Automatic mail-client configuration.
@@ -115,6 +116,19 @@ export const autoconfigRoutes: Route[] = [
    * MTA-STS (RFC 8461). A sending server fetches this over HTTPS and, once it
    * has, refuses to deliver to this host without TLS — which is what closes the
    * downgrade attack STARTTLS alone leaves open.
+   *
+   * The mode tracks what the MX can actually do. An MTA-STS policy is a promise
+   * that this host will answer STARTTLS on port 25, and this runtime cannot:
+   * Bun has no server-side TLS upgrade, so port 25 does not advertise it (see
+   * `src/starttls`). Publishing `testing` regardless would advertise a
+   * capability that is not there — every MTA-STS-aware sender would attempt
+   * TLS, fail, and file a report, for a policy nobody could ever safely move to
+   * `enforce`. `none` is the value RFC 8461 defines for exactly this: a policy
+   * that is published and deliberately not in effect.
+   *
+   * The moment STARTTLS works, this becomes `testing` on its own, and an
+   * operator who has watched the reports moves it to `enforce`. Going straight
+   * to `enforce` with a wrong MX list silently blackholes mail.
    */
   get("/.well-known/mta-sts.txt", (c) => {
     const response = text(
@@ -122,10 +136,7 @@ export const autoconfigRoutes: Route[] = [
       200,
       [
         "version: STSv1",
-        // `testing` reports failures without enforcing. An operator moves this
-        // to `enforce` once the policy has been observed to be correct — going
-        // straight to enforce with a wrong MX list silently blackholes mail.
-        "mode: testing",
+        `mode: ${canUpgradeServerSocketToTls() ? "testing" : "none"}`,
         `mx: ${config.mail.mx}`,
         "max_age: 604800",
         "",

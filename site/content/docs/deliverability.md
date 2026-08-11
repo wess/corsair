@@ -106,12 +106,30 @@ silently killing a legitimate sender you did not know you had.
 
 ## MTA-STS
 
-Corsair serves an MTA-STS policy at `/.well-known/mta-sts.txt` in **testing**
-mode. In testing, a sender that cannot establish TLS reports it but still
-delivers.
+Corsair serves an MTA-STS policy at `/.well-known/mta-sts.txt`. Its mode tracks
+what the MX can actually do:
 
-Once you have watched the reports and are confident the MX list is right, change
-it to `enforce`.
+| Mode | When | What a sender does |
+| --- | --- | --- |
+| `none` | STARTTLS is unavailable on this runtime | Nothing. The policy is published and deliberately not in effect |
+| `testing` | STARTTLS works | Reports a TLS failure but still delivers |
+| `enforce` | You set it, after watching the reports | Refuses to deliver without TLS |
+
+:::warning Today this is `none`
+Bun cannot upgrade an accepted socket to TLS, so port 25 does not offer
+STARTTLS — see [TLS](./tls.html). An MTA-STS policy is a promise that it does,
+and Corsair will not make a promise it cannot keep: every MTA-STS-aware sender
+would attempt TLS, fail, and file a report against a policy nobody could safely
+enforce.
+
+Mail arriving on port 25 is therefore **unencrypted in transit**. Submission
+(465), IMAP (993), and POP3 (995) are unaffected — they are encrypted from the
+first byte.
+:::
+
+Once STARTTLS is available the mode becomes `testing` on its own. Change it to
+`enforce` after you have watched the reports and are confident the MX list is
+right.
 
 :::danger Going straight to enforce
 A wrong MX list under `enforce` silently blackholes your inbound mail — senders

@@ -192,8 +192,10 @@ does not.
 
 - [ ] **Volume ramped, not dumped.** A new IP sending a thousand messages on day
   one looks exactly like a compromised host.
-- [ ] **MTA-STS in `testing` mode** to start. Going straight to `enforce` with a
-  wrong MX list silently blackholes inbound mail.
+- [ ] **MTA-STS mode matches reality.** Corsair publishes `none` while STARTTLS
+  is unavailable, because a policy is a promise the MX has to keep. Once it is
+  available, `testing` first — going straight to `enforce` with a wrong MX list
+  silently blackholes inbound mail.
 - [ ] **A plan for bounces.** Treat a `5xx` as permanent and stop sending there.
 
 [Deliverability](deliverability.html) covers the reputation side.
