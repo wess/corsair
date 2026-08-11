@@ -161,8 +161,8 @@ openssl s_client -starttls smtp -connect mail.example.com:587 -servername mail.e
 <tr>
 <td>587</td>
 <td>Submission</td>
-<td>—</td>
-<td>No: cannot authenticate</td>
+<td>STARTTLS, where the runtime supports it</td>
+<td>Only after a successful upgrade</td>
 </tr>
 <tr>
 <td>143</td>
@@ -177,9 +177,11 @@ openssl s_client -starttls smtp -connect mail.example.com:587 -servername mail.e
 <td>No: cannot authenticate</td>
 </tr>
 </tbody></table></div>
-<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>STARTTLS is unavailable</p><p>Bun cannot upgrade an accepted socket to TLS, so Corsair has no server-side STARTTLS on any protocol. It deliberately does not advertise it: a peer that takes up the offer has already committed and cannot fall back, so advertising a broken STARTTLS turns &quot;delivered in plaintext&quot; into &quot;not delivered at all&quot;.</p>
-<p>Because Corsair also refuses a credential over an unencrypted connection, the three STARTTLS ports cannot be used to log in. <strong>Configure clients for 465, 993, and 995.</strong></p>
-<p>Port 25 is unaffected in practice — senders that would have used STARTTLS simply deliver in plaintext, which is what opportunistic means.</p></aside>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>STARTTLS depends on the runtime</p><p>Corsair can only offer STARTTLS if the runtime can upgrade an already-accepted socket to TLS. Older builds of Bun cannot, and throw at the moment of upgrade.</p>
+<p>Corsair <strong>probes this at startup</strong> — it opens a loopback listener and tries — rather than testing for a version or a function name. An earlier version checked for an API that never shipped, which would have kept STARTTLS switched off long after the runtime had learned to do it.</p>
+<p>Where the probe says no, STARTTLS is not advertised on any protocol, the three plaintext ports cannot be used to log in, and autoconfig hands clients <strong>465, 993, and 995</strong> instead. The MTA-STS policy publishes <code>mode: none</code> to match, because a policy is a promise the MX has to keep.</p>
+<p>Where it says yes, all of that flips: STARTTLS is advertised, 587/143/110 accept a login after upgrading, autoconfig names 587, and the policy moves to <code>testing</code>.</p>
+<p>Nothing needs configuring either way, and <code>bun run test:starttls:server</code> reports which case you are in.</p></aside>
 <h2 id="self-signed-for-local-testing-only">Self-signed, for local testing only<a class="anchor" href="#self-signed-for-local-testing-only" aria-label="Link to this section">#</a></h2>
 <p><code>test:mailflow</code> needs a certificate because Corsair refuses authentication without one:</p>
 <figure class="code"><span class="code-lang">sh</span><pre><code>mkdir -p certs

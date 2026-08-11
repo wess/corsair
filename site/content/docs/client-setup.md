@@ -19,18 +19,25 @@ The settings, then the clients that need help.
 | POP3 | **995** | SSL/TLS | Normal password |
 | SMTP | **465** | SSL/TLS (implicit) | Normal password |
 
-:::danger Use the implicit-TLS ports. STARTTLS is not available.
-Bun cannot upgrade an accepted socket to TLS, so Corsair has no server-side
-STARTTLS. It deliberately does **not** advertise it — advertising and then
-failing loses mail outright, because a peer that has committed to the upgrade
-cannot fall back.
+:::danger Use the implicit-TLS ports unless your server advertises STARTTLS.
+STARTTLS depends on the runtime being able to upgrade an accepted socket to TLS,
+which older builds of Bun cannot do. Corsair **tests this at startup** rather
+than assuming it, and does not advertise what it cannot perform — advertising
+and then failing loses mail outright, because a peer that has committed to the
+upgrade cannot fall back.
 
-The practical consequence: **587, 143, and 110 cannot authenticate.** Corsair
+Where STARTTLS is unavailable, **587, 143, and 110 cannot authenticate.** Corsair
 refuses a credential on an unencrypted connection, and those ports have no way
-to become encrypted. A client configured for them will fail to log in.
+to become encrypted.
 
-Configure 993, 995, and 465. Port 25 is unaffected — it accepts mail from other
-servers in plaintext, which is what they fall back to.
+You do not have to work out which case you are in. Autoconfig and autodiscover
+name the port that actually works, so **let your client configure itself** and
+it will be right either way. Configuring by hand, use 993, 995, and 465 — those
+work in both cases.
+
+Port 25 is unaffected either way: it accepts mail from other servers, encrypted
+where STARTTLS is available and in plaintext where it is not, which is what
+senders fall back to.
 :::
 
 **Hostname** is whatever the operator set — `MAIL_IMAP_HOST`, `MAIL_SMTP_HOST`, and
@@ -44,8 +51,9 @@ local part would be ambiguous across the domains on the server.
 They are separate identities on purpose: a mailbox credential ends up in a phone
 that gets lost, and it must not also unlock the panel.
 
-993 and 465 are encrypted from the first byte, which is both the stronger
-option and — on this server — the only one that works.
+993 and 465 are encrypted from the first byte. There is no upgrade to negotiate
+and none to get wrong, which is why they are the better ports even on a server
+where STARTTLS works.
 
 ## Automatic configuration
 
@@ -149,7 +157,7 @@ as".
 | --- | --- |
 | "Certificate not trusted" | Self-signed, or the chain is incomplete. The server needs `fullchain.pem`, not the leaf |
 | "Name does not match" | The certificate is for a different hostname than you dialled |
-| "Server does not support authentication" | You are on 587, 143, or 110. Those cannot be encrypted on this server, and Corsair will not accept a password in the clear. Use 993, 995, or 465 |
+| "Server does not support authentication" | You are on 587, 143, or 110 and this server has no STARTTLS, so it will not accept a password in the clear. Use 993, 995, or 465 |
 | "Wrong password" | Mailbox password, not the panel password. Or the address is an alias, which has none |
 | "Cannot find server" | Check the hostname against the panel's Client Configuration tab |
 

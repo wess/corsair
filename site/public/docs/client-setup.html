@@ -87,13 +87,14 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td>Normal password</td>
 </tr>
 </tbody></table></div>
-<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Use the implicit-TLS ports. STARTTLS is not available.</p><p>Bun cannot upgrade an accepted socket to TLS, so Corsair has no server-side STARTTLS. It deliberately does <strong>not</strong> advertise it — advertising and then failing loses mail outright, because a peer that has committed to the upgrade cannot fall back.</p>
-<p>The practical consequence: <strong>587, 143, and 110 cannot authenticate.</strong> Corsair refuses a credential on an unencrypted connection, and those ports have no way to become encrypted. A client configured for them will fail to log in.</p>
-<p>Configure 993, 995, and 465. Port 25 is unaffected — it accepts mail from other servers in plaintext, which is what they fall back to.</p></aside>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Use the implicit-TLS ports unless your server advertises STARTTLS.</p><p>STARTTLS depends on the runtime being able to upgrade an accepted socket to TLS, which older builds of Bun cannot do. Corsair <strong>tests this at startup</strong> rather than assuming it, and does not advertise what it cannot perform — advertising and then failing loses mail outright, because a peer that has committed to the upgrade cannot fall back.</p>
+<p>Where STARTTLS is unavailable, <strong>587, 143, and 110 cannot authenticate.</strong> Corsair refuses a credential on an unencrypted connection, and those ports have no way to become encrypted.</p>
+<p>You do not have to work out which case you are in. Autoconfig and autodiscover name the port that actually works, so <strong>let your client configure itself</strong> and it will be right either way. Configuring by hand, use 993, 995, and 465 — those work in both cases.</p>
+<p>Port 25 is unaffected either way: it accepts mail from other servers, encrypted where STARTTLS is available and in plaintext where it is not, which is what senders fall back to.</p></aside>
 <p><strong>Hostname</strong> is whatever the operator set — <code>MAIL_IMAP_HOST</code>, <code>MAIL_SMTP_HOST</code>, and so on. On most installs they are all the same name. The panel's Client Configuration tab shows the exact values for your server.</p>
 <p><strong>Username is always the full email address</strong>, not the part before the <code>@</code>. A bare local part would be ambiguous across the domains on the server.</p>
 <p><strong>Password is the mailbox password</strong>, which is not your control-panel password. They are separate identities on purpose: a mailbox credential ends up in a phone that gets lost, and it must not also unlock the panel.</p>
-<p>993 and 465 are encrypted from the first byte, which is both the stronger option and — on this server — the only one that works.</p>
+<p>993 and 465 are encrypted from the first byte. There is no upgrade to negotiate and none to get wrong, which is why they are the better ports even on a server where STARTTLS works.</p>
 <h2 id="automatic-configuration">Automatic configuration<a class="anchor" href="#automatic-configuration" aria-label="Link to this section">#</a></h2>
 <p>If the operator published the <code>autoconfig</code> and <code>autodiscover</code> CNAMEs, Thunderbird and Outlook find all of this from the email address alone.</p>
 <div class='table-wrap'><table><thead><tr>
@@ -162,7 +163,7 @@ set from      = &quot;you@example.com&quot;</code></pre></figure>
 </tr>
 <tr>
 <td>&quot;Server does not support authentication&quot;</td>
-<td>You are on 587, 143, or 110. Those cannot be encrypted on this server, and Corsair will not accept a password in the clear. Use 993, 995, or 465</td>
+<td>You are on 587, 143, or 110 and this server has no STARTTLS, so it will not accept a password in the clear. Use 993, 995, or 465</td>
 </tr>
 <tr>
 <td>&quot;Wrong password&quot;</td>

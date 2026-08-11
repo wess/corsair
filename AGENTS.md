@@ -68,6 +68,28 @@ or `frame-ancestors`, while the JSON API had both. They are bundled in
 the `routes` path back for hot reload — opt *in* from the development
 entrypoint, so `bun src/start.ts` with no NODE_ENV set is still hardened.
 
+**STARTTLS capability is probed, never assumed.** `src/starttls` opens a
+loopback listener at startup and tries the upgrade, because there is no flag to
+test: `socket.upgradeTLS` is a function on every build and throws only at call
+time on an accepted socket. A previous version tested for
+`Bun.upgradeDuplexToTLS` — a name that appears in Bun's error message but exists
+on no build — which would have kept STARTTLS off forever. Autoconfig,
+autodiscover, and the MTA-STS mode are all derived from the probe's answer, and
+`tests/headers.test.ts` asserts the three agree.
+
+**Do not reuse the listener's handler object for the upgraded socket.** Bun runs
+`open` on the TLS socket, and every listener's `open` builds fresh state, starts
+a new session, and writes a greeting — so passing `handlers` straight through
+silently replaced the connection with an unauthenticated one that still
+advertised STARTTLS and no longer advertised AUTH. Pass
+`{ ...handlers, open: (s) => (s.data = state) }`.
+
+**Bun delivers the post-upgrade stream to BOTH sockets** (oven-sh/bun#26297), so
+each listener's `data` drops anything arriving on the cleartext socket once
+`state.tlsSocket` is set. Without that gate the session parses a TLS ClientHello
+as a command and every subsequent command arrives twice. The same bug bit the
+outbound client in `src/smtp/client`.
+
 **A browser bundle needs `process.env.NODE_ENV` defined explicitly.** Nothing
 infers it from the server's own environment. Without the `define` in
 `src/bundle`, React ships its development build: 488 KB instead of 257 KB, prop
@@ -236,6 +258,11 @@ a dependency to get more is the wrong trade for a mail server.
 - `bun run test:smoke` — API contract. Needs a running server; backs off on 429
   because the rate limiter is real.
 - `bun run site:check` — the docs site builds and every internal link resolves.
+- `bun run test:starttls` — the *outbound* client's STARTTLS, against a real
+  handshake.
+- `bun run test:starttls:server` — the *inbound* side on all three listeners.
+  Prints SKIPPED on a runtime that cannot upgrade an accepted socket, which is
+  not a failure; it is the case the probe exists to detect.
 
 ## Local setup
 

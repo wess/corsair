@@ -29,10 +29,29 @@ const domainOf = (url: string): string => {
   return at === -1 ? "" : value.slice(at + 1)
 }
 
+/**
+ * Which submission port to hand a client, and how to reach it.
+ *
+ * This has to track what the server can actually do, and it is the one place
+ * where getting it wrong is silent and total: a client that auto-configures
+ * takes this document as fact, and if it names a port and an encryption the
+ * server does not offer, the account is created and every send fails. Nothing
+ * about the failure points back here.
+ *
+ * Where STARTTLS is unavailable, 465 with implicit TLS is not a fallback — it
+ * is the better port. It is encrypted from the first byte with no upgrade to
+ * get wrong.
+ */
+const submission = () =>
+  canUpgradeServerSocketToTls()
+    ? { port: config.smtp.submissionPort, mozilla: "STARTTLS", outlookSsl: "on", outlookEnc: "TLS" }
+    : { port: config.smtp.submissionTlsPort, mozilla: "SSL", outlookSsl: "on", outlookEnc: "SSL" }
+
 export const autoconfigRoutes: Route[] = [
   // Thunderbird and anything else using the Mozilla ISPDB format.
   get("/mail/config-v1.1.xml", (c) => {
     const domain = domainOf(c.request.url) || "%EMAILDOMAIN%"
+    const out = submission()
     return xml(
       c,
       `<?xml version="1.0" encoding="UTF-8"?>
@@ -57,8 +76,8 @@ export const autoconfigRoutes: Route[] = [
     </incomingServer>
     <outgoingServer type="smtp">
       <hostname>${config.mail.smtp}</hostname>
-      <port>587</port>
-      <socketType>STARTTLS</socketType>
+      <port>${out.port}</port>
+      <socketType>${out.mozilla}</socketType>
       <authentication>password-cleartext</authentication>
       <username>%EMAILADDRESS%</username>
     </outgoingServer>
@@ -78,6 +97,7 @@ export const autoconfigRoutes: Route[] = [
       // A malformed body still gets a usable document with the placeholder.
     }
 
+    const out = submission()
     return xml(
       c,
       `<?xml version="1.0" encoding="utf-8"?>
@@ -98,9 +118,9 @@ export const autoconfigRoutes: Route[] = [
       <Protocol>
         <Type>SMTP</Type>
         <Server>${config.mail.smtp}</Server>
-        <Port>587</Port>
-        <SSL>on</SSL>
-        <Encryption>TLS</Encryption>
+        <Port>${out.port}</Port>
+        <SSL>${out.outlookSsl}</SSL>
+        <Encryption>${out.outlookEnc}</Encryption>
         <SPA>off</SPA>
         <AuthRequired>on</AuthRequired>
         <LoginName>${address}</LoginName>

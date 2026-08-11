@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { canUpgradeServerSocketToTls } from "../src/starttls/index.ts"
+import { config } from "../src/config/index.ts"
 
 /**
  * The panel and the webmail are the only two documents this process serves that
@@ -167,27 +167,80 @@ describe("caching", () => {
   })
 })
 
-describe("the MTA-STS policy", () => {
+describe("what the server advertises about its own TLS", () => {
   /**
-   * An MTA-STS policy is a promise that this host answers STARTTLS on port 25.
-   * Bun cannot upgrade an accepted socket, so on this runtime it does not — and
-   * a policy in `testing` or `enforce` would be advertising a capability that
-   * is not there. Every MTA-STS-aware sender would attempt TLS, fail, and file
-   * a report against a policy nobody could safely enforce.
+   * Three documents describe the same capability, and they have to agree.
    *
-   * The two have to agree. This is the assertion that keeps them agreeing when
-   * Bun grows the upgrade and `src/starttls` starts answering true.
+   * - The MTA-STS policy promises a sending server that port 25 answers
+   *   STARTTLS.
+   * - Autoconfig tells Thunderbird which submission port and encryption to use.
+   * - Autodiscover tells Outlook the same.
+   *
+   * Getting any of them wrong is silent and total: a client takes the document
+   * as fact, creates the account, and every send fails with nothing pointing
+   * back at the cause. Autoconfig named port 587/STARTTLS on a server that does
+   * not offer STARTTLS, which is exactly that failure.
+   *
+   * This asserts they agree with *each other* rather than against a locally
+   * computed answer. The server probes its own runtime at startup; this test
+   * process has not, so only the server knows. Consistency is the property that
+   * matters and it holds on any runtime.
    */
-  test("its mode matches what the MX can actually do", async () => {
-    const body = await (await fetch(`${base}/.well-known/mta-sts.txt`)).text()
-    expect(body).toContain("version: STSv1")
+  const documents = async () => {
+    const [policy, mozilla, outlook] = await Promise.all([
+      fetch(`${base}/.well-known/mta-sts.txt`).then((r) => r.text()),
+      fetch(`${base}/mail/config-v1.1.xml?emailaddress=someone@example.com`).then((r) => r.text()),
+      fetch(`${base}/autodiscover/autodiscover.xml`, {
+        method: "POST",
+        headers: { "content-type": "text/xml" },
+        body: "<Autodiscover><Request><EMailAddress>someone@example.com</EMailAddress></Request></Autodiscover>",
+      }).then((r) => r.text()),
+    ])
+    return { policy, mozilla, outlook }
+  }
 
-    const mode = body.match(/^mode: (\w+)$/m)?.[1]
-    expect(mode).toBe(canUpgradeServerSocketToTls() ? "testing" : "none")
+  test("the MTA-STS policy is well formed", async () => {
+    const { policy } = await documents()
+    expect(policy).toContain("version: STSv1")
+    expect(policy).toMatch(/^mx: \S+$/m)
+    expect(policy).toMatch(/^mode: (none|testing|enforce)$/m)
   })
 
-  test("it names an MX", async () => {
-    const body = await (await fetch(`${base}/.well-known/mta-sts.txt`)).text()
-    expect(body).toMatch(/^mx: \S+$/m)
+  test("autoconfig never names a submission port the server does not offer", async () => {
+    const { policy, mozilla } = await documents()
+    const startTlsAvailable = /^mode: (testing|enforce)$/m.test(policy)
+
+    const outgoing = mozilla.match(
+      /<outgoingServer[\s\S]*?<port>(\d+)<\/port>[\s\S]*?<socketType>(\w+)<\/socketType>/,
+    )
+    expect(outgoing).toBeTruthy()
+
+    const [, port, socket] = outgoing as RegExpMatchArray
+    if (startTlsAvailable) {
+      expect(socket).toBe("STARTTLS")
+      expect(port).toBe(String(config.smtp.submissionPort))
+    } else {
+      // 465 is not a fallback here, it is the better port: encrypted from the
+      // first byte with no upgrade to get wrong.
+      expect(socket).toBe("SSL")
+      expect(port).toBe(String(config.smtp.submissionTlsPort))
+    }
+  })
+
+  test("autodiscover agrees with autoconfig", async () => {
+    const { mozilla, outlook } = await documents()
+    const mozPort = mozilla.match(/<outgoingServer[\s\S]*?<port>(\d+)<\/port>/)?.[1]
+    const outPort = outlook.match(/<Type>SMTP<\/Type>[\s\S]*?<Port>(\d+)<\/Port>/)?.[1]
+
+    expect(outPort).toBe(mozPort as string)
+  })
+
+  test("incoming ports are always implicit TLS", async () => {
+    const { mozilla } = await documents()
+    // These never depend on the upgrade: Bun.listen({ tls }) is encrypted from
+    // the first byte, which is why 993 and 995 have always worked.
+    expect(mozilla).toContain("<socketType>SSL</socketType>")
+    expect(mozilla).toMatch(/<incomingServer type="imap">[\s\S]*?<socketType>SSL<\/socketType>/)
+    expect(mozilla).toMatch(/<incomingServer type="pop3">[\s\S]*?<socketType>SSL<\/socketType>/)
   })
 })

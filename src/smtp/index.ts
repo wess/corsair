@@ -1,6 +1,11 @@
 import { clearAuthFailures, isBanned, recordAuthFailure } from "../auth/index.ts"
 import { config } from "../config/index.ts"
-import { canUpgradeServerSocketToTls, warnIfStartTlsUnavailable } from "../starttls/index.ts"
+import {
+  canUpgradeServerSocketToTls,
+  upgradeAcceptedSocket,
+  warnIfStartTlsUnavailable,
+} from "../starttls/index.ts"
+import { tlsOptions } from "../tls/index.ts"
 import * as inbound from "./inbound/index.ts"
 import { createSession, type Identity, type Session, type SessionMode } from "./session/index.ts"
 import * as submission from "./submission/index.ts"
@@ -20,20 +25,8 @@ type SocketData = {
   identity: Identity | null
   secure: boolean
   upgradeRequested: boolean
-}
-
-const tlsOptions = async (): Promise<{ cert: string; key: string } | null> => {
-  if (!config.tls.certPath || !config.tls.keyPath) return null
-  try {
-    const [cert, key] = await Promise.all([
-      Bun.file(config.tls.certPath).text(),
-      Bun.file(config.tls.keyPath).text(),
-    ])
-    return { cert, key }
-  } catch (e) {
-    console.error("[corsair] could not read the TLS certificate:", (e as Error).message)
-    return null
-  }
+  /** Set once STARTTLS succeeds; see the gate in `data`. */
+  tlsSocket: Bun.Socket<SocketData> | null
 }
 
 /**
@@ -64,6 +57,7 @@ const createListener = (input: {
         identity: null,
         secure: input.implicitTls,
         upgradeRequested: false,
+        tlsSocket: null,
       }
 
       data.session = createSession({
@@ -132,16 +126,31 @@ const createListener = (input: {
       const state = socket.data
       if (!state?.session) return
 
+      // After an upgrade Bun delivers the encrypted stream to this handler on
+      // the cleartext socket as well as the decrypted stream on the TLS socket
+      // (oven-sh/bun#26297). Feeding the ciphertext to the session parses a
+      // ClientHello as a command. Verified: every post-upgrade chunk arrives
+      // twice.
+      if (state.tlsSocket && socket !== state.tlsSocket) return
+
       const out = await state.session.feed(chunk)
       if (out) socket.write(out)
 
       if (state.upgradeRequested) {
         state.upgradeRequested = false
         try {
-          socket.upgradeTLS({
-            socket: handlers as never,
+          const [, tlsSocket] = upgradeAcceptedSocket<SocketData>(socket, {
             tls: input.tls!,
+            // NOT `handlers`. Bun runs `open` on the upgraded socket, and this
+            // listener's `open` builds fresh state, starts a new session, and
+            // writes a second greeting — so reusing it silently replaced the
+            // connection with an unauthenticated one that still advertised
+            // STARTTLS and no longer advertised AUTH. Carrying the existing
+            // state across is the whole point of an in-place upgrade.
+            socket: { ...handlers, open: (s: Bun.Socket<SocketData>) => (s.data = state) },
           })
+          state.tlsSocket = tlsSocket
+          tlsSocket.data = state
           state.secure = true
           // Everything a client said before the handshake is discarded: an
           // active attacker can inject commands into the plaintext prologue,

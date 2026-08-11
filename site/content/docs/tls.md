@@ -171,22 +171,29 @@ certificate` means the chain is incomplete — you gave it the leaf, not
 | 465 | Submission | Implicit, from the first byte | **Yes** |
 | 993 | IMAP | Implicit | **Yes** |
 | 995 | POP3 | Implicit | **Yes** |
-| 587 | Submission | — | No: cannot authenticate |
+| 587 | Submission | STARTTLS, where the runtime supports it | Only after a successful upgrade |
 | 143 | IMAP | — | No: cannot authenticate |
 | 110 | POP3 | — | No: cannot authenticate |
 
-:::danger STARTTLS is unavailable
-Bun cannot upgrade an accepted socket to TLS, so Corsair has no server-side
-STARTTLS on any protocol. It deliberately does not advertise it: a peer that
-takes up the offer has already committed and cannot fall back, so advertising a
-broken STARTTLS turns "delivered in plaintext" into "not delivered at all".
+:::warning STARTTLS depends on the runtime
+Corsair can only offer STARTTLS if the runtime can upgrade an already-accepted
+socket to TLS. Older builds of Bun cannot, and throw at the moment of upgrade.
 
-Because Corsair also refuses a credential over an unencrypted connection, the
-three STARTTLS ports cannot be used to log in. **Configure clients for 465, 993,
-and 995.**
+Corsair **probes this at startup** — it opens a loopback listener and tries —
+rather than testing for a version or a function name. An earlier version checked
+for an API that never shipped, which would have kept STARTTLS switched off long
+after the runtime had learned to do it.
 
-Port 25 is unaffected in practice — senders that would have used STARTTLS simply
-deliver in plaintext, which is what opportunistic means.
+Where the probe says no, STARTTLS is not advertised on any protocol, the three
+plaintext ports cannot be used to log in, and autoconfig hands clients **465,
+993, and 995** instead. The MTA-STS policy publishes `mode: none` to match,
+because a policy is a promise the MX has to keep.
+
+Where it says yes, all of that flips: STARTTLS is advertised, 587/143/110 accept
+a login after upgrading, autoconfig names 587, and the policy moves to `testing`.
+
+Nothing needs configuring either way, and `bun run test:starttls:server` reports
+which case you are in.
 :::
 
 ## Self-signed, for local testing only
