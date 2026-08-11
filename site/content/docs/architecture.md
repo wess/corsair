@@ -1,5 +1,9 @@
 ---
 title: Architecture
+description: How the pieces fit together — one process, one store, and the decisions that shape everything else.
+section: reference
+order: 1
+eyebrow: Reference
 ---
 
 # Architecture

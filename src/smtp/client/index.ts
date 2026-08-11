@@ -92,18 +92,40 @@ const connect = async (input: {
   let secure = input.tls
   let notify: (() => void) | null = null
 
+  /**
+   * Set the instant a TLS upgrade begins, and never cleared.
+   *
+   * `upgradeTLS()` hands back `[rawSocket, tlsSocket]` and the raw socket keeps
+   * the handlers it was created with. Without this gate the pre-upgrade `data`
+   * callback goes on appending **ciphertext** from the socket underneath while
+   * the TLS socket appends the decrypted stream, into one buffer — and
+   * `parseReply` then finds plausible-looking replies in the wreckage and the
+   * client sails through a session the server never received. That failure is
+   * silent: mail is marked sent and is simply gone.
+   */
+  let upgraded = false
+
+  const onData = (data: Uint8Array) => {
+    buffer += Buffer.from(data).toString("latin1")
+    notify?.()
+  }
+  const onClosed = () => {
+    closed = true
+    notify?.()
+  }
+
   const handlers = {
     data(_socket: unknown, data: Uint8Array) {
-      buffer += Buffer.from(data).toString("latin1")
-      notify?.()
+      if (upgraded) return
+      onData(data)
     },
     close() {
-      closed = true
-      notify?.()
+      if (upgraded) return
+      onClosed()
     },
     error() {
-      closed = true
-      notify?.()
+      if (upgraded) return
+      onClosed()
     },
   }
 
@@ -144,16 +166,67 @@ const connect = async (input: {
       socket.write(line)
     },
     upgrade: async () => {
+      let settle!: () => void
+      // On an object rather than a bare `let`: TypeScript cannot see that the
+      // handshake callback ran, so it narrows a closure-assigned local to
+      // `never` at the check below.
+      const outcome: { error: Error | null } = { error: null }
+      const handshaken = new Promise<void>((resolve) => {
+        settle = resolve
+      })
+
+      // Before upgradeTLS, so the raw socket's handlers are already muted when
+      // it starts producing ciphertext.
+      upgraded = true
+
       const [, tls] = socket.upgradeTLS({
-        socket: handlers as never,
+        // Its own handlers. Sharing the pre-upgrade object leaves them attached
+        // to the raw socket as well, and both then write into one buffer.
+        socket: {
+          data(_socket: unknown, data: Uint8Array) {
+            onData(data)
+          },
+          close() {
+            onClosed()
+          },
+          error() {
+            onClosed()
+          },
+          handshake(_socket: unknown, success: boolean, error?: Error) {
+            if (!success) outcome.error = error ?? new Error("TLS handshake failed")
+            settle()
+          },
+          open() {},
+          drain() {},
+        },
         // A mail server's certificate is very often self-signed or expired, and
         // refusing to deliver on that basis loses real mail. Opportunistic TLS
         // is about passive eavesdropping, not authentication, so the connection
         // is encrypted but the certificate is not enforced.
         tls: { rejectUnauthorized: false, serverName: input.host },
-      })
+      } as never)
+
       socket = tls as never
       secure = true
+
+      // upgradeTLS returns while the handshake is still in flight. Anything
+      // written before it completes is dropped on the floor — including the
+      // EHLO that follows immediately — so the reply never arrives and the
+      // session stalls with no error to report.
+      let timer: ReturnType<typeof setTimeout> | undefined
+      await Promise.race([
+        handshaken,
+        new Promise<void>((_resolve, reject) => {
+          timer = setTimeout(
+            () => reject(new SmtpFailure(421, "TLS handshake timed out.", true)),
+            input.timeoutMs,
+          )
+        }),
+      ]).finally(() => clearTimeout(timer))
+
+      if (outcome.error) {
+        throw new SmtpFailure(421, `TLS handshake failed: ${outcome.error.message}`, true)
+      }
     },
     close: () => {
       try {

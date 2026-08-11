@@ -4,26 +4,63 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light dark" />
-<title>DNS setup — Corsair</title>
-
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏴</text></svg>" />
+<title>DNS setup · Corsair</title>
+<meta name="description" content="Every record Corsair asks for, what it does, what breaks without it, and how to check it." />
+<link rel="canonical" href="https://corsair.wess.dev/docs/dns-setup.html" />
+<meta property="og:title" content="DNS setup" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Every record Corsair asks for, what it does, what breaks without it, and how to check it." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/dns-setup.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 </head>
-<body>
-<header class="site-head">
-  <a class="brand" href="../index.html">🏴 Corsair</a>
-  <nav>
-    <a href="../pricing.html">Pricing</a>
-    <a href="../faq.html">FAQ</a>
-    <a href="../docs/index.html">Docs</a>
-    <a href="../contact.html">Contact</a>
-    <a href="../affiliates.html">Affiliates</a>
-    <a class="cta" href="/app">Control panel</a>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="./quickstart.html">Get started</a>
   </nav>
 </header>
-<main>
-<h1 id="dns-setup">DNS setup</h1>
-<p>Every record Corsair asks for, what it does, and what happens without it.</p>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html" class="active" aria-current="page">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Install and operate</p></div><h1 id="dns-setup">DNS setup</h1>
+<p>Ten records. Five are required; the rest make things work properly. This page covers what each one does, what happens without it, and how to verify it.</p>
 <div class='table-wrap'><table><thead><tr>
 <th>Record</th>
 <th>Host</th>
@@ -91,29 +128,118 @@
 <td>Yes</td>
 </tr>
 </tbody></table></div>
-<h2 id="verification">Verification</h2>
-<p>A TXT record containing a token unique to your domain. It proves you control the domain before Corsair will route mail for it — otherwise anyone could add someone else's domain and start receiving their mail.</p>
-<h2 id="spf">SPF</h2>
-<pre><code>v=spf1 include:spf.example-host.com -all</code></pre>
-<p>Lists the servers allowed to send as your domain. <code>-all</code> means &quot;and nobody else&quot;. The check is by prefix, not exact match, so you can add other senders:</p>
-<pre><code>v=spf1 include:spf.example-host.com include:_spf.google.com -all</code></pre>
-<blockquote>SPF has a hard limit of ten DNS-querying mechanisms. Every <code>include:</code> counts, and so does every <code>include:</code> inside them. Blowing the budget is a permanent error, and the effect is that your SPF stops working entirely.</blockquote>
-<h2 id="dkim">DKIM</h2>
-<p>Published as a <strong>CNAME</strong>, not a TXT record. A 2048-bit key does not fit in a single TXT string, half the DNS control panels in the world mangle the chunked form, and a CNAME lets the key be rotated on the server without you touching anything.</p>
-<p>Three selectors are created per domain. Only the first has to exist; the others are there so a rotation is a flag flip rather than a support ticket.</p>
-<h2 id="dmarc">DMARC</h2>
-<pre><code>v=DMARC1; p=quarantine;</code></pre>
-<p>Tells receivers what to do when a message claiming to be from you passes neither an aligned SPF nor an aligned DKIM check. <code>quarantine</code> is the sensible default. Move to <code>p=reject</code> once you are confident every legitimate sender for the domain is covered.</p>
-<p>DMARC passes if <strong>either</strong> SPF or DKIM passes <em>and</em> aligns with the From domain. One is enough by design — that is what makes forwarding survivable, since forwarding breaks SPF but preserves DKIM.</p>
-<h2 id="mx">MX</h2>
-<p>Where mail for the domain is delivered. If you have an existing MX pointing somewhere else, replacing it is the moment your mail starts arriving here — do the mailbox transfer first.</p>
-<h2 id="checking">Checking</h2>
-<p>The DNS Setup tab shows the status of each record and, when one does not match, what was actually observed. That is usually enough to spot the problem: a provider that appended the domain to a host that was already fully qualified, a quoted value that was stored with the quotes, an SPF record with two <code>v=spf1</code> entries.</p>
-<p>Propagation is real. A record can take up to the previous record's TTL to become visible.</p>
-</main>
-<footer class="site-foot">
-  <p>Corsair is open source email hosting, released under the MIT license.</p>
-  <p><a href="https://github.com/wess/corsair">Source</a> · <a href="../docs/index.html">Docs</a> · <a href="../policies/privacy.html">Privacy</a> · <a href="../policies/acceptable-use.html">Acceptable use</a></p>
+<p>The panel generates all of them with the values for your installation, and marks which are required. Only the first DKIM selector has to exist — a domain should not sit unverified because someone added one CNAME.</p>
+<p>This page explains them; it is not a substitute for the values on the DNS Setup tab, which are the ones to publish.</p>
+<h2 id="verification">Verification<a class="anchor" href="#verification" aria-label="Link to this section">#</a></h2>
+<p>A TXT record containing a token unique to your domain.</p>
+<p>It proves you control the domain before Corsair routes mail for it. Without that check, anyone could add someone else's domain and start receiving their mail.</p>
+<p>Keep it published. Removing it after verification means the domain fails its next periodic re-check.</p>
+<h2 id="spf">SPF<a class="anchor" href="#spf" aria-label="Link to this section">#</a></h2>
+<figure class="code"><pre><code>v=spf1 include:spf.example-host.com -all</code></pre></figure>
+<p>Lists which servers may send as your domain. <code>-all</code> means &quot;and nobody else&quot;.</p>
+<p>The <code>include:</code> value is whatever the operator set as <code>MAIL_SPF_HOST</code>. The check is by prefix rather than exact match, so you can add other senders:</p>
+<figure class="code"><pre><code>v=spf1 include:spf.example-host.com include:_spf.google.com -all</code></pre></figure>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>The ten-lookup limit</p><p>SPF allows ten DNS-querying mechanisms. Every <code>include:</code> counts, <strong>and so does every <code>include:</code> inside them</strong> — a single <code>include:_spf.google.com</code> costs three or four on its own.</p>
+<p>Blowing the budget is a permanent error, and the effect is that SPF stops working entirely rather than degrading. Check with an SPF flattening or validation tool if you have more than three includes.</p></aside>
+<p><strong>There must be exactly one <code>v=spf1</code> record.</strong> Two is a permanent error. This happens constantly when a domain is migrated and the old record is left behind.</p>
+<p><code>-all</code> versus <code>~all</code>: <code>-all</code> is a hard fail, <code>~all</code> a soft one. Start with <code>~all</code> if you are unsure whether you have listed every sender, and tighten to <code>-all</code> once you are.</p>
+<h2 id="dkim">DKIM<a class="anchor" href="#dkim" aria-label="Link to this section">#</a></h2>
+<p>Published as a <strong>CNAME</strong>, not a TXT record.</p>
+<p>A 2048-bit key does not fit in a single TXT string, half the DNS control panels in the world mangle the chunked form, and a CNAME lets the key rotate on the server without you touching DNS again.</p>
+<figure class="code"><pre><code>corsair-1._domainkey.example.com.  CNAME  dkim-1.mail.example.com.</code></pre></figure>
+<p>Corsair answers the lookup at the target and serves the current public key.</p>
+<p>Three selectors are created per domain. <strong>Only the first has to exist</strong>; the others are there so a rotation is a flag flip rather than a support ticket. See <a href="domains.html">Domains</a> for the rotation order that avoids a gap.</p>
+<p>Check what a receiver sees:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>dig +short CNAME corsair-1._domainkey.example.com
+dig +short TXT   corsair-1._domainkey.example.com</code></pre></figure>
+<p>The TXT lookup should follow the CNAME and return <code>v=DKIM1; k=rsa; p=…</code>.</p>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Some providers flatten CNAMEs</p><p>Cloudflare's proxy and a few managed DNS products will resolve a CNAME at publish time and store the result. That freezes the key, and rotation then silently breaks signing. If your provider does this, turn proxying <strong>off</strong> for the <code>_domainkey</code> records.</p></aside>
+<h2 id="dmarc">DMARC<a class="anchor" href="#dmarc" aria-label="Link to this section">#</a></h2>
+<figure class="code"><pre><code>v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com</code></pre></figure>
+<p>Tells receivers what to do when a message claiming to be from you passes neither an aligned SPF nor an aligned DKIM check.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Policy</th>
+<th>Effect</th>
+</tr></thead><tbody>
+<tr>
+<td><code>p=none</code></td>
+<td>Do nothing. Monitoring only</td>
+</tr>
+<tr>
+<td><code>p=quarantine</code></td>
+<td>Treat as suspicious — usually the spam folder</td>
+</tr>
+<tr>
+<td><code>p=reject</code></td>
+<td>Refuse it outright</td>
+</tr>
+</tbody></table></div>
+<p><code>quarantine</code> is the sensible default. Move to <code>reject</code> once you are confident every legitimate sender for the domain is covered — including the marketing platform, the ticketing system, and whatever else sends as you.</p>
+<p><code>rua=</code> gives you aggregate reports, which is how you find the sender you forgot. Add it before tightening the policy, not after.</p>
+<p>**DMARC passes if <em>either</em> SPF or DKIM passes and aligns with the From domain.** One is enough by design — that is what makes forwarding survivable, since forwarding breaks SPF but preserves DKIM.</p>
+<h2 id="mx">MX<a class="anchor" href="#mx" aria-label="Link to this section">#</a></h2>
+<figure class="code"><pre><code>example.com.  MX  10  mail.example.com.</code></pre></figure>
+<p>Where mail for the domain is delivered.</p>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>The MX record is the cutover</p><p>If you have an existing MX pointing somewhere else, replacing it is the moment your mail starts arriving here. Do the <a href="transfers.html">mailbox transfer</a> first, verify it, then change the MX.</p></aside>
+<p>Remove the old provider's MX records entirely. Leaving them at a worse priority means the old host keeps receiving whenever yours is briefly unreachable, which is the opposite of a clean cutover.</p>
+<p>Two MX records at equal priority is how you run two mail hosts — senders pick one and retry the other on failure.</p>
+<h2 id="mta-sts">MTA-STS<a class="anchor" href="#mta-sts" aria-label="Link to this section">#</a></h2>
+<p>Tells senders to require TLS when delivering to you, and to refuse to fall back to plaintext if it fails.</p>
+<p>Corsair serves the policy at <code>/.well-known/mta-sts.txt</code>, in <code>testing</code> mode:</p>
+<figure class="code"><pre><code>version: STSv1
+mode: testing
+mx: mail.example.com
+max_age: 604800</code></pre></figure>
+<p>Corsair generates the <code>mta-sts</code> CNAME. The <strong><code>_mta-sts</code> TXT record carrying the policy id is not generated for you</strong> — MTA-STS requires one, and senders will not notice a policy change without it, so add it by hand if you are using MTA-STS seriously:</p>
+<figure class="code"><pre><code>_mta-sts.example.com.  TXT  &quot;v=STSv1; id=20260810000000&quot;</code></pre></figure>
+<p>Bump the <code>id</code> whenever the policy changes.</p>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Do not go straight to enforce</p><p>Going to <code>enforce</code> with a wrong MX list silently blackholes your inbound mail — senders refuse to deliver rather than falling back. Watch the reports, confirm the MX list is right, and only then change it.</p></aside>
+<h2 id="autoconfig-and-autodiscover">autoconfig and autodiscover<a class="anchor" href="#autoconfig-and-autodiscover" aria-label="Link to this section">#</a></h2>
+<p>CNAMEs that let Thunderbird and Outlook configure themselves from an email address alone. Optional, and worth publishing — the alternative is telling every user six hostnames.</p>
+<h2 id="checking-everything">Checking everything<a class="anchor" href="#checking-everything" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>dig +short MX    example.com
+dig +short TXT   example.com
+dig +short TXT   _dmarc.example.com
+dig +short CNAME corsair-1._domainkey.example.com
+dig +short TXT   corsair-1._domainkey.example.com</code></pre></figure>
+<p>The panel's DNS Setup tab does this for you and, when a record does not match, shows <strong>what it actually observed</strong>. That is usually enough to spot the problem immediately.</p>
+<h2 id="when-a-record-will-not-verify">When a record will not verify<a class="anchor" href="#when-a-record-will-not-verify" aria-label="Link to this section">#</a></h2>
+<p><strong>The provider appended the domain.</strong> You entered <code>_dmarc.example.com</code> into a field that already appends the zone, giving <code>_dmarc.example.com.example.com</code>. Enter just <code>_dmarc</code>.</p>
+<p><strong>Quotes were stored literally.</strong> Some panels want the value without quotes and store them if you paste them. <code>&quot;v=spf1 …&quot;</code> with the quotes in the value is not a valid SPF record.</p>
+<p><strong>Two SPF records.</strong> Exactly one.</p>
+<p><strong>It has not propagated.</strong> A record can take up to the <em>previous</em> record's TTL to become visible. If you lowered the TTL only when you made the change, you are waiting for the old one.</p>
+<p><strong>Proxying is on.</strong> Cloudflare's orange cloud on a <code>_domainkey</code> record breaks it.</p>
+<h2 id="before-a-migration-lower-your-ttls">Before a migration, lower your TTLs<a class="anchor" href="#before-a-migration-lower-your-ttls" aria-label="Link to this section">#</a></h2>
+<p>A day before you plan to change the MX, drop its TTL to 300 seconds. Then the cutover window is five minutes rather than however long the old TTL was.</p>
+<p>Raise them again afterwards.</p><nav class="pager"><a class="pager-prev" href="./configuration.html"><span>Previous</span><strong>Configuration</strong></a><a class="pager-next" href="./tls.html"><span>Next</span><strong>TLS certificates</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#verification">Verification</a></li><li class="toc-h2"><a href="#spf">SPF</a></li><li class="toc-h2"><a href="#dkim">DKIM</a></li><li class="toc-h2"><a href="#dmarc">DMARC</a></li><li class="toc-h2"><a href="#mx">MX</a></li><li class="toc-h2"><a href="#mta-sts">MTA-STS</a></li><li class="toc-h2"><a href="#autoconfig-and-autodiscover">autoconfig and autodiscover</a></li><li class="toc-h2"><a href="#checking-everything">Checking everything</a></li><li class="toc-h2"><a href="#when-a-record-will-not-verify">When a record will not verify</a></li><li class="toc-h2"><a href="#before-a-migration-lower-your-ttls">Before a migration, lower your TTLs</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
 </footer>
+<script src="../docs.js" defer></script>
 </body>
 </html>

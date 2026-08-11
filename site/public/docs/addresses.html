@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Addresses · Corsair</title>
+<meta name="description" content="The four kinds of address, sub-addressing, folders, passwords, and recovery." />
+<link rel="canonical" href="https://corsair.wess.dev/docs/addresses.html" />
+<meta property="og:title" content="Addresses" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="The four kinds of address, sub-addressing, folders, passwords, and recovery." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/addresses.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="./quickstart.html">Get started</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html" class="active" aria-current="page">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Using Corsair</p></div><h1 id="addresses">Addresses</h1>
+<p>An address is a mailbox credential or a routing entry. Which one it is depends on its kind, and the difference decides whether there is anything to sign into.</p>
+<h2 id="the-four-kinds">The four kinds<a class="anchor" href="#the-four-kinds" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Kind</th>
+<th>Password</th>
+<th>Mailbox</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>standard</code></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>An ordinary mailbox</td>
+</tr>
+<tr>
+<td><code>catchall</code></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>A mailbox that also receives anything unmatched in the domain</td>
+</tr>
+<tr>
+<td><code>alias</code></td>
+<td>No</td>
+<td>No</td>
+<td>Forwards to exactly one destination</td>
+</tr>
+<tr>
+<td><code>group</code></td>
+<td>No</td>
+<td>No</td>
+<td>Forwards to several destinations at once</td>
+</tr>
+</tbody></table></div>
+<p>Only <code>standard</code> and <code>catchall</code> carry a password hash. Aliases and groups are routing entries — there is nothing to sign into because there is no mailbox behind them.</p>
+<h3 id="standard">Standard<a class="anchor" href="#standard" aria-label="Link to this section">#</a></h3>
+<p>A person's mailbox. Created with a password, provisioned with six folders, and reachable over IMAP, POP3, JMAP, and the webmail.</p>
+<h3 id="alias">Alias<a class="anchor" href="#alias" aria-label="Link to this section">#</a></h3>
+<p><code>hello@example.com</code> → <code>sam@example.com</code>. One destination.</p>
+<p>Use an alias for a role rather than a second mailbox: nobody has to check it, it cannot be compromised, and repointing it later is one edit.</p>
+<p>An alias can forward <strong>outside</strong> the domain. When it does, Corsair rewrites the envelope sender with SRS — the original sender's SPF does not list your server, so without the rewrite the next hop sees a forgery. This is automatic.</p>
+<h3 id="group">Group<a class="anchor" href="#group" aria-label="Link to this section">#</a></h3>
+<p><code>family@example.com</code> → several mailboxes. One message in, one copy to each destination.</p>
+<p>Same SRS handling for outside destinations. No password, so to <em>send</em> as the group you sign in as a real mailbox and set the From address in the client.</p>
+<h3 id="catch-all">Catch-all<a class="anchor" href="#catch-all" aria-label="Link to this section">#</a></h3>
+<p>A mailbox that also receives anything in the domain matching nothing else. One per domain, set in the domain's settings rather than on the address.</p>
+<h2 id="sub-addressing">Sub-addressing<a class="anchor" href="#sub-addressing" aria-label="Link to this section">#</a></h2>
+<p><code>you+anything@example.com</code> arrives in <code>you@example.com</code>. No configuration, no setup, and it works for every standard mailbox immediately.</p>
+<p>This is the most useful thing about running your own mail, and worth explaining to everyone who has a mailbox:</p>
+<blockquote><p>Give a different tag to every service. If <code>you+shoes@example.com</code> starts getting spam, you know exactly who sold your address — and a one-line filter bins it without affecting anything else.</p></blockquote>
+<p>File by tag:</p>
+<figure class="code"><pre><code>require [&quot;fileinto&quot;, &quot;envelope&quot;];
+
+if envelope :localpart :matches &quot;to&quot; &quot;*+receipts&quot; {
+  fileinto :create &quot;Receipts&quot;;
+}</code></pre></figure>
+<p>Match on the <strong>envelope</strong>, not the <code>To:</code> header. The header is whatever the sender typed; the envelope is what the server was actually asked to deliver to.</p>
+<aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span>Some sites reject <code>+</code> in an address</p><p>It is legal in an email address and always has been. When a form refuses it, use a dedicated alias instead — that is what aliases are for.</p></aside>
+<h2 id="resolution-order">Resolution order<a class="anchor" href="#resolution-order" aria-label="Link to this section">#</a></h2>
+<p>For any address at a hosted domain, in order:</p>
+<ol><li>An exact match</li><li>Sub-addressing — <code>user+tag@</code> → <code>user@</code></li><li>The domain's catch-all</li><li>The domain's fallback domain, followed exactly once</li></ol>
+<p>First match wins, so adding a real address always takes precedence over the catch-all that was covering it.</p>
+<p>No match is a <strong>rejection at SMTP time</strong> with a 550, not an accept-then-bounce. A bounce to a forged sender is backscatter.</p>
+<h2 id="folders">Folders<a class="anchor" href="#folders" aria-label="Link to this section">#</a></h2>
+<p>Every mailbox is provisioned with six, each tagged with its IMAP special-use attribute so clients file things correctly without being configured:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Folder</th>
+<th>Special use</th>
+</tr></thead><tbody>
+<tr>
+<td><code>INBOX</code></td>
+<td><code>inbox</code></td>
+</tr>
+<tr>
+<td><code>Drafts</code></td>
+<td><code>drafts</code></td>
+</tr>
+<tr>
+<td><code>Sent</code></td>
+<td><code>sent</code></td>
+</tr>
+<tr>
+<td><code>Junk</code></td>
+<td><code>junk</code></td>
+</tr>
+<tr>
+<td><code>Trash</code></td>
+<td><code>trash</code></td>
+</tr>
+<tr>
+<td><code>Archive</code></td>
+<td><code>archive</code></td>
+</tr>
+</tbody></table></div>
+<p>Clients can create more. Hierarchy uses <code>/</code> as the delimiter, so <code>Projects/Corsair</code> is a child of <code>Projects</code>.</p>
+<p>A message scored at or above the junk threshold is filed in <code>Junk</code> rather than rejected. The scorer is deliberately conservative — a false positive on real mail is far worse than a false negative.</p>
+<h2 id="passwords">Passwords<a class="anchor" href="#passwords" aria-label="Link to this section">#</a></h2>
+<p>The mailbox password is <strong>not</strong> the control-panel password. Two separate identities, deliberately:</p>
+<ul><li>A <strong>user</strong> signs into the panel and owns domains.</li><li>An <strong>address</strong> signs into mail clients and owns messages.</li></ul>
+<p>A mailbox credential ends up in a phone, a laptop, and a printer. One of those will eventually be lost, and when it is, it must not also unlock the account that owns every domain.</p>
+<p>Change one in the panel: <strong>Addresses → the address → Change password</strong>. Every client using it will need updating; there is no way around that.</p>
+<h2 id="recovery">Recovery<a class="anchor" href="#recovery" aria-label="Link to this section">#</a></h2>
+<p>With self-service recovery enabled on the domain, set a <strong>recovery address</strong> per mailbox — a personal account elsewhere, another mailbox on the domain, anywhere the person can actually read.</p>
+<p>They then reset their own password at <code>/recover</code>. The link goes to the recovery address, never to the mailbox itself, which would be useless to someone locked out of it.</p>
+<p>The request endpoint answers identically whether or not the address exists.</p>
+<h2 id="activity">Activity<a class="anchor" href="#activity" aria-label="Link to this section">#</a></h2>
+<p>Each address has an activity view: what arrived, what was sent, what was rejected and why. This is the first place to look when someone says a message never arrived — it usually shows the rejection with its reason.</p>
+<h2 id="deleting">Deleting<a class="anchor" href="#deleting" aria-label="Link to this section">#</a></h2>
+<p>Deleting an address deletes its messages. There is no trash for this.</p>
+<p>If someone is leaving and their mail should keep flowing to a successor, <strong>convert the address to an alias</strong> pointing at the successor rather than deleting it. Mail keeps arriving, nothing bounces, and the person's old correspondents are not generating failures.</p>
+<h2 id="limits">Limits<a class="anchor" href="#limits" aria-label="Link to this section">#</a></h2>
+<p>Plans cap <code>max_addresses</code> per account. An unmetered instance — no plans configured — has no cap.</p>
+<p>Storage is per <strong>account</strong>, not per mailbox, matching how the quota is actually enforced. One mailbox can use all of it.</p><nav class="pager"><a class="pager-prev" href="./domains.html"><span>Previous</span><strong>Domains</strong></a><a class="pager-next" href="./client-setup.html"><span>Next</span><strong>Client settings</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#the-four-kinds">The four kinds</a></li><li class="toc-h3"><a href="#standard">Standard</a></li><li class="toc-h3"><a href="#alias">Alias</a></li><li class="toc-h3"><a href="#group">Group</a></li><li class="toc-h3"><a href="#catch-all">Catch-all</a></li><li class="toc-h2"><a href="#sub-addressing">Sub-addressing</a></li><li class="toc-h2"><a href="#resolution-order">Resolution order</a></li><li class="toc-h2"><a href="#folders">Folders</a></li><li class="toc-h2"><a href="#passwords">Passwords</a></li><li class="toc-h2"><a href="#recovery">Recovery</a></li><li class="toc-h2"><a href="#activity">Activity</a></li><li class="toc-h2"><a href="#deleting">Deleting</a></li><li class="toc-h2"><a href="#limits">Limits</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

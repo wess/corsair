@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Tutorials · Corsair</title>
+<meta name="description" content="Start-to-finish builds — a production server, a migration off Google, a household domain, filters, webhooks, and a restore drill." />
+<link rel="canonical" href="https://corsair.wess.dev/docs/tutorials/index.html" />
+<meta property="og:title" content="Tutorials" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Start-to-finish builds — a production server, a migration off Google, a household domain, filters, webhooks, and a restore drill." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/tutorials/index.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="../index.html">Docs</a><a href="./index.html" class="on">Tutorials</a><a href="../../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="../quickstart.html">Get started</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="../index.html">Overview</a></li><li><a href="../introduction.html">Introduction</a></li><li><a href="../quickstart.html">Quickstart</a></li><li><a href="../concepts.html">Core concepts</a></li><li><a href="../prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./index.html" class="active" aria-current="page">All tutorials</a></li><li><a href="./first-server.html">First server</a></li><li><a href="./migrate-from-google.html">Migrate from Google</a></li><li><a href="./household.html">Household setup</a></li><li><a href="./filter-cookbook.html">Filter cookbook</a></li><li><a href="./webhook-consumer.html">Webhook consumer</a></li><li><a href="./backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="../installation.html">Installation</a></li><li><a href="../configuration.html">Configuration</a></li><li><a href="../dns-setup.html">DNS setup</a></li><li><a href="../tls.html">TLS</a></li><li><a href="../production-checklist.html">Go-live checklist</a></li><li><a href="../backups.html">Backups</a></li><li><a href="../monitoring.html">Monitoring</a></li><li><a href="../upgrading.html">Upgrading</a></li><li><a href="../scaling.html">Scaling</a></li><li><a href="../troubleshooting.html">Troubleshooting</a></li><li><a href="../security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="../control-panel.html">Control panel</a></li><li><a href="../domains.html">Domains</a></li><li><a href="../addresses.html">Addresses</a></li><li><a href="../client-setup.html">Client settings</a></li><li><a href="../webmail.html">Webmail</a></li><li><a href="../filters.html">Filters</a></li><li><a href="../transfers.html">Transfers</a></li><li><a href="../deliverability.html">Deliverability</a></li><li><a href="../webhooks.html">Event hooks</a></li><li><a href="../plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="../architecture.html">Architecture</a></li><li><a href="../api.html">HTTP API</a></li><li><a href="../smtp.html">SMTP</a></li><li><a href="../imap.html">IMAP</a></li><li><a href="../jmap.html">JMAP</a></li><li><a href="../pop3.html">POP3</a></li><li><a href="../cli.html">Command line</a></li><li><a href="../database.html">Database</a></li><li><a href="../smtp-errors.html">SMTP errors</a></li><li><a href="../glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Tutorials</p></div><h1 id="tutorials">Tutorials</h1>
+<p>Each of these is a complete build. They say what to type, what you should see, and what to do when you do not see it. Work through one and you end with something that runs.</p>
+<p>The reference pages tell you what every setting does. These tell you what to do.</p>
+<h2 id="the-main-path">The main path<a class="anchor" href="#the-main-path" aria-label="Link to this section">#</a></h2>
+<p><strong><a href="first-server.html">Your first production server</a></strong> — about an hour</p>
+<p>A blank VPS to delivered, authenticated mail: host setup, DNS, TLS, the first domain, the first mailbox, and a verified round trip with a real provider. Every other tutorial assumes you have done this one, or the <a href="../quickstart.html">Quickstart</a> at least.</p>
+<h2 id="moving-in">Moving in<a class="anchor" href="#moving-in" aria-label="Link to this section">#</a></h2>
+<p><strong><a href="migrate-from-google.html">Migrating from Google Workspace</a></strong> — an evening, plus a wait</p>
+<p>Copy the mail across with the MX still pointing at Google, verify the counts, cut over, then catch the tail. Written for Google because it is the most common source and the fussiest about app passwords; the shape is the same for anyone.</p>
+<p><strong><a href="household.html">Mail for a household or small team</a></strong> — 30 minutes</p>
+<p>Real mailboxes for the people who need them, aliases for the roles, a group for <code>family@</code>, a catch-all for everything else, and self-service recovery so you stop being the help desk.</p>
+<h2 id="making-it-do-work">Making it do work<a class="anchor" href="#making-it-do-work" aria-label="Link to this section">#</a></h2>
+<p><strong><a href="filter-cookbook.html">A filter cookbook</a></strong> — reference-style</p>
+<p>Sieve scripts that solve actual problems: newsletters, sub-address filing, vacation-shaped rules, flagging by sender, and quarantining without losing mail. Copy, paste, adjust.</p>
+<p><strong><a href="webhook-consumer.html">Consuming webhooks</a></strong> — 45 minutes</p>
+<p>Build a small service that receives Corsair's events, verifies the signature properly, and stays idempotent under retries. Includes the failure modes that only appear in production.</p>
+<h2 id="not-losing-it">Not losing it<a class="anchor" href="#not-losing-it" aria-label="Link to this section">#</a></h2>
+<p><strong><a href="backup-drill.html">A backup and restore drill</a></strong> — 90 minutes</p>
+<p>Take a backup, destroy the install, and bring it back. A backup you have never restored is not a backup, and the parts people forget — the DKIM keys, the object store, the <code>.env</code> — are exactly the parts that make mail unrecoverable.</p>
+<aside class="callout callout-tip"><p class="callout-title"><span aria-hidden="true">★</span>Do the drill</p><p>Of everything on this page, the restore drill is the one people skip and the one that matters most at three in the morning. It takes ninety minutes once.</p></aside><nav class="pager"><a class="pager-prev" href="../prerequisites.html"><span>Previous</span><strong>Prerequisites</strong></a><a class="pager-next" href="./first-server.html"><span>Next</span><strong>Your first production server</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#the-main-path">The main path</a></li><li class="toc-h2"><a href="#moving-in">Moving in</a></li><li class="toc-h2"><a href="#making-it-do-work">Making it do work</a></li><li class="toc-h2"><a href="#not-losing-it">Not losing it</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../../index.html">Overview</a></li><li><a href="../introduction.html">What it is</a></li><li><a href="../architecture.html">Architecture</a></li><li><a href="../../faq.html">Questions</a></li><li><a href="../../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="../index.html">All documentation</a></li><li><a href="../quickstart.html">Quickstart</a></li><li><a href="./index.html">Tutorials</a></li><li><a href="../configuration.html">Configuration</a></li><li><a href="../api.html">HTTP API</a></li><li><a href="../troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../../policies/privacy.html">Privacy</a></li><li><a href="../../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../../docs.js" defer></script>
+</body>
+</html>

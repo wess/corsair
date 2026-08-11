@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>JMAP · Corsair</title>
+<meta name="description" content="Session discovery, the supported methods, back-references, and blob upload and download." />
+<link rel="canonical" href="https://corsair.wess.dev/docs/jmap.html" />
+<meta property="og:title" content="JMAP" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Session discovery, the supported methods, back-references, and blob upload and download." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/jmap.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="./quickstart.html">Get started</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html" class="active" aria-current="page">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Reference</p></div><h1 id="jmap">JMAP</h1>
+<p>JMAP per <a href="https://datatracker.ietf.org/doc/html/rfc8620" class="external" rel="noopener">RFC 8620</a> (core) and <a href="https://datatracker.ietf.org/doc/html/rfc8621" class="external" rel="noopener">RFC 8621</a> (mail), over the same HTTPS port as the panel.</p>
+<p>JMAP is the modern one: a single endpoint taking batched method calls, with back-references so a client can query and fetch in one round trip, and state strings so it can ask what changed rather than re-walking a mailbox.</p>
+<h2 id="session">Session<a class="anchor" href="#session" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>curl -u you@example.com:mailbox-password https://mail.example.com/.well-known/jmap</code></pre></figure>
+<p>Authentication is the <strong>address</strong> identity — HTTP Basic with the mailbox credential, which is what every JMAP client in the wild sends. A browser client carrying the <code>corsair_webmail</code> cookie is also accepted.</p>
+<p>The session resource advertises:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Capability</th>
+<th></th>
+</tr></thead><tbody>
+<tr>
+<td><code>urn:ietf:params:jmap:core</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>urn:ietf:params:jmap:mail</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>urn:ietf:params:jmap:submission</code></td>
+<td></td>
+</tr>
+</tbody></table></div>
+<p>Capabilities are advertised rather than stubbed — a client has to be able to discover what is really there.</p>
+<h2 id="method-calls">Method calls<a class="anchor" href="#method-calls" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>curl -u you@example.com:password https://mail.example.com/jmap \
+  -H 'content-type: application/json' \
+  -d '{
+    &quot;using&quot;: [&quot;urn:ietf:params:jmap:core&quot;, &quot;urn:ietf:params:jmap:mail&quot;],
+    &quot;methodCalls&quot;: [
+      [&quot;Mailbox/get&quot;, { &quot;accountId&quot;: &quot;u1&quot;, &quot;ids&quot;: null }, &quot;0&quot;]
+    ]
+  }'</code></pre></figure>
+<h3 id="supported-methods">Supported methods<a class="anchor" href="#supported-methods" aria-label="Link to this section">#</a></h3>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th></th>
+</tr></thead><tbody>
+<tr>
+<td><code>Core/echo</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>Mailbox/get</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>Mailbox/query</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>Mailbox/set</code></td>
+<td>Create, update, destroy</td>
+</tr>
+<tr>
+<td><code>Email/get</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>Email/query</code></td>
+<td>Filter and sort</td>
+</tr>
+<tr>
+<td><code>Email/set</code></td>
+<td>Including moving between mailboxes</td>
+</tr>
+<tr>
+<td><code>Email/changes</code></td>
+<td>What changed since a state string</td>
+</tr>
+<tr>
+<td><code>Thread/get</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>Identity/get</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>EmailSubmission/set</code></td>
+<td>Send</td>
+</tr>
+</tbody></table></div>
+<h2 id="back-references">Back-references<a class="anchor" href="#back-references" aria-label="Link to this section">#</a></h2>
+<p>The reason JMAP is worth using. Query and fetch in one round trip, with the second call referring to the first's result:</p>
+<figure class="code"><span class="code-lang">json</span><pre><code>{
+  &quot;using&quot;: [&quot;urn:ietf:params:jmap:core&quot;, &quot;urn:ietf:params:jmap:mail&quot;],
+  &quot;methodCalls&quot;: [
+    [&quot;Email/query&quot;, {
+      &quot;accountId&quot;: &quot;u1&quot;,
+      &quot;filter&quot;: { &quot;inMailbox&quot;: &quot;inbox-id&quot; },
+      &quot;sort&quot;: [{ &quot;property&quot;: &quot;receivedAt&quot;, &quot;isAscending&quot;: false }],
+      &quot;limit&quot;: 20
+    }, &quot;q&quot;],
+    [&quot;Email/get&quot;, {
+      &quot;accountId&quot;: &quot;u1&quot;,
+      &quot;#ids&quot;: { &quot;resultOf&quot;: &quot;q&quot;, &quot;name&quot;: &quot;Email/query&quot;, &quot;path&quot;: &quot;/ids&quot; },
+      &quot;properties&quot;: [&quot;subject&quot;, &quot;from&quot;, &quot;receivedAt&quot;, &quot;preview&quot;]
+    }, &quot;g&quot;]
+  ]
+}</code></pre></figure>
+<p>One request, one response, twenty message summaries. Over IMAP that is a <code>SEARCH</code> followed by a <code>FETCH</code>, and over a slow link the difference is noticeable.</p>
+<h2 id="incremental-sync">Incremental sync<a class="anchor" href="#incremental-sync" aria-label="Link to this section">#</a></h2>
+<p><code>Email/changes</code> takes the state string from a previous response and returns what has been created, updated, and destroyed since.</p>
+<figure class="code"><span class="code-lang">json</span><pre><code>[&quot;Email/changes&quot;, { &quot;accountId&quot;: &quot;u1&quot;, &quot;sinceState&quot;: &quot;42&quot; }, &quot;c&quot;]</code></pre></figure>
+<p>That is the JMAP answer to IMAP's <code>CONDSTORE</code>, and it is a good deal simpler to implement correctly on the client side.</p>
+<h2 id="sending">Sending<a class="anchor" href="#sending" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">json</span><pre><code>[&quot;EmailSubmission/set&quot;, {
+  &quot;accountId&quot;: &quot;u1&quot;,
+  &quot;create&quot;: {
+    &quot;s1&quot;: { &quot;emailId&quot;: &quot;draft-id&quot;, &quot;identityId&quot;: &quot;i1&quot; }
+  }
+}, &quot;s&quot;]</code></pre></figure>
+<p>Submission runs the same path as SMTP submission: the From address is proven to belong to the caller, the daily limit is checked, the message is DKIM-signed, a copy is filed in Sent, and delivery is queued.</p>
+<h2 id="blobs">Blobs<a class="anchor" href="#blobs" aria-label="Link to this section">#</a></h2>
+<p><strong>Download:</strong></p>
+<figure class="code"><pre><code>GET /jmap/download/:accountId/:blobId/:name</code></pre></figure>
+<p><strong>Upload:</strong></p>
+<figure class="code"><pre><code>POST /jmap/upload/:accountId</code></pre></figure>
+<p>Bounded by <code>MAX_MESSAGE_BYTES</code> — 50 MB by default. Over it, the response is <code>urn:ietf:params:jmap:error:limit</code> with <code>&quot;limit&quot;: &quot;maxSizeUpload&quot;</code>.</p>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Set your proxy's body limit</p><p>nginx defaults <code>client_max_body_size</code> to 1 MB, which rejects almost every upload before Corsair sees it. Set it above <code>MAX_MESSAGE_BYTES</code>.</p></aside>
+<h2 id="errors">Errors<a class="anchor" href="#errors" aria-label="Link to this section">#</a></h2>
+<p>Request-level problems use JMAP's own error types rather than the panel API's envelope:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Type</th>
+<th>Status</th>
+<th>Means</th>
+</tr></thead><tbody>
+<tr>
+<td><code>urn:ietf:params:jmap:error:unauthorized</code></td>
+<td>401</td>
+<td>Bad or missing credentials</td>
+</tr>
+<tr>
+<td><code>urn:ietf:params:jmap:error:notJSON</code></td>
+<td>400</td>
+<td>The body did not parse</td>
+</tr>
+<tr>
+<td><code>urn:ietf:params:jmap:error:limit</code></td>
+<td>400</td>
+<td>Over <code>maxCallsInRequest</code> or <code>maxSizeUpload</code></td>
+</tr>
+<tr>
+<td><code>urn:ietf:params:jmap:error:notFound</code></td>
+<td>404</td>
+<td>No such blob or part</td>
+</tr>
+</tbody></table></div>
+<p>Method-level errors come back in the response array, per call, as JMAP requires — one failing method does not fail the batch.</p>
+<h2 id="the-same-store">The same store<a class="anchor" href="#the-same-store" aria-label="Link to this section">#</a></h2>
+<p>JMAP reads and writes the same <code>messages</code> and <code>folders</code> rows as IMAP, POP3, and the webmail. There is no per-protocol copy and no synchronisation step.</p>
+<p>A JMAP client and an IMAP client on the same mailbox see each other's changes immediately. So do the webmail and a phone.</p>
+<p>This is also why <code>MOVE</code> preserves the row id: JMAP requires an Email's id to survive a change of mailbox, and IMAP is satisfied either way. Implementing move as copy-then-expunge would satisfy IMAP and silently break JMAP.</p>
+<h2 id="clients">Clients<a class="anchor" href="#clients" aria-label="Link to this section">#</a></h2>
+<p>Any RFC 8621 client should work. The session resource is at <code>https://mail.example.com/.well-known/jmap</code>, with the full email address and mailbox password as Basic credentials.</p>
+<h2 id="not-implemented">Not implemented<a class="anchor" href="#not-implemented" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th></th>
+<th></th>
+</tr></thead><tbody>
+<tr>
+<td><code>urn:ietf:params:jmap:vacationresponse</code></td>
+<td>Use a <a href="filters.html">Sieve filter</a></td>
+</tr>
+<tr>
+<td><code>urn:ietf:params:jmap:calendars</code>, <code>contacts</code></td>
+<td>Corsair does email</td>
+</tr>
+<tr>
+<td><code>SearchSnippet/get</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Push (<code>EventSource</code>, <code>PushSubscription</code>)</td>
+<td>Poll <code>Email/changes</code></td>
+</tr>
+</tbody></table></div>
+<p>A client that asks for an unadvertised capability gets told it is not there, which is what capability advertisement is for.</p><nav class="pager"><a class="pager-prev" href="./imap.html"><span>Previous</span><strong>IMAP</strong></a><a class="pager-next" href="./pop3.html"><span>Next</span><strong>POP3</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#session">Session</a></li><li class="toc-h2"><a href="#method-calls">Method calls</a></li><li class="toc-h3"><a href="#supported-methods">Supported methods</a></li><li class="toc-h2"><a href="#back-references">Back-references</a></li><li class="toc-h2"><a href="#incremental-sync">Incremental sync</a></li><li class="toc-h2"><a href="#sending">Sending</a></li><li class="toc-h2"><a href="#blobs">Blobs</a></li><li class="toc-h2"><a href="#errors">Errors</a></li><li class="toc-h2"><a href="#the-same-store">The same store</a></li><li class="toc-h2"><a href="#clients">Clients</a></li><li class="toc-h2"><a href="#not-implemented">Not implemented</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Plans and billing · Corsair</title>
+<meta name="description" content="How entitlements work, why an unconfigured instance is unmetered, and what happens when billing is turned on." />
+<link rel="canonical" href="https://corsair.wess.dev/docs/plans-billing.html" />
+<meta property="og:title" content="Plans and billing" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="How entitlements work, why an unconfigured instance is unmetered, and what happens when billing is turned on." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/plans-billing.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="./quickstart.html">Get started</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html" class="active" aria-current="page">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Using Corsair</p></div><h1 id="plans-and-billing">Plans and billing</h1>
+<p>Most people running Corsair for themselves can ignore this page. Leave billing unconfigured and the instance runs unmetered.</p>
+<p>It matters if you host mail for other people.</p>
+<h2 id="entitlement">Entitlement<a class="anchor" href="#entitlement" aria-label="Link to this section">#</a></h2>
+<p>An account's entitlement is its <strong>plan</strong> plus its <strong>live subscription</strong>. Three cases, in the order Corsair resolves them:</p>
+<ol><li><strong>A live subscription</strong> (<code>trialing</code>, <code>active</code>, or <code>past_due</code>) — that subscription's plan applies.</li><li><strong>No subscription</strong> — the trial plan applies. This is what a fresh account is in, and it is deliberate: a self-hosted instance that never configures billing should still work.</li><li><strong>No plans configured at all</strong> — the instance is <strong>unmetered</strong>. Every feature on, no caps, no limits.</li></ol>
+<p>Case three is a legitimate way to run a private server and is what you get if you never touch any of this.</p>
+<h2 id="what-a-plan-controls">What a plan controls<a class="anchor" href="#what-a-plan-controls" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Field</th>
+<th>Controls</th>
+</tr></thead><tbody>
+<tr>
+<td><code>storage_bytes</code></td>
+<td>Total storage, <strong>per account</strong> rather than per mailbox</td>
+</tr>
+<tr>
+<td><code>daily_in</code></td>
+<td>Messages received per day</td>
+</tr>
+<tr>
+<td><code>daily_out</code></td>
+<td>Messages sent per day</td>
+</tr>
+<tr>
+<td><code>max_domains</code></td>
+<td>Domains, or <code>null</code> for unlimited</td>
+</tr>
+<tr>
+<td><code>max_addresses</code></td>
+<td>Addresses, or <code>null</code> for unlimited</td>
+</tr>
+<tr>
+<td><code>features</code></td>
+<td>Feature flags, below</td>
+</tr>
+</tbody></table></div>
+<p>Daily limits are message counts, counted from <code>mail_log</code>.</p>
+<h3 id="feature-flags">Feature flags<a class="anchor" href="#feature-flags" aria-label="Link to this section">#</a></h3>
+<div class='table-wrap'><table><thead><tr>
+<th>Flag</th>
+<th>Gates</th>
+</tr></thead><tbody>
+<tr>
+<td><code>fallback_domains</code></td>
+<td>Sending unmatched recipients on to another domain</td>
+</tr>
+<tr>
+<td><code>self_service</code></td>
+<td>Mailbox owners resetting their own passwords at <code>/recover</code></td>
+</tr>
+<tr>
+<td><code>custom_filters</code></td>
+<td>Sieve filters</td>
+</tr>
+<tr>
+<td><code>transfers</code></td>
+<td>IMAP migration from another host</td>
+</tr>
+</tbody></table></div>
+<p>A feature the plan does not include raises a <strong>402</strong>, not a 403, so the panel can render an upgrade prompt rather than an error.</p>
+<p>Validation always runs <strong>before</strong> the quota check: a malformed input is invalid regardless of the plan. Telling someone to upgrade so they can submit a broken request would be absurd.</p>
+<h2 id="plans-are-rows-not-constants">Plans are rows, not constants<a class="anchor" href="#plans-are-rows-not-constants" aria-label="Link to this section">#</a></h2>
+<p>They live in a table so a self-hoster can price, rename, or delete them without a deploy — and so an instance that charges nobody can simply run one unlimited plan, or none.</p>
+<p><code>bun scripts/seed.ts</code> creates a default ladder so a fresh install has something coherent to show rather than an empty Plans screen:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Key</th>
+<th>Name</th>
+<th>Storage</th>
+<th>In/day</th>
+<th>Out/day</th>
+<th>Monthly</th>
+<th>Features</th>
+</tr></thead><tbody>
+<tr>
+<td><code>trial</code></td>
+<td>Free Trial</td>
+<td>1 GB</td>
+<td>200</td>
+<td>20</td>
+<td>—</td>
+<td>none</td>
+</tr>
+<tr>
+<td><code>startup</code></td>
+<td>Startup</td>
+<td>5 GB</td>
+<td>200</td>
+<td>50</td>
+<td>$1.50</td>
+<td>transfers</td>
+</tr>
+<tr>
+<td><code>small_business</code></td>
+<td>Small Business</td>
+<td>30 GB</td>
+<td>1,000</td>
+<td>100</td>
+<td>$5.00</td>
+<td>transfers, filters, self-service</td>
+</tr>
+<tr>
+<td><code>mini_tycoon</code></td>
+<td>Mini Tycoon</td>
+<td>100 GB</td>
+<td>3,000</td>
+<td>500</td>
+<td>$15.00</td>
+<td>all four</td>
+</tr>
+</tbody></table></div>
+<p><code>trial</code> also caps domains at 1 and addresses at 3; the paid tiers are unlimited on both. Change any of it, or delete the lot — nothing in the code depends on these particular rows.</p>
+<h2 id="running-unmetered">Running unmetered<a class="anchor" href="#running-unmetered" aria-label="Link to this section">#</a></h2>
+<p>The simplest configuration, and the right one for personal use.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code># Leave both empty
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=</code></pre></figure>
+<p>Then either delete every plan row — genuinely unlimited — or keep one generous plan and put every account on it.</p>
+<p>With <code>STRIPE_SECRET_KEY</code> empty, plans still gate features and an operator can record payment methods by hand, but nothing is ever charged. There is no code path that would attempt it.</p>
+<h2 id="turning-billing-on">Turning billing on<a class="anchor" href="#turning-billing-on" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...</code></pre></figure>
+<p>Then set <code>monthly_price_ref</code> and <code>yearly_price_ref</code> on each plan to the provider's price identifiers.</p>
+<p>Point the provider's webhook at <code>/api/webhooks/payments</code>. That endpoint reads the body <strong>verbatim</strong> — the signature covers the exact bytes, so it verifies before parsing.</p>
+<h3 id="card-details-never-reach-this-server">Card details never reach this server<a class="anchor" href="#card-details-never-reach-this-server" aria-label="Link to this section">#</a></h3>
+<p>The customer enters them on the provider's own hosted page. What comes back is a brand, four digits, and an opaque reference.</p>
+<p>There is no code path in Corsair that could accept a card number, and this is not an oversight to be fixed. Handling card data means PCI scope, and a mail server has no business being in it.</p>
+<h2 id="subscription-states">Subscription states<a class="anchor" href="#subscription-states" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Status</th>
+<th>Means</th>
+<th>Mail flows</th>
+</tr></thead><tbody>
+<tr>
+<td><code>trialing</code></td>
+<td>In a trial period</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>active</code></td>
+<td>Paid and current</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>past_due</code></td>
+<td>Payment failed, retrying</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>cancelled</code></td>
+<td>Ended</td>
+<td>Falls back to the trial plan</td>
+</tr>
+</tbody></table></div>
+<p><code>past_due</code> still counts as live. Cutting off someone's email the moment a card expires is how you lose a customer who was going to pay you.</p>
+<p>Cancellation sets <code>cancel_at_period_end</code> rather than deleting immediately — a cancelled subscription keeps serving mail until the period it was paid for runs out.</p>
+<h2 id="quotas-in-practice">Quotas in practice<a class="anchor" href="#quotas-in-practice" aria-label="Link to this section">#</a></h2>
+<p><strong>Storage</strong> is per account across every domain and mailbox. One mailbox can use all of it. <code>quota.warning</code> and <code>quota.exceeded</code> webhooks fire before and at the cap, so you can tell someone before mail starts being refused.</p>
+<p><strong>Daily limits</strong> reset on a rolling 24-hour window from <code>mail_log</code>. Hitting <code>daily_out</code> means submission is refused until the window moves; hitting <code>daily_in</code> means inbound is refused, which senders see as a temporary failure and retry.</p>
+<p>Recompute storage by hand if you have restored a backup or deleted a lot:</p>
+<figure class="code"><span class="code-lang">sql</span><pre><code>-- Or let the worker's quota.recompute job do it
+SELECT sum(size) FROM messages WHERE address_id = '...' AND expunged_at IS NULL;</code></pre></figure>
+<h2 id="transactions-and-tax">Transactions and tax<a class="anchor" href="#transactions-and-tax" aria-label="Link to this section">#</a></h2>
+<p>Transactions are recorded per account and readable through the API and the panel. A tax ID can be stored per account for invoicing.</p>
+<p>Neither is a general-purpose accounting system. If you are running this as a real business, the provider's own records are the source of truth.</p>
+<h2 id="referrals">Referrals<a class="anchor" href="#referrals" aria-label="Link to this section">#</a></h2>
+<p>Each account gets a referral code, and referrals are recorded. There is no payout logic — what you do with the data is up to you.</p><nav class="pager"><a class="pager-prev" href="./webhooks.html"><span>Previous</span><strong>Event hooks</strong></a><a class="pager-next" href="./architecture.html"><span>Next</span><strong>Architecture</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#entitlement">Entitlement</a></li><li class="toc-h2"><a href="#what-a-plan-controls">What a plan controls</a></li><li class="toc-h3"><a href="#feature-flags">Feature flags</a></li><li class="toc-h2"><a href="#plans-are-rows-not-constants">Plans are rows, not constants</a></li><li class="toc-h2"><a href="#running-unmetered">Running unmetered</a></li><li class="toc-h2"><a href="#turning-billing-on">Turning billing on</a></li><li class="toc-h3"><a href="#card-details-never-reach-this-server">Card details never reach this server</a></li><li class="toc-h2"><a href="#subscription-states">Subscription states</a></li><li class="toc-h2"><a href="#quotas-in-practice">Quotas in practice</a></li><li class="toc-h2"><a href="#transactions-and-tax">Transactions and tax</a></li><li class="toc-h2"><a href="#referrals">Referrals</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

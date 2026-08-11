@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Backups and restore · Corsair</title>
+<meta name="description" content="What has to survive, how to capture it, and how to bring it back without breaking IMAP clients." />
+<link rel="canonical" href="https://corsair.wess.dev/docs/backups.html" />
+<meta property="og:title" content="Backups and restore" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="What has to survive, how to capture it, and how to bring it back without breaking IMAP clients." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/backups.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="./quickstart.html">Get started</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html" class="active" aria-current="page">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Install and operate</p></div><h1 id="backups-and-restore">Backups and restore</h1>
+<p>Five things have to survive. Losing any one makes a restore incomplete, and the ones people forget are not the database.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Thing</th>
+<th>Where it lives</th>
+<th>Lose it and…</th>
+</tr></thead><tbody>
+<tr>
+<td>PostgreSQL</td>
+<td>The database</td>
+<td>Everything: mailboxes, folders, flags, users, domains</td>
+</tr>
+<tr>
+<td>Message bodies</td>
+<td>The bucket, or Postgres if none</td>
+<td>The mail itself</td>
+</tr>
+<tr>
+<td>DKIM private keys</td>
+<td>In the database</td>
+<td>Signing breaks; every domain needs new keys published</td>
+</tr>
+<tr>
+<td><code>.env</code></td>
+<td>The host filesystem</td>
+<td><code>JWT_SECRET</code> is gone, every session dies, config is guesswork</td>
+</tr>
+<tr>
+<td>TLS certificate</td>
+<td>The host filesystem</td>
+<td>Reissuable, but not instantly</td>
+</tr>
+</tbody></table></div>
+<p>DKIM keys living in the database is why the database dump is not optional and why it must be treated as secret material.</p>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>A database dump is a credential store</p><p>It contains DKIM private keys, password hashes, and encrypted transfer credentials. Encrypt it at rest, and never put it in a bucket whose default is public.</p></aside>
+<h2 id="the-database">The database<a class="anchor" href="#the-database" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>pg_dump --format=custom --no-owner &quot;$DATABASE_URL&quot; &gt; corsair-$(date +%F).dump</code></pre></figure>
+<p><code>--format=custom</code> compresses and allows selective restore. <code>--no-owner</code> means the dump restores cleanly into a database with a different role name.</p>
+<p>Verify rather than assume:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>pg_restore --list corsair-2026-08-10.dump | head -30</code></pre></figure>
+<p>An empty or truncated dump lists nothing. Check the size too — a zero-byte file is the classic silent backup failure.</p>
+<h3 id="how-often">How often<a class="anchor" href="#how-often" aria-label="Link to this section">#</a></h3>
+<p>Continuously, if the mail matters. Nightly at minimum.</p>
+<p>Anything between the last dump and a failure is gone: messages received, messages sent, flag changes, new mailboxes. For a household, nightly is fine. For a business, set up WAL archiving and point-in-time recovery — that is a Postgres topic, not a Corsair one, and Postgres documents it well.</p>
+<h2 id="message-bodies">Message bodies<a class="anchor" href="#message-bodies" aria-label="Link to this section">#</a></h2>
+<p>With <code>STORAGE_BUCKET</code> set, bodies are in the bucket and <strong>are not in the database dump</strong>. This is the part that gets missed: the dump restores, the counts match, and every message opens empty.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>aws s3 sync &quot;s3://$STORAGE_BUCKET/$STORAGE_PREFIX&quot; /backup/bodies \
+  --endpoint-url &quot;$STORAGE_ENDPOINT&quot;</code></pre></figure>
+<p>Or rely on the provider's versioning and lifecycle rules — but know which you are doing, and test that you can retrieve a deleted object.</p>
+<p>Without a bucket, bodies are inline in Postgres and the dump has everything.</p>
+<h2 id="configuration">Configuration<a class="anchor" href="#configuration" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>cp /opt/corsair/app/.env ./corsair-env-$(date +%F)
+age -r &quot;$BACKUP_RECIPIENT&quot; -o corsair-env-$(date +%F).age corsair-env-$(date +%F)
+shred -u corsair-env-$(date +%F)</code></pre></figure>
+<p><code>.env</code> holds <code>JWT_SECRET</code>, the database password, and the storage keys. Encrypt it. A backup of your secrets in plaintext is a breach waiting for a misconfigured bucket.</p>
+<h2 id="certificates">Certificates<a class="anchor" href="#certificates" aria-label="Link to this section">#</a></h2>
+<p>Reissuable from Let's Encrypt in minutes, so back them up for speed rather than necessity. If you use DNS-01, back up the API credentials file too — that one is not reissuable without console access to the DNS provider.</p>
+<h2 id="a-nightly-script">A nightly script<a class="anchor" href="#a-nightly-script" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>#!/usr/bin/env sh
+# /usr/local/bin/corsair-backup
+set -eu
+
+STAMP=$(date +%F)
+DEST=/backup
+
+pg_dump --format=custom --no-owner &quot;$DATABASE_URL&quot; &gt; &quot;$DEST/corsair-$STAMP.dump&quot;
+age -r &quot;$BACKUP_RECIPIENT&quot; -o &quot;$DEST/corsair-$STAMP.dump.age&quot; &quot;$DEST/corsair-$STAMP.dump&quot;
+rm &quot;$DEST/corsair-$STAMP.dump&quot;
+
+# Fail loudly rather than keeping a zero-byte file that looks like a backup.
+test -s &quot;$DEST/corsair-$STAMP.dump.age&quot;
+
+find &quot;$DEST&quot; -name 'corsair-*.dump.age' -mtime +30 -delete</code></pre></figure>
+<figure class="code"><pre><code>15 3 * * * /usr/local/bin/corsair-backup || echo &quot;corsair backup FAILED&quot; | mail -s &quot;backup&quot; you@example.com</code></pre></figure>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Alert on the absence of success, not only on failure</p><p>A cron job that never ran sends no failure mail either. Have the script touch a heartbeat file or ping a dead-man's-switch, and alert when that goes quiet.</p></aside>
+<h2 id="restoring">Restoring<a class="anchor" href="#restoring" aria-label="Link to this section">#</a></h2>
+<p>Order matters: configuration, then database, then migrations, then bodies.</p>
+<h3 id="1-configuration-first">1. Configuration first<a class="anchor" href="#1-configuration-first" aria-label="Link to this section">#</a></h3>
+<figure class="code"><span class="code-lang">sh</span><pre><code>age -d -o /opt/corsair/app/.env /backup/corsair-env-2026-08-10.age
+chown corsair:corsair /opt/corsair/app/.env
+chmod 600 /opt/corsair/app/.env</code></pre></figure>
+<p>The restore needs <code>DATABASE_URL</code> and the storage keys, and a mismatched <code>JWT_SECRET</code> is a confusing thing to debug later.</p>
+<h3 id="2-database">2. Database<a class="anchor" href="#2-database" aria-label="Link to this section">#</a></h3>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo -u postgres createdb -O corsair corsair
+pg_restore --no-owner --dbname &quot;$DATABASE_URL&quot; /backup/corsair-2026-08-10.dump</code></pre></figure>
+<h3 id="3-migrations">3. Migrations<a class="anchor" href="#3-migrations" aria-label="Link to this section">#</a></h3>
+<p>If the backup predates a version upgrade:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>bun scripts/migrate.ts status
+bun scripts/migrate.ts up
+bun scripts/migrate.ts diff     # &quot;schema in sync&quot;</code></pre></figure>
+<h3 id="4-bodies">4. Bodies<a class="anchor" href="#4-bodies" aria-label="Link to this section">#</a></h3>
+<figure class="code"><span class="code-lang">sh</span><pre><code>aws s3 sync /backup/bodies &quot;s3://$STORAGE_BUCKET/$STORAGE_PREFIX&quot; \
+  --endpoint-url &quot;$STORAGE_ENDPOINT&quot;</code></pre></figure>
+<h3 id="5-start-and-verify">5. Start and verify<a class="anchor" href="#5-start-and-verify" aria-label="Link to this section">#</a></h3>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo systemctl start corsair
+psql &quot;$DATABASE_URL&quot; -Atc &quot;SELECT count(*) FROM messages&quot;</code></pre></figure>
+<p>Then check the things a count cannot: <strong>open a message</strong> (proves the bodies came back), <strong>send one and check for <code>dkim=pass</code></strong> (proves the DKIM keys came back), and <strong>sign into the panel</strong> (proves <code>JWT_SECRET</code> and the users table came back together).</p>
+<h2 id="what-a-restore-breaks">What a restore breaks<a class="anchor" href="#what-a-restore-breaks" aria-label="Link to this section">#</a></h2>
+<p><strong>Every session is invalid.</strong> Sessions are rows; old cookies point at rows that no longer exist. Everyone signs in again. Expected.</p>
+<p><strong>UIDs may go backwards.</strong> This is the one with teeth.</p>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Restoring an older dump onto a live folder</p><p><code>uid_next</code> comes back to its value at dump time. New messages then reuse UIDs that clients have already seen against different messages — and a duplicate UID is the one thing an IMAP client never recovers from.</p>
+<p>After restoring anything other than the newest dump, tell clients on affected mailboxes to remove and re-add the account so they resynchronise from scratch.</p></aside>
+<p><strong>In-flight outbound mail is gone</strong> if it was queued after the dump. Senders whose messages were accepted but not yet delivered will not know. There is no way around this short of continuous archiving.</p>
+<h2 id="migrating-to-a-new-host">Migrating to a new host<a class="anchor" href="#migrating-to-a-new-host" aria-label="Link to this section">#</a></h2>
+<p>A restore onto a different machine, with two extra steps:</p>
+<ol><li>Restore normally onto the new host.</li><li>Update <code>CORSAIR_HOSTNAME</code> and the <code>MAIL_*</code> hosts if the names changed.</li><li><strong>Set the PTR on the new IP</strong> and wait for it to propagate.</li><li>Update the A record, then the MX. Lower the TTLs a day beforehand.</li><li>Keep the old host accepting mail until the old MX TTL has fully expired.</li></ol>
+<p>The old host receiving a few messages after cutover is normal. Run a final <code>pg_dump</code> from it and reconcile, or leave it running for a week — the second is easier and safer.</p>
+<h2 id="testing-it">Testing it<a class="anchor" href="#testing-it" aria-label="Link to this section">#</a></h2>
+<p>A backup you have never restored is not a backup. The <a href="tutorials/backup-drill.html">restore drill</a> walks through destroying an install and bringing it back, and tells you what to measure.</p>
+<p>Do it twice a year and after any upgrade that touched migrations.</p><nav class="pager"><a class="pager-prev" href="./production-checklist.html"><span>Previous</span><strong>Production checklist</strong></a><a class="pager-next" href="./monitoring.html"><span>Next</span><strong>Monitoring</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#the-database">The database</a></li><li class="toc-h3"><a href="#how-often">How often</a></li><li class="toc-h2"><a href="#message-bodies">Message bodies</a></li><li class="toc-h2"><a href="#configuration">Configuration</a></li><li class="toc-h2"><a href="#certificates">Certificates</a></li><li class="toc-h2"><a href="#a-nightly-script">A nightly script</a></li><li class="toc-h2"><a href="#restoring">Restoring</a></li><li class="toc-h3"><a href="#1-configuration-first">1. Configuration first</a></li><li class="toc-h3"><a href="#2-database">2. Database</a></li><li class="toc-h3"><a href="#3-migrations">3. Migrations</a></li><li class="toc-h3"><a href="#4-bodies">4. Bodies</a></li><li class="toc-h3"><a href="#5-start-and-verify">5. Start and verify</a></li><li class="toc-h2"><a href="#what-a-restore-breaks">What a restore breaks</a></li><li class="toc-h2"><a href="#migrating-to-a-new-host">Migrating to a new host</a></li><li class="toc-h2"><a href="#testing-it">Testing it</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

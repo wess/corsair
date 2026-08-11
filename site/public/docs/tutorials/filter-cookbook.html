@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>A filter cookbook · Corsair</title>
+<meta name="description" content="Sieve scripts that solve real problems — newsletters, sub-address filing, sender rules, quarantine, and the traps." />
+<link rel="canonical" href="https://corsair.wess.dev/docs/tutorials/filter-cookbook.html" />
+<meta property="og:title" content="A filter cookbook" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Sieve scripts that solve real problems — newsletters, sub-address filing, sender rules, quarantine, and the traps." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/tutorials/filter-cookbook.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="../index.html">Docs</a><a href="./index.html" class="on">Tutorials</a><a href="../../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="../quickstart.html">Get started</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="../index.html">Overview</a></li><li><a href="../introduction.html">Introduction</a></li><li><a href="../quickstart.html">Quickstart</a></li><li><a href="../concepts.html">Core concepts</a></li><li><a href="../prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./index.html">All tutorials</a></li><li><a href="./first-server.html">First server</a></li><li><a href="./migrate-from-google.html">Migrate from Google</a></li><li><a href="./household.html">Household setup</a></li><li><a href="./filter-cookbook.html" class="active" aria-current="page">Filter cookbook</a></li><li><a href="./webhook-consumer.html">Webhook consumer</a></li><li><a href="./backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="../installation.html">Installation</a></li><li><a href="../configuration.html">Configuration</a></li><li><a href="../dns-setup.html">DNS setup</a></li><li><a href="../tls.html">TLS</a></li><li><a href="../production-checklist.html">Go-live checklist</a></li><li><a href="../backups.html">Backups</a></li><li><a href="../monitoring.html">Monitoring</a></li><li><a href="../upgrading.html">Upgrading</a></li><li><a href="../scaling.html">Scaling</a></li><li><a href="../troubleshooting.html">Troubleshooting</a></li><li><a href="../security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="../control-panel.html">Control panel</a></li><li><a href="../domains.html">Domains</a></li><li><a href="../addresses.html">Addresses</a></li><li><a href="../client-setup.html">Client settings</a></li><li><a href="../webmail.html">Webmail</a></li><li><a href="../filters.html">Filters</a></li><li><a href="../transfers.html">Transfers</a></li><li><a href="../deliverability.html">Deliverability</a></li><li><a href="../webhooks.html">Event hooks</a></li><li><a href="../plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="../architecture.html">Architecture</a></li><li><a href="../api.html">HTTP API</a></li><li><a href="../smtp.html">SMTP</a></li><li><a href="../imap.html">IMAP</a></li><li><a href="../jmap.html">JMAP</a></li><li><a href="../pop3.html">POP3</a></li><li><a href="../cli.html">Command line</a></li><li><a href="../database.html">Database</a></li><li><a href="../smtp-errors.html">SMTP errors</a></li><li><a href="../glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Tutorial</p></div><h1 id="a-filter-cookbook">A filter cookbook</h1>
+<p>Working Sieve scripts for the things people actually want. Copy one, change the strings, save it. <a href="../filters.html">Filters</a> is the reference for what the language supports; this page is the recipes.</p>
+<p>Every script here compiles against Corsair's Sieve subset. A script that fails to compile is rejected on save, so you find out immediately rather than at delivery time.</p>
+<h2 id="the-rules-you-must-know-first">The rules you must know first<a class="anchor" href="#the-rules-you-must-know-first" aria-label="Link to this section">#</a></h2>
+<p><strong>Implicit keep.</strong> If a script takes no filing action, the message is delivered to the inbox anyway. You cannot lose mail by forgetting a <code>keep</code>.</p>
+<p><strong><code>fileinto</code> cancels the implicit keep.</strong> File somewhere and it goes there, not both places. Write an explicit <code>keep</code> alongside if you want both.</p>
+<p><strong><code>stop</code> ends the script.</strong> Everything filed so far stands. Without it, later rules keep matching and you get surprising results.</p>
+<p><strong>A broken filter never loses mail.</strong> A script that throws at delivery time is treated as absent — the message is delivered to the inbox and the error is shown against the filter.</p>
+<h2 id="newsletters-out-of-the-inbox">Newsletters out of the inbox<a class="anchor" href="#newsletters-out-of-the-inbox" aria-label="Link to this section">#</a></h2>
+<p>The single most useful filter. Bulk mail almost always identifies itself.</p>
+<figure class="code"><pre><code>require [&quot;fileinto&quot;];
+
+if anyof (
+  exists &quot;list-id&quot;,
+  exists &quot;list-unsubscribe&quot;,
+  header :contains &quot;precedence&quot; [&quot;bulk&quot;, &quot;list&quot;]
+) {
+  fileinto :create &quot;Newsletters&quot;;
+  stop;
+}</code></pre></figure>
+<p><code>:create</code> makes the folder if it does not exist, so this works on a fresh mailbox with no setup.</p>
+<h2 id="file-by-sub-address">File by sub-address<a class="anchor" href="#file-by-sub-address" aria-label="Link to this section">#</a></h2>
+<p><code>you+receipts@example.com</code> into a Receipts folder, with no per-sender rules at all. This is the filter that makes sub-addressing worth explaining to people.</p>
+<figure class="code"><pre><code>require [&quot;fileinto&quot;, &quot;envelope&quot;];
+
+if envelope :localpart :matches &quot;to&quot; &quot;*+receipts&quot; {
+  fileinto :create &quot;Receipts&quot;;
+  stop;
+}
+
+if envelope :localpart :matches &quot;to&quot; &quot;*+shopping&quot; {
+  fileinto :create &quot;Shopping&quot;;
+  stop;
+}</code></pre></figure>
+<p>Match on the <strong>envelope</strong>, not the <code>To:</code> header. The header is whatever the sender typed; the envelope is what the server was actually asked to deliver to, and a message can reach you with your address nowhere in the headers at all.</p>
+<h3 id="one-rule-for-every-tag">One rule for every tag<a class="anchor" href="#one-rule-for-every-tag" aria-label="Link to this section">#</a></h3>
+<p>Rather than a block per tag, file every tagged message into a folder named after the tag:</p>
+<figure class="code"><pre><code>require [&quot;fileinto&quot;, &quot;envelope&quot;];
+
+if envelope :localpart :matches &quot;to&quot; &quot;*+*&quot; {
+  fileinto :create &quot;Tagged&quot;;
+  stop;
+}</code></pre></figure>
+<p>Sieve has no variables in this subset, so the folder name cannot be built from the match. Either list the tags you care about, or collect them all in one place.</p>
+<h2 id="flag-mail-from-people-who-matter">Flag mail from people who matter<a class="anchor" href="#flag-mail-from-people-who-matter" aria-label="Link to this section">#</a></h2>
+<figure class="code"><pre><code>require [&quot;imap4flags&quot;];
+
+if anyof (
+  address :is &quot;from&quot; &quot;sam@example.com&quot;,
+  address :domain :is &quot;from&quot; &quot;clientcompany.com&quot;
+) {
+  addflag &quot;\\Flagged&quot;;
+}</code></pre></figure>
+<p>No <code>fileinto</code> and no <code>stop</code>, so the message still lands in the inbox — it just arrives flagged. <code>addflag</code> adds to existing flags; <code>setflag</code> replaces them all, which is almost never what you want.</p>
+<h2 id="route-by-recipient-on-a-shared-domain">Route by recipient on a shared domain<a class="anchor" href="#route-by-recipient-on-a-shared-domain" aria-label="Link to this section">#</a></h2>
+<p>Useful when a group address fans out but you want the copies filed separately.</p>
+<figure class="code"><pre><code>require [&quot;fileinto&quot;, &quot;envelope&quot;];
+
+if envelope :is &quot;to&quot; &quot;support@example.com&quot; {
+  fileinto :create &quot;Support&quot;;
+  stop;
+}
+
+if envelope :is &quot;to&quot; &quot;billing@example.com&quot; {
+  fileinto :create &quot;Billing&quot;;
+  stop;
+}</code></pre></figure>
+<h2 id="quarantine-without-losing-anything">Quarantine without losing anything<a class="anchor" href="#quarantine-without-losing-anything" aria-label="Link to this section">#</a></h2>
+<p>For senders you distrust but will not silently drop:</p>
+<figure class="code"><pre><code>require [&quot;fileinto&quot;];
+
+if anyof (
+  header :contains &quot;subject&quot; [&quot;urgent action required&quot;, &quot;verify your account&quot;],
+  header :matches &quot;from&quot; &quot;*@*.top&quot;
+) {
+  fileinto :create &quot;Quarantine&quot;;
+  stop;
+}</code></pre></figure>
+<p>A folder, not <code>discard</code>. You can review a folder; you cannot review a message that was dropped.</p>
+<h2 id="actually-drop-something">Actually drop something<a class="anchor" href="#actually-drop-something" aria-label="Link to this section">#</a></h2>
+<figure class="code"><pre><code>if header :contains &quot;subject&quot; &quot;unmissable opportunity&quot; {
+  discard;
+}</code></pre></figure>
+<p><code>discard</code> accepts the message and throws it away. The sender learns nothing, which is what you want for spam — a bounce confirms the address is live.</p>
+<p>Use <code>reject</code> instead to refuse it with a 550 during the SMTP transaction:</p>
+<figure class="code"><pre><code>if address :is &quot;from&quot; &quot;expartner@example.net&quot; {
+  reject &quot;This address does not accept mail from you.&quot;;
+}</code></pre></figure>
+<p><code>reject</code> tells the sender they were filtered. <code>discard</code> does not. Pick deliberately: telling a spammer is pointless, telling a colleague their mail was binned is polite.</p>
+<h2 id="big-attachments-to-their-own-folder">Big attachments to their own folder<a class="anchor" href="#big-attachments-to-their-own-folder" aria-label="Link to this section">#</a></h2>
+<figure class="code"><pre><code>require [&quot;fileinto&quot;];
+
+if size :over 10M {
+  fileinto :create &quot;Large&quot;;
+  stop;
+}</code></pre></figure>
+<p><code>size</code> is the whole message including encoding overhead, so a 7 MB attachment is about 9.5 MB on the wire. Set the threshold above what you mean.</p>
+<h2 id="everything-from-a-domain-except-one-person">Everything from a domain, except one person<a class="anchor" href="#everything-from-a-domain-except-one-person" aria-label="Link to this section">#</a></h2>
+<p><code>allof</code> with a negated test:</p>
+<figure class="code"><pre><code>require [&quot;fileinto&quot;];
+
+if allof (
+  address :domain :is &quot;from&quot; &quot;noisy-vendor.com&quot;,
+  not address :is &quot;from&quot; &quot;myrep@noisy-vendor.com&quot;
+) {
+  fileinto :create &quot;Vendors&quot;;
+  stop;
+}</code></pre></figure>
+<h2 id="a-staged-inbox">A staged inbox<a class="anchor" href="#a-staged-inbox" aria-label="Link to this section">#</a></h2>
+<p>Rules run top to bottom and the first <code>stop</code> wins, so order encodes priority.</p>
+<figure class="code"><pre><code>require [&quot;fileinto&quot;, &quot;imap4flags&quot;];
+
+# 1. Anything from the team stays in the inbox, flagged.
+if address :domain :is &quot;from&quot; &quot;example.com&quot; {
+  addflag &quot;\\Flagged&quot;;
+  stop;
+}
+
+# 2. Automated mail goes to Robots.
+if anyof (
+  header :contains &quot;auto-submitted&quot; &quot;auto-generated&quot;,
+  address :localpart :matches &quot;from&quot; [&quot;noreply*&quot;, &quot;no-reply*&quot;, &quot;notifications*&quot;]
+) {
+  fileinto :create &quot;Robots&quot;;
+  stop;
+}
+
+# 3. Bulk goes to Newsletters.
+if anyof (exists &quot;list-id&quot;, header :contains &quot;precedence&quot; &quot;bulk&quot;) {
+  fileinto :create &quot;Newsletters&quot;;
+  stop;
+}
+
+# 4. Everything else falls through to the inbox by implicit keep.</code></pre></figure>
+<h2 id="regex-when-the-wildcards-are-not-enough">Regex, when the wildcards are not enough<a class="anchor" href="#regex-when-the-wildcards-are-not-enough" aria-label="Link to this section">#</a></h2>
+<figure class="code"><pre><code>if header :regex &quot;subject&quot; &quot;^\\[(TICKET|INCIDENT)-[0-9]{4,}\\]&quot; {
+  fileinto :create &quot;Tickets&quot;;
+  stop;
+}</code></pre></figure>
+<p>Prefer <code>:matches</code> with <code>*</code> and <code>?</code> where it will do. Regexes are harder to read six months later and easier to get subtly wrong.</p>
+<h2 id="testing-before-you-trust-it">Testing before you trust it<a class="anchor" href="#testing-before-you-trust-it" aria-label="Link to this section">#</a></h2>
+<p><strong>Validate.</strong> The panel validates on save, and there is a validate endpoint behind it. A script that does not compile is never stored.</p>
+<p><strong>Attach to one mailbox first.</strong> A filter belongs to the account and can be attached to any number of mailboxes. Start with one.</p>
+<p><strong>Watch the folder, not the inbox.</strong> The failure mode of a too-broad rule is mail you never see, so check that the target folder is getting what you expect and nothing else.</p>
+<p><strong>Remember the action cap.</strong> Scripts stop after 100 actions. No realistic filter reaches it, but a rule that fires in a loop of <code>fileinto</code> will.</p>
+<h2 id="what-sieve-deliberately-cannot-do">What Sieve deliberately cannot do<a class="anchor" href="#what-sieve-deliberately-cannot-do" aria-label="Link to this section">#</a></h2>
+<p>No loops, no recursion, no network calls, no shelling out. That is the whole reason it is safe to run a user's script on the delivery path. If you need something Sieve cannot express, do it downstream — subscribe to a <a href="webhook-consumer.html">webhook</a> and act on the event outside the mail path.</p><nav class="pager"><a class="pager-prev" href="./household.html"><span>Previous</span><strong>Mail for a household or small team</strong></a><a class="pager-next" href="./webhook-consumer.html"><span>Next</span><strong>Consuming webhooks</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#the-rules-you-must-know-first">The rules you must know first</a></li><li class="toc-h2"><a href="#newsletters-out-of-the-inbox">Newsletters out of the inbox</a></li><li class="toc-h2"><a href="#file-by-sub-address">File by sub-address</a></li><li class="toc-h3"><a href="#one-rule-for-every-tag">One rule for every tag</a></li><li class="toc-h2"><a href="#flag-mail-from-people-who-matter">Flag mail from people who matter</a></li><li class="toc-h2"><a href="#route-by-recipient-on-a-shared-domain">Route by recipient on a shared domain</a></li><li class="toc-h2"><a href="#quarantine-without-losing-anything">Quarantine without losing anything</a></li><li class="toc-h2"><a href="#actually-drop-something">Actually drop something</a></li><li class="toc-h2"><a href="#big-attachments-to-their-own-folder">Big attachments to their own folder</a></li><li class="toc-h2"><a href="#everything-from-a-domain-except-one-person">Everything from a domain, except one person</a></li><li class="toc-h2"><a href="#a-staged-inbox">A staged inbox</a></li><li class="toc-h2"><a href="#regex-when-the-wildcards-are-not-enough">Regex, when the wildcards are not enough</a></li><li class="toc-h2"><a href="#testing-before-you-trust-it">Testing before you trust it</a></li><li class="toc-h2"><a href="#what-sieve-deliberately-cannot-do">What Sieve deliberately cannot do</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../../index.html">Overview</a></li><li><a href="../introduction.html">What it is</a></li><li><a href="../architecture.html">Architecture</a></li><li><a href="../../faq.html">Questions</a></li><li><a href="../../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="../index.html">All documentation</a></li><li><a href="../quickstart.html">Quickstart</a></li><li><a href="./index.html">Tutorials</a></li><li><a href="../configuration.html">Configuration</a></li><li><a href="../api.html">HTTP API</a></li><li><a href="../troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../../policies/privacy.html">Privacy</a></li><li><a href="../../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../../docs.js" defer></script>
+</body>
+</html>

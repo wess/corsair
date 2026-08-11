@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Security model · Corsair</title>
+<meta name="description" content="What Corsair defends against, what it deliberately does not store, and where the responsibility is yours." />
+<link rel="canonical" href="https://corsair.wess.dev/docs/security.html" />
+<meta property="og:title" content="Security model" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="What Corsair defends against, what it deliberately does not store, and where the responsibility is yours." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/security.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="./quickstart.html">Get started</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html" class="active" aria-current="page">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Install and operate</p></div><h1 id="security-model">Security model</h1>
+<p>What Corsair protects, how, and where the boundary is. Read the last section too — the parts that are your responsibility are not small.</p>
+<h2 id="two-identities-never-merged">Two identities, never merged<a class="anchor" href="#two-identities-never-merged" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th></th>
+<th>User</th>
+<th>Address</th>
+</tr></thead><tbody>
+<tr>
+<td>Purpose</td>
+<td>Control-panel login</td>
+<td>Mailbox credential</td>
+</tr>
+<tr>
+<td>Credential</td>
+<td>Password + optional TOTP</td>
+<td>Password</td>
+</tr>
+<tr>
+<td>Carried by</td>
+<td><code>corsair_session</code> cookie, 14 days</td>
+<td>The mail protocol, per connection</td>
+</tr>
+<tr>
+<td>Grants</td>
+<td>Domains, billing, webhooks, filters</td>
+<td>Messages in one mailbox</td>
+</tr>
+</tbody></table></div>
+<p>An address password never signs into the panel, and a user password never signs into a mail client. A mailbox credential is typed into phones, laptops, and printers; one of those will eventually be lost. When it is, it must not also be the key to the account that owns every domain.</p>
+<p>The webmail uses a <strong>third</strong> thing: a separate <code>corsair_webmail</code> cookie with a 12-hour lifetime and a distinct claim, so a panel session cookie cannot be replayed against it. Shorter because a browser session on a shared machine is more likely to be left open.</p>
+<h2 id="passwords-and-tokens">Passwords and tokens<a class="anchor" href="#passwords-and-tokens" aria-label="Link to this section">#</a></h2>
+<ul><li>Passwords are hashed, never stored or logged in the clear.</li><li>Reset and recovery tokens are stored <strong>only as SHA-256 hashes</strong>.</li><li>A token is redeemed with <code>used_at IS NULL</code> <strong>inside the UPDATE</strong>. Checking it in a separate read lets two concurrent requests both redeem the same link.</li><li>Sessions are rows, not just JWTs. The signature alone is not enough — a revoked session stops working immediately, which a stateless token cannot do.</li></ul>
+<p>Two-factor is TOTP. Turn it on for the owner account; it controls every domain.</p>
+<h2 id="never-stored">Never stored<a class="anchor" href="#never-stored" aria-label="Link to this section">#</a></h2>
+<p>Three credentials pass through this server and are deliberately not persisted. Do not &quot;fix&quot; any of them by adding a column.</p>
+<p><strong>DNS API tokens.</strong> Used for one publish, then discarded. One can usually rewrite every record on every domain in the account — holding it to save a paste is a bad trade.</p>
+<p><strong>Card details.</strong> They never touch the server. The customer enters them on the provider's hosted page; a brand, four digits, and an opaque reference come back. There is no code path here that could accept a card number.</p>
+<p><strong>Transfer source passwords.</strong> Encrypted at rest and erased the moment the transfer reaches a terminal state, success or failure. They are someone else's credential.</p>
+<h2 id="transport">Transport<a class="anchor" href="#transport" aria-label="Link to this section">#</a></h2>
+<p>Corsair refuses SMTP <code>AUTH</code> and IMAP <code>LOGIN</code> on an unencrypted connection when a certificate is configured — it advertises <code>LOGINDISABLED</code> so the client fails at connect rather than after sending the password.</p>
+<p>Port 25 is the deliberate exception: STARTTLS is offered but never required, because a sending server that does not support it still has legitimate mail, and refusing means losing that mail.</p>
+<h2 id="enumeration">Enumeration<a class="anchor" href="#enumeration" aria-label="Link to this section">#</a></h2>
+<p>Several endpoints are deliberately unhelpful:</p>
+<ul><li><code>/api/auth/password/forgot</code> and <code>/api/recover/request</code> answer identically whether or not the address exists.</li><li>Login gives <strong>one</strong> reply for both an unknown address and a wrong password.</li></ul>
+<p>Making any of them more informative turns it into a way to enumerate accounts. There are smoke tests asserting the replies are byte-identical — they are not decoration.</p>
+<h2 id="server-side-request-forgery">Server-side request forgery<a class="anchor" href="#server-side-request-forgery" aria-label="Link to this section">#</a></h2>
+<p>A webhook URL is attacker-supplied and this server fetches it. That is an SSRF primitive, so endpoints on private, loopback, and link-local addresses are refused at creation.</p>
+<p><code>WEBHOOK_ALLOW_PRIVATE=true</code> exists for an operator whose consumers are on the same private network. It is off by default because the safe case is the rarer one. Turning it on means a customer can point a webhook at your metadata service.</p>
+<h2 id="content-sanitisation">Content sanitisation<a class="anchor" href="#content-sanitisation" aria-label="Link to this section">#</a></h2>
+<p><strong>Rendered mail is sanitised on the server</strong>, never in the client (<code>src/sanitize</code>). Every message a mail server accepts is attacker-supplied by definition.</p>
+<p>The policy is an <strong>allow-list</strong> — unknown tags and attributes are dropped rather than inspected — because a deny-list has to stay complete as browsers change. Scripts, event handlers, and <code>javascript:</code> URLs are removed before the browser is handed anything.</p>
+<p>Remote images are withheld by default. A remote image in an email is a tracking pixel; the reader asks for them or does not get them.</p>
+<h2 id="header-injection">Header injection<a class="anchor" href="#header-injection" aria-label="Link to this section">#</a></h2>
+<p>A bare CR or LF in a subject, display name, or custom header injects a header. <code>stripControls</code> runs on every value this codebase emits, and there are regression tests for it.</p>
+<p>If you are extending Corsair, anything you write into a header goes through it.</p>
+<h2 id="rate-limiting-and-bans">Rate limiting and bans<a class="anchor" href="#rate-limiting-and-bans" aria-label="Link to this section">#</a></h2>
+<ul><li><strong>10 requests/second</strong> per principal by default (<code>RATE_LIMIT_PER_SECOND</code>).</li><li><strong>5/second per IP</strong> on sign-in and sign-up, where there is no principal yet.</li><li>Authentication failures are recorded, and repeated failures produce a ban.</li></ul>
+<p><code>TRUSTED_PROXIES</code> must be set when anything sits in front of the HTTP port. Without it every request appears to come from the proxy: the limiter sees one client, and a ban bans your own proxy.</p>
+<h2 id="outbound-abuse">Outbound abuse<a class="anchor" href="#outbound-abuse" aria-label="Link to this section">#</a></h2>
+<p>Submission proves the From address belongs to the caller before signing anything. An authenticated user cannot send as a domain they do not own — which is the difference between a mail server and an open relay.</p>
+<p>Forwarded mail is SRS-rewritten. The HMAC in the rewritten address is not optional: without it, the rewritten address is an open relay for anyone who can construct one.</p>
+<p>Daily send limits come from the plan and are counted from <code>mail_log</code>.</p>
+<h2 id="multi-tenancy">Multi-tenancy<a class="anchor" href="#multi-tenancy" aria-label="Link to this section">#</a></h2>
+<p>Every query for a user's resources carries the user id in the <code>WHERE</code> clause; a row that does not belong to the caller is a 404, not a 403 — the distinction leaks existence.</p>
+<p>Plan gating raises a <strong>402</strong> so the panel can render an upgrade prompt. Validation runs before the quota check: a malformed input is invalid regardless of the plan.</p>
+<h2 id="instance-ownership">Instance ownership<a class="anchor" href="#instance-ownership" aria-label="Link to this section">#</a></h2>
+<p>The first account created owns the instance. The claim is made inside the INSERT with <code>NOT EXISTS (SELECT 1 FROM users)</code> and guarded by a partial unique index, so two simultaneous signups cannot both win. Signup catches the duplicate-key error on <em>that constraint specifically</em> and retries as a non-owner.</p>
+<p>Set <code>SIGNUPS=closed</code> on a personal server so only the first account can ever be created.</p>
+<h2 id="what-is-yours">What is yours<a class="anchor" href="#what-is-yours" aria-label="Link to this section">#</a></h2>
+<p>Corsair cannot help with any of this:</p>
+<p><strong>The host.</strong> SSH keys only, a firewall allowing just the mail ports and 443, and patches applied. A compromised host means compromised mail regardless of anything in the application.</p>
+<p><strong><code>.env</code>.</strong> It holds <code>JWT_SECRET</code>, the database password, and the storage keys. Mode 600, owned by the service user, never committed.</p>
+<p><strong>Database backups.</strong> They contain DKIM private keys, password hashes, and encrypted transfer credentials. Encrypt them, and never put one in a bucket whose default is public.</p>
+<p><strong>The bucket.</strong> Objects are written with no ACL and inherit the bucket default. Verify that default is private, especially on a bucket you already use.</p>
+<p><strong><code>JWT_SECRET</code>.</strong> Anyone who knows it can mint a session for any account. Generate it randomly; changing it invalidates every session, which is also how you revoke everything at once.</p>
+<p><strong>Physical access to mail at rest.</strong> Message bodies are not encrypted at rest by Corsair. Use encrypted volumes and an encrypted bucket if your threat model needs it — and understand that a server which can serve IMAP can necessarily read the mail.</p>
+<h2 id="what-corsair-does-not-claim">What Corsair does not claim<a class="anchor" href="#what-corsair-does-not-claim" aria-label="Link to this section">#</a></h2>
+<p><strong>Not end-to-end encrypted.</strong> The server reads message content — it has to, to index, filter, and search. Use PGP or S/MIME in the client if you need content the server cannot read.</p>
+<p><strong>Not a spam-filtering product.</strong> The scorer is heuristic and deliberately conservative: a false positive on real mail is far worse than a false negative. For aggressive filtering, put a dedicated filter in front.</p>
+<p><strong>Not hardened against a hostile operator.</strong> An operator can read every mailbox on the instance. That is inherent to running a mail server, and it is why you should run your own rather than trusting someone else's.</p>
+<h2 id="reporting-a-vulnerability">Reporting a vulnerability<a class="anchor" href="#reporting-a-vulnerability" aria-label="Link to this section">#</a></h2>
+<p>Do not open a public issue. Corsair serves a <code>security.txt</code> at <code>/.well-known/security.txt</code> with the current contact. Include what you did, what happened, and what you expected.</p><nav class="pager"><a class="pager-prev" href="./troubleshooting.html"><span>Previous</span><strong>Troubleshooting</strong></a><a class="pager-next" href="./control-panel.html"><span>Next</span><strong>The control panel</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#two-identities-never-merged">Two identities, never merged</a></li><li class="toc-h2"><a href="#passwords-and-tokens">Passwords and tokens</a></li><li class="toc-h2"><a href="#never-stored">Never stored</a></li><li class="toc-h2"><a href="#transport">Transport</a></li><li class="toc-h2"><a href="#enumeration">Enumeration</a></li><li class="toc-h2"><a href="#server-side-request-forgery">Server-side request forgery</a></li><li class="toc-h2"><a href="#content-sanitisation">Content sanitisation</a></li><li class="toc-h2"><a href="#header-injection">Header injection</a></li><li class="toc-h2"><a href="#rate-limiting-and-bans">Rate limiting and bans</a></li><li class="toc-h2"><a href="#outbound-abuse">Outbound abuse</a></li><li class="toc-h2"><a href="#multi-tenancy">Multi-tenancy</a></li><li class="toc-h2"><a href="#instance-ownership">Instance ownership</a></li><li class="toc-h2"><a href="#what-is-yours">What is yours</a></li><li class="toc-h2"><a href="#what-corsair-does-not-claim">What Corsair does not claim</a></li><li class="toc-h2"><a href="#reporting-a-vulnerability">Reporting a vulnerability</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

@@ -23,6 +23,8 @@ export const icons = {
   eye: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6",
   refresh: "M21 12a9 9 0 1 1-3-6.7M21 3v6h-6",
   download: "M12 3v12M7 10l5 5 5-5M4 21h16",
+  webhook:
+    "M18 16.98h-5.99M6 8a3 3 0 1 1 5.2 2.05L9 14M15.5 12a3 3 0 1 1 1.5 5.6M8.5 17a3 3 0 1 1-2.6-4.5",
 } as const
 
 export const Icon = ({ path, size = 17 }: { path: string; size?: number }) => (

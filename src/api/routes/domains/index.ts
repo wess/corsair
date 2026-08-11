@@ -12,6 +12,7 @@ import {
   zoneFile,
 } from "../../../domains/index.ts"
 import { conflict, invalidParameter, notFound } from "../../../errors/index.ts"
+import { emit } from "../../../events/index.ts"
 import { paginate, parsePageQuery } from "../../../pagination/index.ts"
 import { requireFeature } from "../../../plans/index.ts"
 import {
@@ -110,6 +111,13 @@ export const domainRoutes: Route[] = [
         payload: { domain_id: created.domain.id },
         userId: principalOf(c).userId,
       }).catch(() => {})
+
+      void emit({
+        userId: principalOf(c).userId,
+        domainId: created.domain.id,
+        type: "domain.created",
+        data: { domain: created.domain.name, status: created.domain.status },
+      })
 
       return json(c, 201, domainObject(created.domain, created.records, { addressCount: 0 }))
     },
@@ -417,6 +425,12 @@ export const domainRoutes: Route[] = [
           .where((q) => q("id").equals(domain.id))
           .del(),
       )
+      void emit({
+        userId: principalOf(c).userId,
+        domainId: null,
+        type: "domain.deleted",
+        data: { domain: domain.name },
+      })
       return json(c, 200, { object: "domain", id: domain.id, deleted: true })
     },
   ),

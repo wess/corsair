@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto"
 import { from } from "@atlas/db"
+import { ownerOfDomain } from "../../addresses/index.ts"
 import { config } from "../../config/index.ts"
 import { db } from "../../db/index.ts"
+import { emit } from "../../events/index.ts"
 import { inlineBody, releaseInline } from "../../outbound/index.ts"
 import { type Delivery, deliveries } from "../../schema/index.ts"
 import { getRaw } from "../../storage/index.ts"
@@ -92,6 +94,7 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
             }),
         )
         await releaseInline(row.storage_key)
+        void notify(row, "message.delivered", { code: outcome.code, host: outcome.host })
         result.sent++
         return
       }
@@ -111,17 +114,48 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
               updated_at: new Date(),
             }),
         )
+        void notify(row, "message.deferred", {
+          code: outcome.code,
+          reason: outcome.message.slice(0, 500),
+          attempt: row.attempts,
+        })
         result.deferred++
         return
       }
 
       await fail(row, outcome.code, outcome.message)
       await releaseInline(row.storage_key)
+      void notify(row, "message.bounced", {
+        code: outcome.code,
+        reason: outcome.message.slice(0, 500),
+      })
       result.failed++
     }),
   )
 
   return result
+}
+
+/**
+ * Emits a delivery-state event for the account that owns the sending domain.
+ *
+ * Resolved per event rather than carried on the row: a delivery may outlive the
+ * address it was sent from, and the owner is the thing the hook belongs to.
+ */
+const notify = async (
+  row: Delivery,
+  type: "message.delivered" | "message.deferred" | "message.bounced",
+  data: Record<string, unknown>,
+): Promise<void> => {
+  if (!row.domain_id) return
+  const owner = await ownerOfDomain(row.domain_id).catch(() => null)
+  if (!owner) return
+  await emit({
+    userId: owner,
+    domainId: row.domain_id,
+    type,
+    data: { recipient: row.rcpt_to, sender: row.mail_from, message_id: row.message_id, ...data },
+  })
 }
 
 const fail = async (row: Delivery, code: number, message: string): Promise<void> => {

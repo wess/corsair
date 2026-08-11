@@ -4,6 +4,7 @@ import { z } from "zod"
 import { createAddress, destinationsOf, setPassword } from "../../../addresses/index.ts"
 import { allColumns, db, num } from "../../../db/index.ts"
 import { conflict, invalidParameter, notFound } from "../../../errors/index.ts"
+import { emit } from "../../../events/index.ts"
 import { paginate, parsePageQuery } from "../../../pagination/index.ts"
 import {
   type Address,
@@ -122,6 +123,17 @@ export const addressRoutes: Route[] = [
         password: c.body.password ?? null,
         destinations: c.body.destinations,
         filterId: c.body.filter_id ?? null,
+      })
+
+      void emit({
+        userId: principalOf(c).userId,
+        domainId: domain.id,
+        type: "address.created",
+        data: {
+          address: `${created.address.local_part}@${domain.name}`,
+          type: created.address.type,
+          destinations: created.destinations.map((d) => d.destination),
+        },
       })
 
       return json(
@@ -279,6 +291,12 @@ export const addressRoutes: Route[] = [
         throw invalidParameter("Forwarding addresses have no password.")
       }
       await setPassword(address.id, c.body.password)
+      void emit({
+        userId: principalOf(c).userId,
+        domainId: address.domain_id,
+        type: "address.password_changed",
+        data: { address_id: address.id, local_part: address.local_part },
+      })
       return json(c, 200, { object: "address", id: address.id, password_changed: true })
     },
   ),
@@ -340,6 +358,12 @@ export const addressRoutes: Route[] = [
           values: [address.domain_id, bytes],
         })
       }
+      void emit({
+        userId: principalOf(c).userId,
+        domainId: address.domain_id,
+        type: "address.deleted",
+        data: { address_id: address.id, local_part: address.local_part },
+      })
       return json(c, 200, { object: "address", id: address.id, deleted: true })
     },
   ),

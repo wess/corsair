@@ -8,6 +8,13 @@ Corsair is a self-hostable alternative to a hosted mail provider. It is the mail
 server *and* the panel: you add a domain, publish the DNS records it gives you,
 create mailboxes, and point any mail client at it.
 
+**[Documentation](https://wess.github.io/corsair/docs/)** —
+[quickstart](https://wess.github.io/corsair/docs/quickstart.html) (ten minutes on
+your laptop),
+[your first production server](https://wess.github.io/corsair/docs/tutorials/first-server.html)
+(an hour, on a real VPS), and reference for every setting, endpoint, and
+protocol.
+
 ```
 corsair
 ├── src/
@@ -54,12 +61,18 @@ them because there is only one copy of the mail:
 - **Webmail** — a three-pane client at `/webmail`, signed in with the mailbox
   credential rather than a control-panel one.
 
+**Event hooks.** Corsair POSTs a signed JSON payload to your endpoint when mail
+arrives, bounces, or is filed as spam, and when domains and mailboxes change.
+Signed with the Standard Webhooks scheme, so existing verification libraries
+work unchanged; retried on a widening schedule for about a day; and an endpoint
+that fails twenty times in a row is disabled rather than hammered forever.
+
 **Managing.** A control panel for domains, mailboxes (standard, alias,
 catch-all, group), Sieve filters, IMAP migration from a previous host,
 two-factor authentication, plans, and billing.
 
 **DNS, without the copying.** Corsair detects the domain's provider from its NS
-records and, given an API token, publishes all eleven records itself —
+records and, given an API token, publishes all ten records itself —
 Cloudflare and DigitalOcean today. The token is used once and never stored: a
 DNS token can usually rewrite every record on every domain in an account, and
 holding one to save a paste is a bad trade. Manual setup, a live checker, and a
@@ -190,6 +203,25 @@ until the reader asks, since a remote image in an email is a tracking pixel.
 
 If you would rather run something else, the IMAP and JMAP servers are standard:
 Roundcube, SnappyMail, and any JMAP client work against them unchanged.
+
+## Documentation
+
+`site/` holds the manual — markdown in `site/content`, rendered to static HTML in
+`site/public` by `site/build.ts`.
+
+```sh
+bun run site:build   # render content into site/public
+bun run site:check   # render, then verify every internal link resolves
+```
+
+The same output is served two ways: by this server out of `site/public` for any
+path that is not an API route, and by GitHub Pages via
+`.github/workflows/pages.yml`. Every link the generator emits is relative to the
+page carrying it, so the tree works at a domain root, under a `/corsair/`
+project-page prefix, or opened off a local disk.
+
+`SITE_MODE=pages` swaps the control-panel link for a documentation one, since
+there is no `/app` behind a static host.
 
 ## License
 

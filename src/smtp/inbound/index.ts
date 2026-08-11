@@ -11,6 +11,7 @@ import { config } from "../../config/index.ts"
 import { db } from "../../db/index.ts"
 import { aligned, fromDomainOf, verifySignature } from "../../dkim/index.ts"
 import { activeDkimKey } from "../../domains/index.ts"
+import { emit } from "../../events/index.ts"
 import { queueId, uidValidity } from "../../ids/index.ts"
 import * as mime from "../../mime/index.ts"
 import { enqueue } from "../../outbound/index.ts"
@@ -385,6 +386,30 @@ export const handleMessage = async (
         }),
       )
       .catch((e: unknown) => console.error("[corsair] mail_log insert failed:", e))
+
+    // Fire-and-forget: a customer's endpoint must never hold up an SMTP
+    // transaction, and a failure to notify must never fail a delivery.
+    void emit({
+      userId,
+      domainId: route.kind === "unknown" ? null : route.domain.id,
+      type:
+        outcome.code >= 400
+          ? "message.rejected"
+          : isJunk(verdict)
+            ? "message.spam"
+            : "message.received",
+      data: {
+        recipient,
+        sender: envelope.mailFrom,
+        subject,
+        message_id: messageId,
+        size: normalized.length,
+        spam_score: verdict.score,
+        authentication: { spf: results.spf, dkim: results.dkim, dmarc: results.dmarc },
+        remote_ip: ctx.remoteIp,
+        ...(outcome.code >= 400 ? { reason: outcome.detail, code: outcome.code } : {}),
+      },
+    })
 
     if (outcome.code < 400) accepted++
     else {

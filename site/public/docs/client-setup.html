@@ -4,75 +4,212 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light dark" />
-<title>Client settings — Corsair</title>
-
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏴</text></svg>" />
+<title>Client settings · Corsair</title>
+<meta name="description" content="Hostnames, ports, and per-client notes for every mail client worth naming." />
+<link rel="canonical" href="https://corsair.wess.dev/docs/client-setup.html" />
+<meta property="og:title" content="Client settings" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Hostnames, ports, and per-client notes for every mail client worth naming." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/client-setup.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 </head>
-<body>
-<header class="site-head">
-  <a class="brand" href="../index.html">🏴 Corsair</a>
-  <nav>
-    <a href="../pricing.html">Pricing</a>
-    <a href="../faq.html">FAQ</a>
-    <a href="../docs/index.html">Docs</a>
-    <a href="../contact.html">Contact</a>
-    <a href="../affiliates.html">Affiliates</a>
-    <a class="cta" href="/app">Control panel</a>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="./quickstart.html">Get started</a>
   </nav>
 </header>
-<main>
-<h1 id="client-settings">Client settings</h1>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html" class="active" aria-current="page">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Using Corsair</p></div><h1 id="client-settings">Client settings</h1>
+<p>The settings, then the clients that need help.</p>
+<h2 id="the-settings">The settings<a class="anchor" href="#the-settings" aria-label="Link to this section">#</a></h2>
 <div class='table-wrap'><table><thead><tr>
 <th>Protocol</th>
 <th>Port</th>
 <th>Security</th>
+<th>Authentication</th>
 </tr></thead><tbody>
 <tr>
 <td>IMAP</td>
-<td>993</td>
+<td><strong>993</strong></td>
 <td>SSL/TLS</td>
-</tr>
-<tr>
-<td>IMAP</td>
-<td>143</td>
-<td>STARTTLS</td>
+<td>Normal password</td>
 </tr>
 <tr>
 <td>POP3</td>
-<td>995</td>
+<td><strong>995</strong></td>
 <td>SSL/TLS</td>
+<td>Normal password</td>
 </tr>
 <tr>
 <td>SMTP</td>
-<td>465</td>
+<td><strong>465</strong></td>
 <td>SSL/TLS (implicit)</td>
-</tr>
-<tr>
-<td>SMTP</td>
-<td>587</td>
-<td>STARTTLS</td>
+<td>Normal password</td>
 </tr>
 </tbody></table></div>
-<p><strong>Username is always the full email address</strong> — not the part before the <code>@</code>. A bare local part would be ambiguous across the domains on the server.</p>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Use the implicit-TLS ports. STARTTLS is not available.</p><p>Bun cannot upgrade an accepted socket to TLS, so Corsair has no server-side STARTTLS. It deliberately does <strong>not</strong> advertise it — advertising and then failing loses mail outright, because a peer that has committed to the upgrade cannot fall back.</p>
+<p>The practical consequence: <strong>587, 143, and 110 cannot authenticate.</strong> Corsair refuses a credential on an unencrypted connection, and those ports have no way to become encrypted. A client configured for them will fail to log in.</p>
+<p>Configure 993, 995, and 465. Port 25 is unaffected — it accepts mail from other servers in plaintext, which is what they fall back to.</p></aside>
+<p><strong>Hostname</strong> is whatever the operator set — <code>MAIL_IMAP_HOST</code>, <code>MAIL_SMTP_HOST</code>, and so on. On most installs they are all the same name. The panel's Client Configuration tab shows the exact values for your server.</p>
+<p><strong>Username is always the full email address</strong>, not the part before the <code>@</code>. A bare local part would be ambiguous across the domains on the server.</p>
 <p><strong>Password is the mailbox password</strong>, which is not your control-panel password. They are separate identities on purpose: a mailbox credential ends up in a phone that gets lost, and it must not also unlock the panel.</p>
-<h2 id="automatic-configuration">Automatic configuration</h2>
-<p>If you published the <code>autoconfig</code> and <code>autodiscover</code> CNAMEs, Thunderbird and Outlook find these settings from the email address alone.</p>
-<h2 id="per-client-notes">Per-client notes</h2>
-<h3 id="apple-mail-and-ios">Apple Mail and iOS</h3>
-<p>Choose &quot;Other Mail Account&quot; rather than any of the branded options. Apple Mail occasionally offers to &quot;automatically configure&quot; and gets the outgoing port wrong; set 587 with STARTTLS explicitly if sending fails.</p>
-<h3 id="gmail-app">Gmail app</h3>
-<p>Under &quot;Add account → Other&quot;. Gmail will fetch over IMAP but sends through its own servers unless you also configure the SMTP settings, which it asks for separately — mail sent without doing so will not be DKIM-signed by your domain.</p>
-<h3 id="thunderbird">Thunderbird</h3>
-<p>Works from the address alone if <code>autoconfig</code> is published. Otherwise &quot;Configure manually&quot; and enter the table above.</p>
-<h3 id="outlook">Outlook</h3>
-<p>Modern Outlook resists non-Microsoft IMAP accounts. Use &quot;Advanced setup → IMAP&quot; and enter the settings by hand if autodiscover does not take.</p>
-<h3 id="alias-and-group-addresses">Alias and group addresses</h3>
-<p>They have no password and cannot be signed into. They are routing entries: mail addressed to them is forwarded. To <em>send</em> as an alias, sign in as a real mailbox on the same account and set the From address in your client.</p>
-</main>
-<footer class="site-foot">
-  <p>Corsair is open source email hosting, released under the MIT license.</p>
-  <p><a href="https://github.com/wess/corsair">Source</a> · <a href="../docs/index.html">Docs</a> · <a href="../policies/privacy.html">Privacy</a> · <a href="../policies/acceptable-use.html">Acceptable use</a></p>
+<p>993 and 465 are encrypted from the first byte, which is both the stronger option and — on this server — the only one that works.</p>
+<h2 id="automatic-configuration">Automatic configuration<a class="anchor" href="#automatic-configuration" aria-label="Link to this section">#</a></h2>
+<p>If the operator published the <code>autoconfig</code> and <code>autodiscover</code> CNAMEs, Thunderbird and Outlook find all of this from the email address alone.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Endpoint</th>
+<th>Used by</th>
+</tr></thead><tbody>
+<tr>
+<td><code>/mail/config-v1.1.xml</code></td>
+<td>Thunderbird</td>
+</tr>
+<tr>
+<td><code>/autodiscover/autodiscover.xml</code></td>
+<td>Outlook</td>
+</tr>
+</tbody></table></div>
+<p>Try the address first. Fall back to manual only when it does not take.</p>
+<h2 id="apple-mail-and-ios">Apple Mail and iOS<a class="anchor" href="#apple-mail-and-ios" aria-label="Link to this section">#</a></h2>
+<p>Choose <strong>Other Mail Account</strong>, not any of the branded options.</p>
+<p>Apple Mail sometimes offers to configure automatically and gets the outgoing port wrong. If receiving works but sending fails, set the outgoing server explicitly: <strong>port 465, SSL/TLS</strong>, and <strong>authentication on</strong> — Apple defaults it off often enough to be worth checking, and it will otherwise try 587, which cannot authenticate here.</p>
+<p>On iOS: <strong>Settings → Mail → Accounts → Add Account → Other → Add Mail Account.</strong> Enter the address and password, then correct the hostnames on the next screen.</p>
+<h2 id="thunderbird">Thunderbird<a class="anchor" href="#thunderbird" aria-label="Link to this section">#</a></h2>
+<p>Works from the address alone if <code>autoconfig</code> is published.</p>
+<p>Otherwise <strong>Configure manually</strong> and enter the table above. Thunderbird's &quot;Re-test&quot; button is honest — if it cannot find a working combination, the settings really are wrong.</p>
+<h2 id="outlook">Outlook<a class="anchor" href="#outlook" aria-label="Link to this section">#</a></h2>
+<p>Modern Outlook resists non-Microsoft IMAP accounts and will try to convert you to a Microsoft-hosted account.</p>
+<p><strong>File → Add Account → Advanced options → Let me set up my account manually → IMAP.</strong> If autodiscover does not take, enter the settings by hand.</p>
+<p>Outlook on the web cannot connect to third-party IMAP at all. That is a Microsoft limitation.</p>
+<h2 id="gmail-app-and-gmail-on-the-web">Gmail app and Gmail on the web<a class="anchor" href="#gmail-app-and-gmail-on-the-web" aria-label="Link to this section">#</a></h2>
+<p>Under <strong>Add account → Other</strong>.</p>
+<p>Gmail will fetch over IMAP happily, but it sends through Google's servers unless you configure the SMTP settings too — which it asks for separately, and which is easy to skip. Mail sent without doing so is <strong>not DKIM-signed by your domain</strong> and will fail your own DMARC policy.</p>
+<p>Configure both halves or neither.</p>
+<h2 id="mutt-aerc-and-friends">Mutt, aerc, and friends<a class="anchor" href="#mutt-aerc-and-friends" aria-label="Link to this section">#</a></h2>
+<figure class="code"><pre><code># ~/.muttrc
+set imap_user  = &quot;you@example.com&quot;
+set imap_pass  = &quot;your-mailbox-password&quot;
+set folder     = &quot;imaps://mail.example.com:993&quot;
+set spoolfile  = &quot;+INBOX&quot;
+set record     = &quot;+Sent&quot;
+set postponed  = &quot;+Drafts&quot;
+set trash      = &quot;+Trash&quot;
+
+set smtp_url  = &quot;smtps://you@example.com@mail.example.com:465&quot;
+set smtp_pass = &quot;your-mailbox-password&quot;
+set from      = &quot;you@example.com&quot;</code></pre></figure>
+<p>Corsair advertises <code>IDLE</code>, so <code>set imap_idle = yes</code> works.</p>
+<h2 id="any-jmap-client">Any JMAP client<a class="anchor" href="#any-jmap-client" aria-label="Link to this section">#</a></h2>
+<p>Session resource at <code>https://mail.example.com/.well-known/jmap</code>, authenticated with HTTP Basic using the address and mailbox password. See <a href="jmap.html">JMAP</a>.</p>
+<h2 id="roundcube-snappymail-and-other-webmail">Roundcube, SnappyMail, and other webmail<a class="anchor" href="#roundcube-snappymail-and-other-webmail" aria-label="Link to this section">#</a></h2>
+<p>The IMAP and SMTP servers are standard, so any of them work unchanged. Point them at <strong>993 and 465</strong> with the full address as the username.</p>
+<p>Corsair also ships <a href="webmail.html">its own webmail</a> at <code>/webmail</code> if you would rather not run another thing.</p>
+<h2 id="alias-and-group-addresses">Alias and group addresses<a class="anchor" href="#alias-and-group-addresses" aria-label="Link to this section">#</a></h2>
+<p>They have <strong>no password</strong> and cannot be signed into. They are routing entries: mail addressed to them is forwarded.</p>
+<p>To <em>send</em> as an alias, sign in as a real mailbox on the same account and set the From address in your client. Most clients call this an &quot;identity&quot; or &quot;send mail as&quot;.</p>
+<h2 id="when-a-client-will-not-connect">When a client will not connect<a class="anchor" href="#when-a-client-will-not-connect" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>What it says</th>
+<th>What it means</th>
+</tr></thead><tbody>
+<tr>
+<td>&quot;Certificate not trusted&quot;</td>
+<td>Self-signed, or the chain is incomplete. The server needs <code>fullchain.pem</code>, not the leaf</td>
+</tr>
+<tr>
+<td>&quot;Name does not match&quot;</td>
+<td>The certificate is for a different hostname than you dialled</td>
+</tr>
+<tr>
+<td>&quot;Server does not support authentication&quot;</td>
+<td>You are on 587, 143, or 110. Those cannot be encrypted on this server, and Corsair will not accept a password in the clear. Use 993, 995, or 465</td>
+</tr>
+<tr>
+<td>&quot;Wrong password&quot;</td>
+<td>Mailbox password, not the panel password. Or the address is an alias, which has none</td>
+</tr>
+<tr>
+<td>&quot;Cannot find server&quot;</td>
+<td>Check the hostname against the panel's Client Configuration tab</td>
+</tr>
+</tbody></table></div>
+<p>Verify from the command line, which removes the client from the equation:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>openssl s_client -connect mail.example.com:993 -servername mail.example.com
+a LOGIN you@example.com your-password
+a LIST &quot;&quot; &quot;*&quot;
+a LOGOUT</code></pre></figure>
+<h2 id="pop3-and-why-you-probably-do-not-want-it">POP3, and why you probably do not want it<a class="anchor" href="#pop3-and-why-you-probably-do-not-want-it" aria-label="Link to this section">#</a></h2>
+<p>POP3 downloads and, by default, deletes. It has no folders, no flags shared between devices, and no concept of a second client.</p>
+<p>It exists for the clients that still want it, and for a device that genuinely should drain a mailbox to local storage. For anything else, use IMAP.</p>
+<p>If you must: <strong>995 with SSL/TLS</strong> (not 110, which cannot authenticate), full address as the username, and turn <strong>off</strong> &quot;delete from server&quot; unless removal is the point.</p><nav class="pager"><a class="pager-prev" href="./addresses.html"><span>Previous</span><strong>Addresses</strong></a><a class="pager-next" href="./webmail.html"><span>Next</span><strong>Webmail</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#the-settings">The settings</a></li><li class="toc-h2"><a href="#automatic-configuration">Automatic configuration</a></li><li class="toc-h2"><a href="#apple-mail-and-ios">Apple Mail and iOS</a></li><li class="toc-h2"><a href="#thunderbird">Thunderbird</a></li><li class="toc-h2"><a href="#outlook">Outlook</a></li><li class="toc-h2"><a href="#gmail-app-and-gmail-on-the-web">Gmail app and Gmail on the web</a></li><li class="toc-h2"><a href="#mutt-aerc-and-friends">Mutt, aerc, and friends</a></li><li class="toc-h2"><a href="#any-jmap-client">Any JMAP client</a></li><li class="toc-h2"><a href="#roundcube-snappymail-and-other-webmail">Roundcube, SnappyMail, and other webmail</a></li><li class="toc-h2"><a href="#alias-and-group-addresses">Alias and group addresses</a></li><li class="toc-h2"><a href="#when-a-client-will-not-connect">When a client will not connect</a></li><li class="toc-h2"><a href="#pop3-and-why-you-probably-do-not-want-it">POP3, and why you probably do not want it</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
 </footer>
+<script src="../docs.js" defer></script>
 </body>
 </html>

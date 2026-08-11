@@ -1,5 +1,6 @@
 import { startApi } from "./api/index.ts"
 import { config } from "./config/index.ts"
+import { installCrashGuards } from "./resilience/index.ts"
 
 /**
  * The HTTP server on its own: the API, the control panel, the webmail, and
@@ -9,4 +10,5 @@ import { config } from "./config/index.ts"
  *
  * `start.ts` runs everything in one process, which is what a single box wants.
  */
+installCrashGuards()
 startApi(config.port)

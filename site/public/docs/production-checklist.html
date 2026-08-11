@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Production checklist · Corsair</title>
+<meta name="description" content="What to verify before you point a real domain at a Corsair install, and how to check each one." />
+<link rel="canonical" href="https://corsair.wess.dev/docs/production-checklist.html" />
+<meta property="og:title" content="Production checklist" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="What to verify before you point a real domain at a Corsair install, and how to check each one." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/production-checklist.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="./quickstart.html">Get started</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html" class="active" aria-current="page">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Install and operate</p></div><h1 id="production-checklist">Production checklist</h1>
+<p>Work down this before you publish an MX record that real people depend on. Each item has a command that either passes or does not — nothing here relies on believing the configuration is right.</p>
+<h2 id="host">Host<a class="anchor" href="#host" aria-label="Link to this section">#</a></h2>
+<ul><li class="task"><span class="box" aria-hidden="true"></span><strong>Static IP.</strong> Not a dynamic or residential address. Those are on the Policy Block List by construction and no configuration fixes it.</li><li class="task"><p><span class="box" aria-hidden="true"></span><strong>PTR matches, both directions.</strong></p><figure class="code"><span class="code-lang">sh</span><pre><code>dig +short mail.example.com          # → 203.0.113.9
+dig +short -x 203.0.113.9            # → mail.example.com.</code></pre></figure></li><li class="task"><p><span class="box" aria-hidden="true"></span><strong>Outbound port 25 open.</strong></p><figure class="code"><span class="code-lang">sh</span><pre><code>nc -zv gmail-smtp-in.l.google.com 25</code></pre></figure>
+<p>If it hangs, set <code>DELIVERY_TRANSPORT=relay</code> and point at a smarthost.</p></li><li class="task"><p><span class="box" aria-hidden="true"></span><strong>Inbound port 25 reachable.</strong> From somewhere else:</p><figure class="code"><span class="code-lang">sh</span><pre><code>nc -zv mail.example.com 25</code></pre></figure></li><li class="task"><p><span class="box" aria-hidden="true"></span><strong>IP not on a blocklist.</strong></p><figure class="code"><span class="code-lang">sh</span><pre><code>dig +short 9.113.0.203.zen.spamhaus.org     # reversed octets; no answer = clean</code></pre></figure></li><li class="task"><p><span class="box" aria-hidden="true"></span><strong>Clock synchronised.</strong> DKIM signatures, webhook timestamps, and TOTP all depend on it.</p><figure class="code"><span class="code-lang">sh</span><pre><code>timedatectl status | grep -i synchronized</code></pre></figure></li></ul>
+<h2 id="configuration">Configuration<a class="anchor" href="#configuration" aria-label="Link to this section">#</a></h2>
+<ul><li class="task"><span class="box" aria-hidden="true"></span><strong><code>JWT_SECRET</code> changed</strong> from the default and generated randomly. Anyone who knows it can mint a session for any account.</li><li class="task"><p><span class="box" aria-hidden="true"></span><strong><code>DELIVERY_TRANSPORT</code> is not <code>console</code>.</strong> The default delivers nothing.</p><figure class="code"><span class="code-lang">sh</span><pre><code>grep DELIVERY_TRANSPORT .env</code></pre></figure></li><li class="task"><span class="box" aria-hidden="true"></span><strong><code>SIGNUPS=closed</code></strong> unless you intend to host mail for strangers.</li><li class="task"><span class="box" aria-hidden="true"></span><strong><code>TRUSTED_PROXIES</code> set</strong> if anything sits in front of the HTTP port. Without it every request looks like <code>127.0.0.1</code> and the rate limiter treats the internet as one client.</li><li class="task"><span class="box" aria-hidden="true"></span><strong><code>PUBLIC_URL</code> is the real HTTPS URL.</strong> It goes into password reset and verification emails.</li><li class="task"><p><span class="box" aria-hidden="true"></span><strong>Ports are the real ones</strong> — 25, 587, 465, 143, 993, 110, 995 — and the binary can bind them.</p><figure class="code"><span class="code-lang">sh</span><pre><code>sudo ss -lntp | grep bun</code></pre></figure></li><li class="task"><span class="box" aria-hidden="true"></span><strong><code>.env</code> is mode 600</strong> and owned by the service user. It holds the database password, the JWT secret, and your storage keys.</li></ul>
+<h2 id="tls">TLS<a class="anchor" href="#tls" aria-label="Link to this section">#</a></h2>
+<ul><li class="task"><p><span class="box" aria-hidden="true"></span><strong>Certificate valid for <code>CORSAIR_HOSTNAME</code></strong>, chain complete.</p><figure class="code"><span class="code-lang">sh</span><pre><code>openssl s_client -connect mail.example.com:993 -servername mail.example.com &lt;/dev/null 2&gt;&amp;1 \
+  | grep -i 'verify return code'</code></pre></figure>
+<p><code>0 (ok)</code> or it is not done.</p></li><li class="task"><p><span class="box" aria-hidden="true"></span>**Renewal automated <em>and</em> the reload hook installed.** Renewal without a restart is the failure mode of almost every mail server on the internet.</p><figure class="code"><span class="code-lang">sh</span><pre><code>sudo certbot renew --dry-run
+ls /etc/letsencrypt/renewal-hooks/deploy/</code></pre></figure></li><li class="task"><span class="box" aria-hidden="true"></span><strong>Panel behind HTTPS.</strong> Corsair serves plain HTTP; terminate in front.</li></ul>
+<h2 id="database">Database<a class="anchor" href="#database" aria-label="Link to this section">#</a></h2>
+<ul><li class="task"><p><span class="box" aria-hidden="true"></span><strong>Migrations applied.</strong></p><figure class="code"><span class="code-lang">sh</span><pre><code>bun scripts/migrate.ts status     # every row &quot;applied&quot;
+bun scripts/migrate.ts diff       # &quot;schema in sync&quot;</code></pre></figure></li><li class="task"><span class="box" aria-hidden="true"></span><strong>Not using the default password.</strong> <code>postgres://corsair:corsair@…</code> is the development default.</li><li class="task"><p><span class="box" aria-hidden="true"></span><strong>Postgres not listening on a public interface</strong> unless you meant it.</p><figure class="code"><span class="code-lang">sh</span><pre><code>sudo ss -lntp | grep 5432</code></pre></figure></li></ul>
+<h2 id="storage">Storage<a class="anchor" href="#storage" aria-label="Link to this section">#</a></h2>
+<ul><li class="task"><span class="box" aria-hidden="true"></span><strong>Bucket configured</strong> if you expect any volume. Without one, bodies go through the WAL.</li><li class="task"><p><span class="box" aria-hidden="true"></span><strong>Bucket is private.</strong> Objects are written with no ACL and inherit the bucket default. Check it, especially on a bucket you already use for something else.</p><figure class="code"><span class="code-lang">sh</span><pre><code>curl -sI &quot;https://BUCKET.REGION.digitaloceanspaces.com/corsair/...&quot; | head -1</code></pre></figure>
+<p>A <code>403</code> is correct. A <code>200</code> means your mail is public.</p></li></ul>
+<h2 id="dns-per-domain">DNS, per domain<a class="anchor" href="#dns-per-domain" aria-label="Link to this section">#</a></h2>
+<ul><li class="task"><span class="box" aria-hidden="true"></span><strong>Domain shows active</strong> in the panel.</li><li class="task"><span class="box" aria-hidden="true"></span><strong>SPF</strong> published and includes <code>MAIL_SPF_HOST</code>.</li><li class="task"><span class="box" aria-hidden="true"></span><strong>DKIM CNAME</strong> published for the <strong>active</strong> selector.</li><li class="task"><span class="box" aria-hidden="true"></span><strong>DMARC</strong> published, starting at <code>p=quarantine</code>.</li><li class="task"><span class="box" aria-hidden="true"></span><strong>MX</strong> points here — and this is the cutover, so do it last.</li></ul>
+<figure class="code"><span class="code-lang">sh</span><pre><code>dig +short TXT example.com
+dig +short TXT _dmarc.example.com
+dig +short CNAME corsair-1._domainkey.example.com
+dig +short MX example.com</code></pre></figure>
+<h2 id="a-real-round-trip">A real round trip<a class="anchor" href="#a-real-round-trip" aria-label="Link to this section">#</a></h2>
+<p>The only test that matters. Send to an address at a large provider and read the headers of what arrives:</p>
+<figure class="code"><pre><code>Authentication-Results: mx.google.com;
+       spf=pass ...
+       dkim=pass header.i=@example.com header.s=corsair-1
+       dmarc=pass (p=QUARANTINE ...)</code></pre></figure>
+<p>Three passes. Then send <em>to</em> the domain from outside and confirm it lands.</p>
+<ul><li class="task"><span class="box" aria-hidden="true"></span>Outbound: <code>spf=pass</code>, <code>dkim=pass</code>, <code>dmarc=pass</code></li><li class="task"><span class="box" aria-hidden="true"></span>Inbound: arrives, and the <code>Authentication-Results</code> header Corsair stamped shows what it made of the sender</li><li class="task"><span class="box" aria-hidden="true"></span>A client connects over IMAP 993 and SMTP 587</li></ul>
+<h2 id="operations">Operations<a class="anchor" href="#operations" aria-label="Link to this section">#</a></h2>
+<ul><li class="task"><span class="box" aria-hidden="true"></span><strong>Backups running</strong>, encrypted, and <strong>restored at least once</strong>. See the <a href="tutorials/backup-drill.html">restore drill</a>. A backup you have never restored is a file you hope about.</li><li class="task"><span class="box" aria-hidden="true"></span><strong>Backup failures alert.</strong> A cron that never ran sends no failure mail either — alert on the absence of success.</li><li class="task"><span class="box" aria-hidden="true"></span><strong>Monitoring</strong> on: the process, the queue depth, certificate expiry, disk, and the bounce rate. See <a href="monitoring.html">Monitoring</a>.</li><li class="task"><span class="box" aria-hidden="true"></span><strong>Log retention</strong> decided. Mail logs contain sender and recipient addresses.</li><li class="task"><p><span class="box" aria-hidden="true"></span><strong>Service restarts on boot.</strong></p><figure class="code"><span class="code-lang">sh</span><pre><code>systemctl is-enabled corsair</code></pre></figure></li><li class="task"><span class="box" aria-hidden="true"></span><strong>You know how to read the queue</strong> before you need to at 3am.</li></ul>
+<h2 id="security">Security<a class="anchor" href="#security" aria-label="Link to this section">#</a></h2>
+<ul><li class="task"><span class="box" aria-hidden="true"></span><strong>Two-factor on the owner account.</strong> It controls every domain.</li><li class="task"><span class="box" aria-hidden="true"></span><strong>Firewall</strong> allows only 25, 465, 587, 143, 993, 110, 995, 443, and SSH.</li><li class="task"><span class="box" aria-hidden="true"></span><strong>SSH keys only</strong>, password authentication off.</li><li class="task"><span class="box" aria-hidden="true"></span><strong><code>WEBHOOK_ALLOW_PRIVATE</code> left <code>false</code></strong> unless consumers really are on the same private network.</li><li class="task"><span class="box" aria-hidden="true"></span><strong>Rate limits reviewed.</strong> <code>RATE_LIMIT_PER_SECOND</code> defaults to 10.</li></ul>
+<p>See <a href="security.html">Security model</a> for what Corsair defends against and what it does not.</p>
+<h2 id="deliverability">Deliverability<a class="anchor" href="#deliverability" aria-label="Link to this section">#</a></h2>
+<ul><li class="task"><span class="box" aria-hidden="true"></span><strong>Volume ramped, not dumped.</strong> A new IP sending a thousand messages on day one looks exactly like a compromised host.</li><li class="task"><span class="box" aria-hidden="true"></span><strong>MTA-STS in <code>testing</code> mode</strong> to start. Going straight to <code>enforce</code> with a wrong MX list silently blackholes inbound mail.</li><li class="task"><span class="box" aria-hidden="true"></span><strong>A plan for bounces.</strong> Treat a <code>5xx</code> as permanent and stop sending there.</li></ul>
+<p><a href="deliverability.html">Deliverability</a> covers the reputation side.</p>
+<h2 id="the-last-one">The last one<a class="anchor" href="#the-last-one" aria-label="Link to this section">#</a></h2>
+<ul><li class="task"><span class="box" aria-hidden="true"></span><strong>Someone other than you can find the runbook.</strong> Where the backups are, how to restart it, and who to call about the IP. Self-hosted mail has a bus factor of one by default.</li></ul><nav class="pager"><a class="pager-prev" href="./tls.html"><span>Previous</span><strong>TLS certificates</strong></a><a class="pager-next" href="./backups.html"><span>Next</span><strong>Backups and restore</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#host">Host</a></li><li class="toc-h2"><a href="#configuration">Configuration</a></li><li class="toc-h2"><a href="#tls">TLS</a></li><li class="toc-h2"><a href="#database">Database</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#dns-per-domain">DNS, per domain</a></li><li class="toc-h2"><a href="#a-real-round-trip">A real round trip</a></li><li class="toc-h2"><a href="#operations">Operations</a></li><li class="toc-h2"><a href="#security">Security</a></li><li class="toc-h2"><a href="#deliverability">Deliverability</a></li><li class="toc-h2"><a href="#the-last-one">The last one</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

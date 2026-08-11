@@ -398,6 +398,67 @@ const run = async () => {
     await unsignedWebhook.text(),
   )
 
+  section("event hooks")
+  const catalogue = await call("GET", "/api/webhooks/events")
+  check(
+    "the event catalogue is served",
+    catalogue.body?.data?.length > 10,
+    catalogue.body?.data?.length,
+  )
+
+  const badUrl = await call("POST", "/api/webhooks", { url: "not-a-url" })
+  check("a malformed URL is refused", badUrl.status === 400, badUrl.body)
+
+  // The guard matters: the customer supplies the URL and the server fetches it,
+  // which is a server-side request forgery primitive if left open.
+  for (const [label, url] of [
+    ["a link-local address", "http://169.254.169.254/latest/meta-data/"],
+    ["localhost", "http://localhost:9999/x"],
+    ["a private range", "http://10.0.0.5/hook"],
+    ["loopback", "http://127.0.0.1:9999/hook"],
+  ] as const) {
+    const refused = await call("POST", "/api/webhooks", { url })
+    check(`${label} is refused`, refused.status === 400, refused.body)
+  }
+
+  const badEvent = await call("POST", "/api/webhooks", {
+    url: "https://example.com/hook",
+    events: ["nonsense.thing"],
+  })
+  check("an unknown event type is refused", badEvent.status === 400, badEvent.body)
+
+  const hook = await call("POST", "/api/webhooks", {
+    url: "https://example.com/hook",
+    events: ["domain.*", "address.created"],
+    description: "smoke",
+  })
+  check("a hook can be created", hook.status === 201, hook.body)
+  check(
+    "the secret is returned once, in full",
+    String(hook.body?.signing_secret).startsWith("whsec_"),
+  )
+
+  const fetched = await call("GET", `/api/webhooks/${hook.body?.id}`)
+  check(
+    "and never again",
+    String(fetched.body?.signing_secret).endsWith("\u2026"),
+    fetched.body?.signing_secret,
+  )
+
+  const rotated = await call("POST", `/api/webhooks/${hook.body?.id}/rotate`)
+  check(
+    "rotation returns a new secret",
+    String(rotated.body?.signing_secret).startsWith("whsec_") &&
+      rotated.body?.signing_secret !== hook.body?.signing_secret,
+    rotated.body?.signing_secret,
+  )
+
+  const events = await call("GET", `/api/webhooks/${hook.body?.id}/events`)
+  check("its delivery log is listable", events.status === 200, events.body)
+
+  const removed = await call("DELETE", `/api/webhooks/${hook.body?.id}`)
+  check("a hook can be deleted", removed.status === 200, removed.body)
+
   section("public endpoints")
   const autoconfig = await fetch(`${BASE}/mail/config-v1.1.xml?emailaddress=me@${domainName}`)
   const autoconfigBody = await autoconfig.text()

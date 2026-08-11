@@ -1,5 +1,6 @@
 import { clearAuthFailures, isBanned, recordAuthFailure } from "../auth/index.ts"
 import { config } from "../config/index.ts"
+import { canUpgradeServerSocketToTls, warnIfStartTlsUnavailable } from "../starttls/index.ts"
 import * as inbound from "./inbound/index.ts"
 import { createSession, type Identity, type Session, type SessionMode } from "./session/index.ts"
 import * as submission from "./submission/index.ts"
@@ -48,7 +49,10 @@ const createListener = (input: {
   tls: { cert: string; key: string } | null
   label: string
 }) => {
-  const canStartTls = Boolean(input.tls) && !input.implicitTls
+  // Never advertise STARTTLS the runtime cannot actually perform: a sender
+  // that takes us up on it gets its connection dropped mid-handshake and
+  // defers rather than falling back. See src/starttls.
+  const canStartTls = Boolean(input.tls) && !input.implicitTls && canUpgradeServerSocketToTls()
 
   const handlers = {
     open(socket: Bun.Socket<SocketData>) {
@@ -184,6 +188,10 @@ export const startSmtp = async (): Promise<void> => {
     console.warn(
       "[corsair] no TLS certificate configured — STARTTLS is unavailable and SMTP AUTH will be refused.",
     )
+  } else {
+    // Emitted once, from the SMTP listener rather than all three, because port
+    // 25 is where the consequence actually bites.
+    warnIfStartTlsUnavailable()
   }
 
   createListener({

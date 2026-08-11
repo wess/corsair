@@ -1,0 +1,65 @@
+name: Documentation
+
+# Builds site/content into site/public and publishes it to GitHub Pages.
+#
+# The generator emits links relative to the page carrying them, so the same
+# output works at a domain root, under a /corsair/ project-page prefix, or off a
+# local disk. Only SITE_URL — used for canonical tags and the sitemap — has to
+# know where it will live.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# A queued run supersedes a pending one, but never cancels a publish in flight.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Before the build: it reports the base URL the site will be served from.
+      - uses: actions/configure-pages@v5
+        id: pages
+
+      - name: Build the site
+        env:
+          # `pages` swaps the control-panel link for a documentation one; there
+          # is no /app behind a static host.
+          SITE_MODE: pages
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
+        run: bun site/build.ts
+
+      - name: Check every internal link resolves
+        run: bun site/check.ts
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Domains · Corsair</title>
+<meta name="description" content="Adding a domain, verifying it, rotating DKIM keys, fallback domains, and removing one safely." />
+<link rel="canonical" href="https://corsair.wess.dev/docs/domains.html" />
+<meta property="og:title" content="Domains" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Adding a domain, verifying it, rotating DKIM keys, fallback domains, and removing one safely." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/domains.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="./quickstart.html">Get started</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html" class="active" aria-current="page">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Using Corsair</p></div><h1 id="domains">Domains</h1>
+<p>A domain is the unit of routing and the unit of proof. Corsair accepts mail for domains it hosts and refuses everything else, and it will not send from a domain until that domain's authentication records exist.</p>
+<h2 id="adding-one">Adding one<a class="anchor" href="#adding-one" aria-label="Link to this section">#</a></h2>
+<p><strong>Domains → New domain.</strong> Corsair normalises what you type — case, a trailing dot, an accidental <code>https://</code> — and then generates:</p>
+<ul><li>a <strong>verification token</strong>, unique to the domain</li><li><strong>three DKIM key pairs</strong>, with the first active</li><li>the full <strong>record set</strong> to publish</li></ul>
+<p>Nothing routes yet. The domain is <strong>pending</strong> until its required records resolve.</p>
+<h2 id="pending-versus-active">Pending versus active<a class="anchor" href="#pending-versus-active" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>State</th>
+<th>Receives mail</th>
+<th>Sends mail</th>
+</tr></thead><tbody>
+<tr>
+<td>Pending</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Active</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+</tbody></table></div>
+<p>Accepting before verification is deliberate — you may be migrating and want mail arriving before you have finished DNS. Refusing to <em>send</em> is also deliberate, and firmer: sending from a domain whose SPF and DKIM are not published damages the sending IP's reputation for every other domain on the server.</p>
+<h2 id="verifying">Verifying<a class="anchor" href="#verifying" aria-label="Link to this section">#</a></h2>
+<p>Press <strong>Check DNS</strong>. The worker also re-checks pending domains every half hour on its own, because people publish records and never come back to press the button.</p>
+<p>When a record does not match, the panel shows what it actually observed. The recurring causes:</p>
+<ul><li>The provider appended the domain to a host that was already fully qualified, giving <code>_dmarc.example.com.example.com</code></li><li>A quoted value stored <strong>with</strong> its quotes</li><li>Two <code>v=spf1</code> records, which is a permanent error that stops SPF working entirely</li><li>The record is correct but has not propagated — a record can take up to the previous record's TTL to become visible</li></ul>
+<p><a href="dns-setup.html">DNS setup</a> covers every record and what breaks without it.</p>
+<h2 id="publishing-automatically">Publishing automatically<a class="anchor" href="#publishing-automatically" aria-label="Link to this section">#</a></h2>
+<p>If the domain's DNS is at Cloudflare or DigitalOcean, Corsair detects the provider from the NS records and can write all ten records itself. Paste an API token and press publish.</p>
+<aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span>The token is used once and discarded</p><p>It is never stored. A DNS API token can usually rewrite every record on every domain in the account, and holding one to save a paste is a bad trade. If you need to publish again later, you paste it again.</p></aside>
+<p>Scope the token as tightly as the provider allows — Cloudflare's <strong>Zone → DNS → Edit</strong>, restricted to the one zone.</p>
+<p>Manual setup, the live checker, and a zone-file export are always available too.</p>
+<h2 id="dkim-keys-and-rotation">DKIM keys and rotation<a class="anchor" href="#dkim-keys-and-rotation" aria-label="Link to this section">#</a></h2>
+<p>Three key pairs are created per domain. Only the first has to be published; the others exist so a rotation is a flag flip rather than a support ticket.</p>
+<p>They are published as <strong>CNAMEs</strong>, not TXT records. A 2048-bit key does not fit in a single TXT string, half the DNS control panels in the world mangle the chunked form, and a CNAME lets the key rotate on the server without you touching DNS again.</p>
+<h3 id="rotating-without-a-gap">Rotating without a gap<a class="anchor" href="#rotating-without-a-gap" aria-label="Link to this section">#</a></h3>
+<ol><li><strong>Publish the CNAME for the next selector</strong> — <code>corsair-2._domainkey</code> — and wait for it to resolve. Signing has not changed; you are only making the key available.</li><li><strong>Activate it</strong> in Domains → Keys. New mail signs with selector 2.</li><li><strong>Leave selector 1 published</strong> for at least a week. Mail already in flight was signed with it, and a receiver that verifies late needs the record to still be there.</li><li>Remove selector 1's CNAME once nothing signed with it can plausibly still be in transit.</li></ol>
+<p>Rotating in the other order — activating before the record resolves — means every message signs with a key nobody can verify, which is worse than not signing at all.</p>
+<h2 id="catch-all">Catch-all<a class="anchor" href="#catch-all" aria-label="Link to this section">#</a></h2>
+<p>A catch-all is a <strong>mailbox</strong> that also receives anything in the domain that matched nothing else. Set it in Domains → Settings.</p>
+<p>It is the last step in recipient resolution, after an exact match and after sub-addressing. So adding a real address later always takes precedence, and nothing needs rewiring.</p>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>A catch-all attracts spam</p><p>Once a domain is known to accept everything, dictionary attacks file into it. If the volume gets bad, drop it — <a href="addresses.html">sub-addressing</a> gives you <code>you+anything@</code> with no setup and no catch-all.</p></aside>
+<h2 id="fallback-domains">Fallback domains<a class="anchor" href="#fallback-domains" aria-label="Link to this section">#</a></h2>
+<p>A fallback sends unmatched recipients on to another domain, followed <strong>exactly once</strong>. Following it twice is how you build a loop, so Corsair does not.</p>
+<p>Use it when consolidating: <code>oldcompany.com</code> falls back to <code>newcompany.com</code>, and <code>sam@oldcompany.com</code> reaches <code>sam@newcompany.com</code> without you recreating every address.</p>
+<p>This is a plan feature (<code>fallback_domains</code>). On an unmetered instance — no plans configured — everything is on.</p>
+<h2 id="recipient-resolution-in-order">Recipient resolution, in order<a class="anchor" href="#recipient-resolution-in-order" aria-label="Link to this section">#</a></h2>
+<p>For any address at a hosted domain:</p>
+<ol><li>An exact address match</li><li>Sub-addressing — <code>user+tag@</code> routes to <code>user@</code></li><li>The domain's catch-all</li><li>The domain's fallback domain, once</li></ol>
+<p>No match is a rejection at SMTP time with a 550. Corsair does not accept-then-bounce: a bounce to a forged sender is backscatter, and refusing during the transaction puts the problem back where it belongs.</p>
+<h2 id="self-service-recovery">Self-service recovery<a class="anchor" href="#self-service-recovery" aria-label="Link to this section">#</a></h2>
+<p>Enable it per domain and set a <strong>recovery address</strong> per mailbox, and the mailbox owner can reset their own password at <code>/recover</code> without going through you.</p>
+<p>The reset link goes to the recovery address, never to the mailbox itself — which would be useless to someone locked out of it.</p>
+<p>The request endpoint answers identically whether or not the address exists. Making it more helpful turns it into a way to enumerate your mailboxes.</p>
+<p>A plan feature (<code>self_service</code>).</p>
+<h2 id="removing-a-domain">Removing a domain<a class="anchor" href="#removing-a-domain" aria-label="Link to this section">#</a></h2>
+<p>Deleting a domain deletes its addresses, and deleting an address deletes its mail. There is no trash.</p>
+<p>Before you do:</p>
+<ol><li><strong>Back up.</strong> <a href="backups.html">Backups</a>.</li><li><strong>Remove the MX first</strong> and let the TTL expire, so senders stop trying to deliver here before the domain stops existing.</li><li><strong>Check for aliases pointing at it</strong> from other domains.</li></ol>
+<p>If you only want to stop <em>sending</em> from a domain, remove its SPF include instead. Deleting is for a domain you are finished with.</p>
+<h2 id="several-domains-one-account">Several domains, one account<a class="anchor" href="#several-domains-one-account" aria-label="Link to this section">#</a></h2>
+<p>There is no limit beyond the plan's <code>max_domains</code>, and each has its own DKIM keys, catch-all, and addresses. They share the account's storage quota, daily limits, and filters — a filter belongs to the account and can be attached to mailboxes on any domain.</p>
+<p>The same server sends for all of them, which is why one domain's bad sending behaviour affects the others. That is the reason the pending/active distinction is enforced rather than advisory.</p><nav class="pager"><a class="pager-prev" href="./control-panel.html"><span>Previous</span><strong>The control panel</strong></a><a class="pager-next" href="./addresses.html"><span>Next</span><strong>Addresses</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#adding-one">Adding one</a></li><li class="toc-h2"><a href="#pending-versus-active">Pending versus active</a></li><li class="toc-h2"><a href="#verifying">Verifying</a></li><li class="toc-h2"><a href="#publishing-automatically">Publishing automatically</a></li><li class="toc-h2"><a href="#dkim-keys-and-rotation">DKIM keys and rotation</a></li><li class="toc-h3"><a href="#rotating-without-a-gap">Rotating without a gap</a></li><li class="toc-h2"><a href="#catch-all">Catch-all</a></li><li class="toc-h2"><a href="#fallback-domains">Fallback domains</a></li><li class="toc-h2"><a href="#recipient-resolution-in-order">Recipient resolution, in order</a></li><li class="toc-h2"><a href="#self-service-recovery">Self-service recovery</a></li><li class="toc-h2"><a href="#removing-a-domain">Removing a domain</a></li><li class="toc-h2"><a href="#several-domains-one-account">Several domains, one account</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

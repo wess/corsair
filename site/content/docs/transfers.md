@@ -1,5 +1,10 @@
 ---
 title: Transfers
+description: Copying an existing mailbox in over IMAP, folder structure and flags intact.
+section: using
+order: 7
+short: Transfers
+eyebrow: Using Corsair
 ---
 
 # Transfers

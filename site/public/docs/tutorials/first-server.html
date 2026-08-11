@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Your first production server · Corsair</title>
+<meta name="description" content="Take a blank VPS to delivered, authenticated mail — host, DNS, TLS, domain, mailbox, and a verified round trip." />
+<link rel="canonical" href="https://corsair.wess.dev/docs/tutorials/first-server.html" />
+<meta property="og:title" content="Your first production server" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Take a blank VPS to delivered, authenticated mail — host, DNS, TLS, domain, mailbox, and a verified round trip." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/tutorials/first-server.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="../index.html">Docs</a><a href="./index.html" class="on">Tutorials</a><a href="../../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="../quickstart.html">Get started</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="../index.html">Overview</a></li><li><a href="../introduction.html">Introduction</a></li><li><a href="../quickstart.html">Quickstart</a></li><li><a href="../concepts.html">Core concepts</a></li><li><a href="../prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./index.html">All tutorials</a></li><li><a href="./first-server.html" class="active" aria-current="page">First server</a></li><li><a href="./migrate-from-google.html">Migrate from Google</a></li><li><a href="./household.html">Household setup</a></li><li><a href="./filter-cookbook.html">Filter cookbook</a></li><li><a href="./webhook-consumer.html">Webhook consumer</a></li><li><a href="./backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="../installation.html">Installation</a></li><li><a href="../configuration.html">Configuration</a></li><li><a href="../dns-setup.html">DNS setup</a></li><li><a href="../tls.html">TLS</a></li><li><a href="../production-checklist.html">Go-live checklist</a></li><li><a href="../backups.html">Backups</a></li><li><a href="../monitoring.html">Monitoring</a></li><li><a href="../upgrading.html">Upgrading</a></li><li><a href="../scaling.html">Scaling</a></li><li><a href="../troubleshooting.html">Troubleshooting</a></li><li><a href="../security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="../control-panel.html">Control panel</a></li><li><a href="../domains.html">Domains</a></li><li><a href="../addresses.html">Addresses</a></li><li><a href="../client-setup.html">Client settings</a></li><li><a href="../webmail.html">Webmail</a></li><li><a href="../filters.html">Filters</a></li><li><a href="../transfers.html">Transfers</a></li><li><a href="../deliverability.html">Deliverability</a></li><li><a href="../webhooks.html">Event hooks</a></li><li><a href="../plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="../architecture.html">Architecture</a></li><li><a href="../api.html">HTTP API</a></li><li><a href="../smtp.html">SMTP</a></li><li><a href="../imap.html">IMAP</a></li><li><a href="../jmap.html">JMAP</a></li><li><a href="../pop3.html">POP3</a></li><li><a href="../cli.html">Command line</a></li><li><a href="../database.html">Database</a></li><li><a href="../smtp-errors.html">SMTP errors</a></li><li><a href="../glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Tutorial</p></div><h1 id="your-first-production-server">Your first production server</h1>
+<p>A blank VPS to real mail, in about an hour of work plus DNS propagation. At the end you will have a domain whose mail arrives at your own machine, sends with a valid DKIM signature, and passes a receiver's DMARC check.</p>
+<h2 id="before-you-start">Before you start<a class="anchor" href="#before-you-start" aria-label="Link to this section">#</a></h2>
+<p>Work through <a href="../prerequisites.html">Prerequisites</a> first and have these in hand:</p>
+<ul><li>A VPS with a <strong>static IP</strong> and <strong>outbound port 25</strong> confirmed open</li><li>A <strong>hostname</strong> you control, e.g. <code>mail.example.com</code></li><li><strong>DNS control</strong> for the domain whose mail you are hosting</li><li>Root or sudo on the host</li></ul>
+<p>Throughout: <code>example.com</code> is the domain whose mail you are hosting, and <code>mail.example.com</code> is the server.</p>
+<h2 id="1-point-the-hostname-at-the-box">1. Point the hostname at the box<a class="anchor" href="#1-point-the-hostname-at-the-box" aria-label="Link to this section">#</a></h2>
+<p>Publish an A record for the server itself, then set the PTR in your hosting provider's control panel. Both directions must agree.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>$ dig +short mail.example.com
+203.0.113.9
+$ dig +short -x 203.0.113.9
+mail.example.com.</code></pre></figure>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Do not continue until these match</p><p>A mismatched PTR is rejected on connect by every large provider. Nothing later in this tutorial can compensate for it, and you will spend the afternoon debugging the wrong layer.</p></aside>
+<h2 id="2-install-the-runtime-and-the-database">2. Install the runtime and the database<a class="anchor" href="#2-install-the-runtime-and-the-database" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo apt update &amp;&amp; sudo apt install -y unzip postgresql-17 git
+curl -fsSL https://bun.sh/install | bash</code></pre></figure>
+<p>Create the database and a role for it:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo -u postgres psql &lt;&lt;'SQL'
+CREATE ROLE corsair LOGIN PASSWORD 'pick-something-long';
+CREATE DATABASE corsair OWNER corsair;
+SQL</code></pre></figure>
+<p>If you would rather run Postgres in a container, the shipped <code>compose.yaml</code> does the whole stack — see <a href="../installation.html">Installation</a>.</p>
+<h2 id="3-get-corsair">3. Get Corsair<a class="anchor" href="#3-get-corsair" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo adduser --system --group --home /opt/corsair corsair
+sudo -u corsair git clone https://github.com/wess/corsair /opt/corsair/app
+cd /opt/corsair/app
+sudo -u corsair ~/.bun/bin/bun install</code></pre></figure>
+<h2 id="4-get-a-certificate">4. Get a certificate<a class="anchor" href="#4-get-a-certificate" aria-label="Link to this section">#</a></h2>
+<p>Corsair refuses SMTP <code>AUTH</code> and IMAP <code>LOGIN</code> without TLS, so this comes before the first start. DNS-01 avoids needing port 80 open:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo apt install -y certbot
+sudo certbot certonly --standalone -d mail.example.com</code></pre></figure>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo mkdir -p /etc/corsair/certs
+sudo cp /etc/letsencrypt/live/mail.example.com/{fullchain,privkey}.pem /etc/corsair/certs/
+sudo chown -R corsair:corsair /etc/corsair/certs</code></pre></figure>
+<p><a href="../tls.html">TLS certificates</a> covers renewal, which you will want automated before the ninety days are up.</p>
+<h2 id="5-configure">5. Configure<a class="anchor" href="#5-configure" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo -u corsair cp .env.example .env
+sudo -u corsair ${EDITOR:-nano} .env</code></pre></figure>
+<p>The settings that matter for a first server:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>DATABASE_URL=postgres://corsair:pick-something-long@localhost:5432/corsair
+JWT_SECRET=&lt;64 random characters&gt;
+PUBLIC_URL=https://mail.example.com
+
+CORSAIR_HOSTNAME=mail.example.com
+
+# These are the public names of *this* installation, quoted back to you on the
+# DNS Setup screen. Point them all at this host.
+MAIL_MX_HOST=mail.example.com
+MAIL_SMTP_HOST=mail.example.com
+MAIL_IMAP_HOST=mail.example.com
+MAIL_POP_HOST=mail.example.com
+MAIL_SPF_HOST=mail.example.com
+MAIL_AUTOCONFIG_HOST=mail.example.com
+MAIL_AUTODISCOVER_HOST=mail.example.com
+MAIL_DKIM_HOSTS=dkim-1.mail.example.com,dkim-2.mail.example.com,dkim-3.mail.example.com
+
+SMTP_MX_PORT=25
+SMTP_SUBMISSION_PORT=587
+SMTP_SUBMISSION_TLS_PORT=465
+IMAP_PORT=143
+IMAP_TLS_PORT=993
+POP3_PORT=110
+POP3_TLS_PORT=995
+
+TLS_CERT_PATH=/etc/corsair/certs/fullchain.pem
+TLS_KEY_PATH=/etc/corsair/certs/privkey.pem
+
+DELIVERY_TRANSPORT=direct
+SIGNUPS=closed</code></pre></figure>
+<p>Generate the secret properly — it signs every session:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>openssl rand -base64 48</code></pre></figure>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>SIGNUPS=closed</p><p>Leave signups open only if you intend to run mail for strangers. On a personal server, <code>closed</code> means the first account — yours — is the only one that can be created.</p></aside>
+<p>Every setting is listed in <a href="../configuration.html">Configuration</a>.</p>
+<h2 id="6-decide-how-it-binds-the-privileged-ports">6. Decide how it binds the privileged ports<a class="anchor" href="#6-decide-how-it-binds-the-privileged-ports" aria-label="Link to this section">#</a></h2>
+<p>Ports below 1024 need a capability. Under systemd — which is what step 8 sets up — that is granted in the unit with <code>AmbientCapabilities</code>, so there is nothing to do here.</p>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Do not use <code>setcap</code> under systemd</p><p><code>NoNewPrivileges=true</code> blocks file capabilities. A <code>setcap cap_net_bind_service=+ep</code> on the Bun binary silently does nothing, and the service dies with <code>EACCES</code> on port 25 while the HTTP tier on 3000 starts normally — which sends you looking at the mail code instead of the unit file.</p>
+<p>Use <code>setcap</code> only when running Corsair outside systemd.</p></aside>
+<h2 id="7-migrate-and-seed">7. Migrate and seed<a class="anchor" href="#7-migrate-and-seed" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo -u corsair ~/.bun/bin/bun scripts/migrate.ts up
+sudo -u corsair SEED_PASSWORD='something-long' ~/.bun/bin/bun scripts/seed.ts</code></pre></figure>
+<p>Migrations are deliberately not run on startup — two instances coming up at once would race, and this is the step worth being able to run and fail on its own.</p>
+<h2 id="8-run-it-as-a-service">8. Run it as a service<a class="anchor" href="#8-run-it-as-a-service" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">ini</span><pre><code># /etc/systemd/system/corsair.service
+[Unit]
+Description=Corsair mail server
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=corsair
+Group=corsair
+WorkingDirectory=/opt/corsair/app
+ExecStart=/opt/corsair/.bun/bin/bun src/start.ts
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+
+# Ports below 1024. This is what makes 25/465/587/143/993/110/995 bindable by
+# an unprivileged user, and it survives `bun upgrade` replacing the binary.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/corsair/app
+
+[Install]
+WantedBy=multi-user.target</code></pre></figure>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo systemctl daemon-reload
+sudo systemctl enable --now corsair
+sudo systemctl status corsair</code></pre></figure>
+<p>Check every listener came up:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>sudo ss -lntp | grep bun</code></pre></figure>
+<p>You should see 25, 465, 587, 143, 993, 110, 995, and 3000.</p>
+<h2 id="9-put-the-panel-behind-https">9. Put the panel behind HTTPS<a class="anchor" href="#9-put-the-panel-behind-https" aria-label="Link to this section">#</a></h2>
+<p>Corsair serves plain HTTP on 3000. Terminate TLS in front of it:</p>
+<figure class="code"><span class="code-lang">nginx</span><pre><code>server {
+  listen 443 ssl http2;
+  server_name mail.example.com;
+
+  ssl_certificate     /etc/letsencrypt/live/mail.example.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/mail.example.com/privkey.pem;
+
+  # JMAP blob upload and large attachments.
+  client_max_body_size 60m;
+
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}</code></pre></figure>
+<p>Then tell Corsair which proxy to believe, or every request will appear to come from <code>127.0.0.1</code> and the rate limiter will treat the whole internet as one client:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>TRUSTED_PROXIES=127.0.0.1</code></pre></figure>
+<p>Restart, and open <code>https://mail.example.com/app</code>.</p>
+<h2 id="10-add-the-domain">10. Add the domain<a class="anchor" href="#10-add-the-domain" aria-label="Link to this section">#</a></h2>
+<p>Sign in with the seeded credentials. <strong>Domains → New domain →</strong> <code>example.com</code>.</p>
+<p>Corsair generates a verification token, three DKIM key pairs, and the full record set, then shows you the DNS Setup tab.</p>
+<h2 id="11-publish-the-records">11. Publish the records<a class="anchor" href="#11-publish-the-records" aria-label="Link to this section">#</a></h2>
+<p>If <code>example.com</code>'s DNS is at Cloudflare or DigitalOcean, use <strong>Publish automatically</strong>, paste an API token, and Corsair writes all of them. The token is used once and discarded — it is never stored, because a DNS token can usually rewrite every record on every domain in the account.</p>
+<p>Otherwise, copy them or export the zone file. The set is:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Type</th>
+<th>Host</th>
+<th>Purpose</th>
+</tr></thead><tbody>
+<tr>
+<td>TXT</td>
+<td><code>@</code></td>
+<td>Ownership verification</td>
+</tr>
+<tr>
+<td>TXT</td>
+<td><code>@</code></td>
+<td>SPF</td>
+</tr>
+<tr>
+<td>TXT</td>
+<td><code>_dmarc</code></td>
+<td>DMARC policy</td>
+</tr>
+<tr>
+<td>CNAME</td>
+<td><code>corsair-1._domainkey</code></td>
+<td>DKIM key 1</td>
+</tr>
+<tr>
+<td>CNAME</td>
+<td><code>corsair-2._domainkey</code></td>
+<td>DKIM key 2 (rotation spare)</td>
+</tr>
+<tr>
+<td>CNAME</td>
+<td><code>corsair-3._domainkey</code></td>
+<td>DKIM key 3 (rotation spare)</td>
+</tr>
+<tr>
+<td>CNAME</td>
+<td><code>mta-sts</code></td>
+<td>MTA-STS policy host</td>
+</tr>
+<tr>
+<td>CNAME</td>
+<td><code>autoconfig</code></td>
+<td>Thunderbird setup</td>
+</tr>
+<tr>
+<td>CNAME</td>
+<td><code>autodiscover</code></td>
+<td>Outlook setup</td>
+</tr>
+<tr>
+<td>MX</td>
+<td><code>@</code></td>
+<td>Where your mail is delivered</td>
+</tr>
+</tbody></table></div>
+<p><a href="../dns-setup.html">DNS setup</a> explains each one and what breaks without it.</p>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>The MX record is the cutover</p><p>Publishing the MX is the moment mail starts arriving here instead of wherever it went before. If you are migrating an existing domain, do the <a href="migrate-from-google.html">transfer</a> first and leave the MX until last.</p></aside>
+<h2 id="12-check-dns">12. Check DNS<a class="anchor" href="#12-check-dns" aria-label="Link to this section">#</a></h2>
+<p>Press <strong>Check DNS</strong>. Once the required records resolve, the domain flips to <strong>active</strong> and sending is unlocked. If a record does not match, the panel shows what it actually observed — usually a provider that appended the domain to a host that was already fully qualified, or a value stored with its quotes.</p>
+<p>Propagation is real: a record can take up to the previous record's TTL to become visible. The worker also re-checks pending domains every half hour on its own.</p>
+<h2 id="13-create-a-mailbox">13. Create a mailbox<a class="anchor" href="#13-create-a-mailbox" aria-label="Link to this section">#</a></h2>
+<p><strong>Domains → example.com → New mailbox.</strong> Local part <code>you</code>, and a password.</p>
+<p>That password is the <strong>mailbox</strong> credential. It is not your control-panel password, and it never will be — see <a href="../concepts.html">Core concepts</a>.</p>
+<h2 id="14-prove-it-works">14. Prove it works<a class="anchor" href="#14-prove-it-works" aria-label="Link to this section">#</a></h2>
+<p><strong>Receive.</strong> Send a message to <code>you@example.com</code> from an outside account. Then open <code>https://mail.example.com/webmail</code> and sign in with the mailbox address and password. It should be there.</p>
+<p><strong>Send.</strong> Configure a client, or use the webmail, and send to an address you can read at a large provider. Then check the headers on what arrives:</p>
+<figure class="code"><pre><code>Authentication-Results: mx.google.com;
+       spf=pass (google.com: domain of you@example.com designates 203.0.113.9 ...)
+       dkim=pass header.i=@example.com header.s=corsair-1
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE)</code></pre></figure>
+<p>Three passes. That is the goal, and it is the thing to re-check any time deliverability goes strange.</p>
+<p><strong>Connect a client.</strong> Full email address as the username, mailbox password, and:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Protocol</th>
+<th>Host</th>
+<th>Port</th>
+<th>Security</th>
+</tr></thead><tbody>
+<tr>
+<td>IMAP</td>
+<td><code>mail.example.com</code></td>
+<td>993</td>
+<td>SSL/TLS</td>
+</tr>
+<tr>
+<td>SMTP</td>
+<td><code>mail.example.com</code></td>
+<td>465</td>
+<td>SSL/TLS</td>
+</tr>
+</tbody></table></div>
+<h2 id="15-before-you-call-it-done">15. Before you call it done<a class="anchor" href="#15-before-you-call-it-done" aria-label="Link to this section">#</a></h2>
+<ul><li class="task"><span class="box" aria-hidden="true"></span><strong>Backups configured</strong> — <a href="../backups.html">Backups and restore</a>, then actually <a href="backup-drill.html">run the drill</a></li><li class="task"><span class="box" aria-hidden="true"></span><strong>Certificate renewal automated</strong> — <a href="../tls.html">TLS</a></li><li class="task"><span class="box" aria-hidden="true"></span><strong>Object storage</strong> if you expect volume — <a href="../configuration.html">Configuration</a></li><li class="task"><span class="box" aria-hidden="true"></span><strong>Monitoring</strong> on the queue and the certificate — <a href="../monitoring.html">Monitoring</a></li><li class="task"><span class="box" aria-hidden="true"></span><strong>The production checklist</strong> — <a href="../production-checklist.html">read it through</a></li></ul>
+<h2 id="if-mail-does-not-flow">If mail does not flow<a class="anchor" href="#if-mail-does-not-flow" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Symptom</th>
+<th>Look at</th>
+</tr></thead><tbody>
+<tr>
+<td>Nothing arrives</td>
+<td>MX record published? Port 25 open <em>inbound</em>? <code>journalctl -u corsair</code></td>
+</tr>
+<tr>
+<td>You cannot send</td>
+<td>Is the domain active? Port 25 open <em>outbound</em>?</td>
+</tr>
+<tr>
+<td><code>dkim=fail</code> at the receiver</td>
+<td>DKIM CNAME published for the <strong>active</strong> selector</td>
+</tr>
+<tr>
+<td><code>spf=fail</code></td>
+<td>SPF record includes <code>MAIL_SPF_HOST</code>, and you are sending from the right IP</td>
+</tr>
+<tr>
+<td>Client refuses to log in</td>
+<td>Certificate valid for the hostname the client is using</td>
+</tr>
+</tbody></table></div>
+<p><a href="../troubleshooting.html">Troubleshooting</a> goes symptom by symptom.</p><nav class="pager"><a class="pager-prev" href="./index.html"><span>Previous</span><strong>Tutorials</strong></a><a class="pager-next" href="./migrate-from-google.html"><span>Next</span><strong>Migrating from Google Workspace</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#before-you-start">Before you start</a></li><li class="toc-h2"><a href="#1-point-the-hostname-at-the-box">1. Point the hostname at the box</a></li><li class="toc-h2"><a href="#2-install-the-runtime-and-the-database">2. Install the runtime and the database</a></li><li class="toc-h2"><a href="#3-get-corsair">3. Get Corsair</a></li><li class="toc-h2"><a href="#4-get-a-certificate">4. Get a certificate</a></li><li class="toc-h2"><a href="#5-configure">5. Configure</a></li><li class="toc-h2"><a href="#6-decide-how-it-binds-the-privileged-ports">6. Decide how it binds the privileged ports</a></li><li class="toc-h2"><a href="#7-migrate-and-seed">7. Migrate and seed</a></li><li class="toc-h2"><a href="#8-run-it-as-a-service">8. Run it as a service</a></li><li class="toc-h2"><a href="#9-put-the-panel-behind-https">9. Put the panel behind HTTPS</a></li><li class="toc-h2"><a href="#10-add-the-domain">10. Add the domain</a></li><li class="toc-h2"><a href="#11-publish-the-records">11. Publish the records</a></li><li class="toc-h2"><a href="#12-check-dns">12. Check DNS</a></li><li class="toc-h2"><a href="#13-create-a-mailbox">13. Create a mailbox</a></li><li class="toc-h2"><a href="#14-prove-it-works">14. Prove it works</a></li><li class="toc-h2"><a href="#15-before-you-call-it-done">15. Before you call it done</a></li><li class="toc-h2"><a href="#if-mail-does-not-flow">If mail does not flow</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../../index.html">Overview</a></li><li><a href="../introduction.html">What it is</a></li><li><a href="../architecture.html">Architecture</a></li><li><a href="../../faq.html">Questions</a></li><li><a href="../../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="../index.html">All documentation</a></li><li><a href="../quickstart.html">Quickstart</a></li><li><a href="./index.html">Tutorials</a></li><li><a href="../configuration.html">Configuration</a></li><li><a href="../api.html">HTTP API</a></li><li><a href="../troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../../policies/privacy.html">Privacy</a></li><li><a href="../../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../../docs.js" defer></script>
+</body>
+</html>

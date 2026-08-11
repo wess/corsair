@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>POP3 · Corsair</title>
+<meta name="description" content="The supported command set, and an honest account of when POP3 is the wrong choice." />
+<link rel="canonical" href="https://corsair.wess.dev/docs/pop3.html" />
+<meta property="og:title" content="POP3" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="The supported command set, and an honest account of when POP3 is the wrong choice." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://corsair.wess.dev/docs/pop3.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="./quickstart.html">Get started</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html" class="active" aria-current="page">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Reference</p></div><h1 id="pop3">POP3</h1>
+<p>POP3 on <strong>995</strong> (implicit TLS). Full email address as the username, mailbox password as the password.</p>
+<p>Port 110 listens but cannot be used: there is no server-side STLS, and Corsair will not take a credential unencrypted. See <a href="tls.html">TLS</a>.</p>
+<p>It exists for the clients that still want it.</p>
+<h2 id="commands">Commands<a class="anchor" href="#commands" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Command</th>
+<th>Notes</th>
+</tr></thead><tbody>
+<tr>
+<td><code>CAPA</code></td>
+<td>Advertised capabilities</td>
+</tr>
+<tr>
+<td><code>USER</code>, <code>PASS</code></td>
+<td>Standard authentication</td>
+</tr>
+<tr>
+<td><code>APOP</code></td>
+<td>Digest authentication</td>
+</tr>
+<tr>
+<td><code>STAT</code></td>
+<td>Message count and total size</td>
+</tr>
+<tr>
+<td><code>LIST</code></td>
+<td>Message numbers and sizes</td>
+</tr>
+<tr>
+<td><code>UIDL</code></td>
+<td>Persistent unique identifiers</td>
+</tr>
+<tr>
+<td><code>RETR</code></td>
+<td>Fetch a message</td>
+</tr>
+<tr>
+<td><code>TOP</code></td>
+<td>Headers plus <em>n</em> body lines</td>
+</tr>
+<tr>
+<td><code>DELE</code></td>
+<td>Mark for deletion</td>
+</tr>
+<tr>
+<td><code>RSET</code></td>
+<td>Unmark everything</td>
+</tr>
+<tr>
+<td><code>NOOP</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>QUIT</code></td>
+<td>Commits the deletions</td>
+</tr>
+</tbody></table></div>
+<p>That is the whole of RFC 1939 plus <code>UIDL</code> and <code>TOP</code>. <code>STLS</code> is present in the command table but cannot complete; use 995.</p>
+<h2 id="inbox-only">INBOX only<a class="anchor" href="#inbox-only" aria-label="Link to this section">#</a></h2>
+<p>POP3 has no concept of folders. A session sees <code>INBOX</code> and nothing else.</p>
+<p>Mail filed elsewhere by a <a href="filters.html">Sieve filter</a> — into <code>Newsletters</code>, into <code>Junk</code> — is invisible over POP3. That surprises people who set up a filter and then wonder where their mail went.</p>
+<h2 id="deletions-commit-at-quit">Deletions commit at QUIT<a class="anchor" href="#deletions-commit-at-quit" aria-label="Link to this section">#</a></h2>
+<p><code>DELE</code> marks. <code>QUIT</code> commits. A connection that drops before <code>QUIT</code> deletes nothing, which is the protocol working as intended.</p>
+<p><code>RSET</code> unmarks everything in the current session.</p>
+<h2 id="uidl">UIDL<a class="anchor" href="#uidl" aria-label="Link to this section">#</a></h2>
+<p><code>UIDL</code> gives each message a persistent identifier, which is how a client implements &quot;leave messages on the server&quot; — it records the identifiers it has already downloaded.</p>
+<p>Every client worth using supports it. A client that does not has to delete as it goes, or download everything every time.</p>
+<h2 id="when-pop3-is-right">When POP3 is right<a class="anchor" href="#when-pop3-is-right" aria-label="Link to this section">#</a></h2>
+<p><strong>A device that should drain a mailbox to local storage.</strong> An archival machine, a system that ingests mail into something else, a printer.</p>
+<p><strong>A genuinely single-device setup</strong> where server-side state is not wanted.</p>
+<h2 id="when-it-is-wrong-which-is-usually">When it is wrong, which is usually<a class="anchor" href="#when-it-is-wrong-which-is-usually" aria-label="Link to this section">#</a></h2>
+<p>POP3 downloads and, by default, deletes. It has:</p>
+<ul><li>No folders</li><li>No flags shared between devices — read on your laptop is unread on your phone</li><li>No server-side search</li><li>No concept of a second client</li></ul>
+<p>Two devices both using POP3 against one mailbox race each other for the mail. Whichever polls first gets it.</p>
+<p>Use <a href="imap.html">IMAP</a> unless you have a specific reason not to. If you must use POP3, turn <strong>off</strong> &quot;delete from server&quot; in the client unless removal is the point.</p>
+<h2 id="testing-by-hand">Testing by hand<a class="anchor" href="#testing-by-hand" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>openssl s_client -connect mail.example.com:995 -crlf</code></pre></figure>
+<figure class="code"><pre><code>USER you@example.com
+PASS your-password
+STAT
+LIST
+UIDL
+TOP 1 10
+RETR 1
+QUIT</code></pre></figure>
+<p>Replies are <code>+OK</code> or <code>-ERR</code>, which makes POP3 the easiest of the mail protocols to debug by hand.</p>
+<h2 id="same-store">Same store<a class="anchor" href="#same-store" aria-label="Link to this section">#</a></h2>
+<p>POP3 reads the same rows as IMAP, JMAP, and the webmail. A message deleted over POP3 is gone from all of them — it is the same message, not a copy.</p>
+<p>That is worth saying explicitly, because the POP3 mental model of &quot;downloading my mail&quot; suggests otherwise. There is one copy, and <code>DELE</code> plus <code>QUIT</code> deletes it.</p><nav class="pager"><a class="pager-prev" href="./jmap.html"><span>Previous</span><strong>JMAP</strong></a><a class="pager-next" href="./cli.html"><span>Next</span><strong>Command line</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#commands">Commands</a></li><li class="toc-h2"><a href="#inbox-only">INBOX only</a></li><li class="toc-h2"><a href="#deletions-commit-at-quit">Deletions commit at QUIT</a></li><li class="toc-h2"><a href="#uidl">UIDL</a></li><li class="toc-h2"><a href="#when-pop3-is-right">When POP3 is right</a></li><li class="toc-h2"><a href="#when-it-is-wrong-which-is-usually">When it is wrong, which is usually</a></li><li class="toc-h2"><a href="#testing-by-hand">Testing by hand</a></li><li class="toc-h2"><a href="#same-store">Same store</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy</a></li><li><a href="../policies/acceptable-use.html">Acceptable use</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>
