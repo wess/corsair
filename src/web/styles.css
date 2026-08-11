@@ -140,6 +140,17 @@ a:hover {
 .nav-item.active svg {
   opacity: 1;
 }
+.nav-item.nav-external {
+  text-decoration: none;
+  margin-top: 4px;
+}
+.nav-item.nav-external span {
+  flex: 1;
+}
+.nav-item.nav-external svg:last-child {
+  opacity: 0.45;
+}
+
 .nav-item svg {
   flex: none;
   opacity: 0.75;

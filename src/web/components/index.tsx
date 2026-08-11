@@ -4,6 +4,7 @@ import { type Page, RequestError } from "../lib/api.ts"
 // Single-path icons, inlined. A dependency for twelve glyphs is not worth the
 // bytes or the supply chain.
 export const icons = {
+  external: "M14 3h7v7M21 3l-9 9M19 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6",
   overview: "M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z",
   domains: "M12 2 2 7l10 5 10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
   filters: "M3 4h18l-7 8v7l-4 2v-9z",

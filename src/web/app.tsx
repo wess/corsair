@@ -141,6 +141,23 @@ const Shell = ({
           ))}
         </nav>
 
+        {/*
+          A real link, not a route: the webmail is a separate application with
+          its own session cookie, and it opens in a new tab so the panel is not
+          lost mid-task. `rel="noopener"` because `target="_blank"` otherwise
+          hands the opened page a reference back to this one.
+        */}
+        <a
+          className="nav-item nav-external"
+          href="/webmail"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Icon path={icons.mail} />
+          <span>Webmail</span>
+          <Icon path={icons.external} size={13} />
+        </a>
+
         <div className="sidebar-footer">
           <button type="button" className="nav-item" onClick={() => navigate("/account")}>
             <Icon path={icons.account} />
