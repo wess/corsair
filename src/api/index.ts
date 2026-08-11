@@ -1,5 +1,6 @@
 import { withSecurityHeaders } from "@atlas/security"
 import { type Route, router } from "@atlas/server"
+import { assetResponse, buildClients, type ClientBundle } from "../bundle/index.ts"
 import { config } from "../config/index.ts"
 import { errorBody, notFound } from "../errors/index.ts"
 import webmail from "../mail/index.html"
@@ -74,7 +75,31 @@ const serveSite = async (pathname: string): Promise<Response | null> => {
   return new Response(file)
 }
 
-export const buildFetch = (): ((req: Request) => Promise<Response>) => {
+/**
+ * The single-page clients and their bundled assets.
+ *
+ * `/app/*` and `/webmail/*` are client-side routes: every one of them serves
+ * the same shell and the router in the browser takes it from there. `/recover`
+ * is the panel too — it is reached by people who are not panel users at all, so
+ * it lives at the top level rather than under `/app`.
+ */
+const CLIENT_ROUTES: [RegExp, "panel" | "webmail"][] = [
+  [/^\/app(\/.*)?$/, "panel"],
+  [/^\/recover(\/.*)?$/, "panel"],
+  [/^\/webmail(\/.*)?$/, "webmail"],
+]
+
+const serveClient = (clients: ClientBundle, pathname: string, req: Request): Response | null => {
+  const chunk = clients.assets.get(pathname)
+  if (chunk) return assetResponse(chunk, req)
+
+  for (const [pattern, which] of CLIENT_ROUTES) {
+    if (pattern.test(pathname)) return assetResponse(clients[which], req)
+  }
+  return null
+}
+
+export const buildFetch = (clients: ClientBundle | null): ((req: Request) => Promise<Response>) => {
   const handle = router(...allRoutes())
   return async (req: Request): Promise<Response> => {
     const res = await handle(req)
@@ -82,6 +107,13 @@ export const buildFetch = (): ((req: Request) => Promise<Response>) => {
 
     const pathname = new URL(req.url).pathname
     if (!pathname.startsWith("/api/")) {
+      // Ahead of the docs site: `/app` must not be answered by an `app.html`
+      // that happens to exist under `site/public`.
+      if (clients) {
+        const client = serveClient(clients, pathname, req)
+        if (client) return client
+      }
+
       const site = await serveSite(pathname)
       if (site) return site
     }
@@ -98,28 +130,44 @@ export const buildFetch = (): ((req: Request) => Promise<Response>) => {
   }
 }
 
-export const startApi = (port = config.port) => {
-  const fetch = withSecurityHeaders(buildFetch(), {
+/**
+ * `hmr` swaps the ahead-of-time bundle for Bun's `routes` HTMLBundle, which
+ * gives the browser hot reload while editing the panel.
+ *
+ * It is off by default and only `dev.ts` turns it on. That direction matters:
+ * `routes` is matched before `fetch`, so an HTMLBundle registered there does
+ * not pass through `withSecurityHeaders` and the page comes back with no CSP
+ * and no `frame-ancestors`. Opt-in from the development entrypoint means
+ * someone running `bun src/start.ts` without NODE_ENV set still gets a
+ * hardened panel; opt-out from production would have meant the reverse.
+ */
+export const startApi = async (port = config.port, options: { hmr?: boolean } = {}) => {
+  const clients = options.hmr ? null : await buildClients()
+
+  const fetch = withSecurityHeaders(buildFetch(clients), {
     dev: process.env.NODE_ENV !== "production",
   })
 
   const server = Bun.serve({
     port,
+    hostname: config.host,
     idleTimeout: 60,
-    routes: {
-      "/app": panel,
-      "/app/*": panel,
-      // Address recovery is reached by people who are not panel users at all,
-      // so it lives at the top level rather than under /app.
-      "/recover": panel,
-      "/webmail": webmail,
-      "/webmail/*": webmail,
-    },
+    ...(options.hmr
+      ? {
+          routes: {
+            "/app": panel,
+            "/app/*": panel,
+            "/recover": panel,
+            "/webmail": webmail,
+            "/webmail/*": webmail,
+          },
+        }
+      : {}),
     fetch,
   })
 
-  console.log(`[corsair] api         http://localhost:${server.port}`)
-  console.log(`[corsair] panel       http://localhost:${server.port}/app`)
-  console.log(`[corsair] webmail     http://localhost:${server.port}/webmail`)
+  console.log(`[corsair] api         http://${config.host}:${server.port}`)
+  console.log(`[corsair] panel       http://${config.host}:${server.port}/app`)
+  console.log(`[corsair] webmail     http://${config.host}:${server.port}/webmail`)
   return server
 }

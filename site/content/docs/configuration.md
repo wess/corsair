@@ -23,6 +23,7 @@ Defaults below are what the shipped code uses, not suggestions.
 | `DB_POOL_SIZE` | `10` | Connections in the pool |
 | `JWT_SECRET` | `corsair-dev-secret-change-me` | Signs session tokens. **Change this** |
 | `PORT` | `3000` | HTTP listener |
+| `HOST` | `0.0.0.0` | Interface the HTTP listener binds |
 | `PUBLIC_URL` | `http://localhost:3000` | Base URL in emails and redirects |
 | `SIGNUPS` | `open` | `open` lets anyone sign up; `closed` allows only the first account |
 | `TRUSTED_PROXIES` | *(empty)* | Proxies whose `X-Forwarded-For` is believed |
@@ -40,6 +41,15 @@ everything at once.
 `TRUSTED_PROXIES` matters more than it looks. Behind a reverse proxy with it
 unset, every request appears to come from `127.0.0.1`: the rate limiter sees one
 client, and the ban list bans your own proxy.
+
+`HOST` defaults to `0.0.0.0` because a container that binds loopback is a
+container nothing can reach. If your reverse proxy runs on the same box, set it
+to `127.0.0.1`. A firewall rule that closes port 3000 is a promise you have to
+keep on every rebuild; never listening on the public interface in the first
+place is not.
+
+The mail listeners ignore `HOST` and always bind every interface. They are the
+ones the internet is supposed to reach.
 
 ## Mail identity
 
@@ -210,6 +220,7 @@ Read only by the seed script. Set it on any host that is not your laptop.
 DATABASE_URL=postgres://corsair:LONG_PASSWORD@localhost:5432/corsair
 JWT_SECRET=<openssl rand -base64 48>
 PUBLIC_URL=https://mail.example.com
+HOST=127.0.0.1
 SIGNUPS=closed
 TRUSTED_PROXIES=127.0.0.1
 

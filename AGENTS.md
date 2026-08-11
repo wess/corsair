@@ -59,6 +59,20 @@ EXPUNGE, so ascending order makes a client delete the wrong messages.
 or custom header injects a header. `stripControls` in `core/mime` runs on every
 value this codebase emits. There are regression tests — keep them.
 
+**`Bun.serve({ routes })` is matched before `fetch`, so anything registered
+there skips every wrapper around `fetch`.** The panel and the webmail used to be
+`routes` entries, which meant the two documents that execute JavaScript and
+render attacker-supplied mail were the only two responses served without a CSP
+or `frame-ancestors`, while the JSON API had both. They are bundled in
+`src/bundle` and served through `fetch` now. `dev.ts` passes `hmr: true` to get
+the `routes` path back for hot reload — opt *in* from the development
+entrypoint, so `bun src/start.ts` with no NODE_ENV set is still hardened.
+
+**A browser bundle needs `process.env.NODE_ENV` defined explicitly.** Nothing
+infers it from the server's own environment. Without the `define` in
+`src/bundle`, React ships its development build: 488 KB instead of 257 KB, prop
+validation on every render, and a double render under StrictMode.
+
 **Forwarding without SRS breaks.** An alias that forwards keeps the original
 envelope sender, whose SPF does not list us, and the next hop sees a forgery.
 `packages/smtp/srs` rewrites it. The HMAC is not optional — without it the
@@ -195,6 +209,14 @@ one build work at a domain root, under a `/corsair/` project-page prefix, and of
 a local disk. Do not introduce a root-absolute `href` in the layout or in
 content; `SITE_MODE=pages` exists for the one place that needed to differ (the
 `/app` link, which does not exist behind a static host).
+
+`site:check` also asserts every built page has a markdown source **that git is
+tracking**. An unanchored `.gitignore` pattern matches every path segment, and
+on a case-insensitive filesystem a root-level `SECURITY.md` rule swallowed
+`site/content/docs/security.md`. The committed HTML kept answering 200 while CI
+built the site from a checkout without the source, so the page vanished from
+every sidebar and became reachable only by typing its URL. Anchor repo-root
+ignores with a leading slash.
 
 A docs page's place in the sidebar comes from its front matter — `section` (one
 of the keys in `SECTIONS`) and `order`. A page with no `section` renders without

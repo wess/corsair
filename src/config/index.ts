@@ -14,6 +14,14 @@ export const config = defineConfig({
   dbPool: env("DB_POOL_SIZE", { parse: Number, default: "10" }),
   jwtSecret: env("JWT_SECRET", { default: "corsair-dev-secret-change-me" }),
   port: env("PORT", { parse: Number, default: "3000" }),
+
+  // The interface the HTTP tier binds. It stays on all interfaces by default
+  // because a container that binds loopback is a container nothing can reach.
+  // An install with a reverse proxy on the same box should set 127.0.0.1: the
+  // panel, the webmail, and JMAP have no business being reachable except
+  // through the proxy that terminates TLS for them.
+  host: env("HOST", { default: "0.0.0.0" }),
+
   publicUrl: env("PUBLIC_URL", { default: "http://localhost:3000" }),
   signups: env("SIGNUPS", { default: "open" }),
 

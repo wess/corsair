@@ -112,6 +112,41 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p><strong>Rendered mail is sanitised on the server</strong>, never in the client (<code>src/sanitize</code>). Every message a mail server accepts is attacker-supplied by definition.</p>
 <p>The policy is an <strong>allow-list</strong> — unknown tags and attributes are dropped rather than inspected — because a deny-list has to stay complete as browsers change. Scripts, event handlers, and <code>javascript:</code> URLs are removed before the browser is handed anything.</p>
 <p>Remote images are withheld by default. A remote image in an email is a tracking pixel; the reader asks for them or does not get them.</p>
+<h2 id="browser-headers">Browser headers<a class="anchor" href="#browser-headers" aria-label="Link to this section">#</a></h2>
+<p>Sanitisation is the first layer. The Content Security Policy is the second, and it exists because the first one will eventually be wrong about something.</p>
+<p>Every response — the JSON API, the panel, and the webmail — carries:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Header</th>
+<th>Value</th>
+</tr></thead><tbody>
+<tr>
+<td><code>Content-Security-Policy</code></td>
+<td><code>default-src 'self'</code>, <code>script-src 'self'</code>, <code>object-src 'none'</code>, <code>frame-ancestors 'none'</code></td>
+</tr>
+<tr>
+<td><code>X-Frame-Options</code></td>
+<td><code>DENY</code></td>
+</tr>
+<tr>
+<td><code>Cross-Origin-Opener-Policy</code></td>
+<td><code>same-origin</code></td>
+</tr>
+<tr>
+<td><code>Permissions-Policy</code></td>
+<td>camera, microphone, geolocation and cohort tracking all denied</td>
+</tr>
+<tr>
+<td><code>Strict-Transport-Security</code></td>
+<td>one year, including subdomains</td>
+</tr>
+<tr>
+<td><code>X-Content-Type-Options</code></td>
+<td><code>nosniff</code></td>
+</tr>
+</tbody></table></div>
+<p><code>script-src 'self'</code> is an honest claim rather than an aspiration: the panel and the webmail are bundled with no inline script and no <code>eval</code>, and there is a test asserting it stays that way. A policy with <code>'unsafe-inline'</code> in it protects nothing.</p>
+<p><code>frame-ancestors 'none'</code> is what stops the webmail being framed by a page that overlays its own buttons on yours.</p>
+<aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span>Serving Corsair yourself</p><p>These come from the application, not from your reverse proxy, so they survive a proxy misconfiguration. If you add your own, do not weaken these — a second <code>Content-Security-Policy</code> header does not replace the first, but a proxy that strips and rewrites one does.</p></aside>
 <h2 id="header-injection">Header injection<a class="anchor" href="#header-injection" aria-label="Link to this section">#</a></h2>
 <p>A bare CR or LF in a subject, display name, or custom header injects a header. <code>stripControls</code> runs on every value this codebase emits, and there are regression tests for it.</p>
 <p>If you are extending Corsair, anything you write into a header goes through it.</p>
@@ -142,7 +177,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p><strong>Not hardened against a hostile operator.</strong> An operator can read every mailbox on the instance. That is inherent to running a mail server, and it is why you should run your own rather than trusting someone else's.</p>
 <h2 id="reporting-a-vulnerability">Reporting a vulnerability<a class="anchor" href="#reporting-a-vulnerability" aria-label="Link to this section">#</a></h2>
 <p>Do not open a public issue. Corsair serves a <code>security.txt</code> at <code>/.well-known/security.txt</code> with the current contact. Include what you did, what happened, and what you expected.</p><nav class="pager"><a class="pager-prev" href="./troubleshooting.html"><span>Previous</span><strong>Troubleshooting</strong></a><a class="pager-next" href="./control-panel.html"><span>Next</span><strong>The control panel</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#two-identities-never-merged">Two identities, never merged</a></li><li class="toc-h2"><a href="#passwords-and-tokens">Passwords and tokens</a></li><li class="toc-h2"><a href="#never-stored">Never stored</a></li><li class="toc-h2"><a href="#transport">Transport</a></li><li class="toc-h2"><a href="#enumeration">Enumeration</a></li><li class="toc-h2"><a href="#server-side-request-forgery">Server-side request forgery</a></li><li class="toc-h2"><a href="#content-sanitisation">Content sanitisation</a></li><li class="toc-h2"><a href="#header-injection">Header injection</a></li><li class="toc-h2"><a href="#rate-limiting-and-bans">Rate limiting and bans</a></li><li class="toc-h2"><a href="#outbound-abuse">Outbound abuse</a></li><li class="toc-h2"><a href="#multi-tenancy">Multi-tenancy</a></li><li class="toc-h2"><a href="#instance-ownership">Instance ownership</a></li><li class="toc-h2"><a href="#what-is-yours">What is yours</a></li><li class="toc-h2"><a href="#what-corsair-does-not-claim">What Corsair does not claim</a></li><li class="toc-h2"><a href="#reporting-a-vulnerability">Reporting a vulnerability</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#two-identities-never-merged">Two identities, never merged</a></li><li class="toc-h2"><a href="#passwords-and-tokens">Passwords and tokens</a></li><li class="toc-h2"><a href="#never-stored">Never stored</a></li><li class="toc-h2"><a href="#transport">Transport</a></li><li class="toc-h2"><a href="#enumeration">Enumeration</a></li><li class="toc-h2"><a href="#server-side-request-forgery">Server-side request forgery</a></li><li class="toc-h2"><a href="#content-sanitisation">Content sanitisation</a></li><li class="toc-h2"><a href="#browser-headers">Browser headers</a></li><li class="toc-h2"><a href="#header-injection">Header injection</a></li><li class="toc-h2"><a href="#rate-limiting-and-bans">Rate limiting and bans</a></li><li class="toc-h2"><a href="#outbound-abuse">Outbound abuse</a></li><li class="toc-h2"><a href="#multi-tenancy">Multi-tenancy</a></li><li class="toc-h2"><a href="#instance-ownership">Instance ownership</a></li><li class="toc-h2"><a href="#what-is-yours">What is yours</a></li><li class="toc-h2"><a href="#what-corsair-does-not-claim">What Corsair does not claim</a></li><li class="toc-h2"><a href="#reporting-a-vulnerability">Reporting a vulnerability</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

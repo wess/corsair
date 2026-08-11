@@ -89,6 +89,11 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td>HTTP listener</td>
 </tr>
 <tr>
+<td><code>HOST</code></td>
+<td><code>0.0.0.0</code></td>
+<td>Interface the HTTP listener binds</td>
+</tr>
+<tr>
 <td><code>PUBLIC_URL</code></td>
 <td><code>http://localhost:3000</code></td>
 <td>Base URL in emails and redirects</td>
@@ -108,6 +113,8 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p><code>openssl rand -base64 48</code></p>
 <p>Changing it invalidates every existing session, which is also how you revoke everything at once.</p></aside>
 <p><code>TRUSTED_PROXIES</code> matters more than it looks. Behind a reverse proxy with it unset, every request appears to come from <code>127.0.0.1</code>: the rate limiter sees one client, and the ban list bans your own proxy.</p>
+<p><code>HOST</code> defaults to <code>0.0.0.0</code> because a container that binds loopback is a container nothing can reach. If your reverse proxy runs on the same box, set it to <code>127.0.0.1</code>. A firewall rule that closes port 3000 is a promise you have to keep on every rebuild; never listening on the public interface in the first place is not.</p>
+<p>The mail listeners ignore <code>HOST</code> and always bind every interface. They are the ones the internet is supposed to reach.</p>
 <h2 id="mail-identity">Mail identity<a class="anchor" href="#mail-identity" aria-label="Link to this section">#</a></h2>
 <div class='table-wrap'><table><thead><tr>
 <th>Variable</th>
@@ -418,6 +425,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <figure class="code"><span class="code-lang">sh</span><pre><code>DATABASE_URL=postgres://corsair:LONG_PASSWORD@localhost:5432/corsair
 JWT_SECRET=&lt;openssl rand -base64 48&gt;
 PUBLIC_URL=https://mail.example.com
+HOST=127.0.0.1
 SIGNUPS=closed
 TRUSTED_PROXIES=127.0.0.1
 

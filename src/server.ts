@@ -11,4 +11,4 @@ import { installCrashGuards } from "./resilience/index.ts"
  * `start.ts` runs everything in one process, which is what a single box wants.
  */
 installCrashGuards()
-startApi(config.port)
+await startApi(config.port)

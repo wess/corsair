@@ -14,9 +14,9 @@ import { startWorker } from "./worker/index.ts"
  * means two instances race each other on the way up, and it is the one step
  * worth being able to run — and fail — on its own. See `scripts/migrate.ts`.
  */
-export const start = async (): Promise<void> => {
+export const start = async (options: { hmr?: boolean } = {}): Promise<void> => {
   installCrashGuards()
-  startApi(config.port)
+  await startApi(config.port, options)
   await startWorker()
   if (config.smtp.enabled) await startSmtp()
   if (config.imap.enabled) await startImap()

@@ -98,7 +98,7 @@ await check("a chunked key reassembles into a usable PEM", async () => {
 })
 
 await check("both resolver shapes reassemble identically", async () => {
-  const record = "v=DKIM1; k=rsa; p=" + "A".repeat(400)
+  const record = `v=DKIM1; k=rsa; p=${"A".repeat(400)}`
   const a = record.slice(0, 255)
   const b = record.slice(255)
   const node = reassembleTxt([[a, b]])

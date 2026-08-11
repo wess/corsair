@@ -3,9 +3,13 @@
 docs/superpowers
 .envrc
 .claude
-DO_MARKETPLACE.md
-INTEGRATIONS.md
-SECURITY.md
+# Anchored. Without the leading slash git matches these against every path
+# segment, and on a case-insensitive filesystem `SECURITY.md` also matches
+# `site/content/docs/security.md` — which silently kept the Security page's
+# source out of the repository while its built HTML stayed committed.
+/DO_MARKETPLACE.md
+/INTEGRATIONS.md
+/SECURITY.md
 .stohr
 .screenshots
 screenshots

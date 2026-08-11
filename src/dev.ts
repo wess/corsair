@@ -6,8 +6,13 @@ import { start } from "./start.ts"
  * everything is listening — the ports differ from production because the
  * privileged ones need root or a capability, and nobody should need either to
  * run this locally.
+ *
+ * This is the only caller that asks for `hmr`. It serves the panel through
+ * Bun's `routes` for hot reload, which costs the security headers that `fetch`
+ * would have added — an acceptable trade on localhost, and the reason the flag
+ * lives here rather than defaulting on.
  */
-await start()
+await start({ hmr: true })
 
 console.log(`
   panel     ${config.publicUrl}/app
