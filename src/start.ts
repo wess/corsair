@@ -2,6 +2,7 @@ import { startApi } from "./api/index.ts"
 import { config } from "./config/index.ts"
 import { startImap } from "./imap/index.ts"
 import { startPop3 } from "./pop3/index.ts"
+import { installCrashGuards } from "./resilience/index.ts"
 import { startSmtp } from "./smtp/index.ts"
 import { startWorker } from "./worker/index.ts"
 
@@ -14,6 +15,7 @@ import { startWorker } from "./worker/index.ts"
  * worth being able to run — and fail — on its own. See `scripts/migrate.ts`.
  */
 export const start = async (): Promise<void> => {
+  installCrashGuards()
   startApi(config.port)
   await startWorker()
   if (config.smtp.enabled) await startSmtp()
