@@ -189,25 +189,44 @@ const mailboxHash = async (address: Address): Promise<string | null> => {
   return owner.password_hash
 }
 
-export const authenticateAddress = async (
-  username: string,
+/**
+ * Resolves a control-panel sign-in address to the mailbox it opens.
+ *
+ * Someone who signs up as `me@wess.io` and reads `wess@wess.dev` knows one
+ * address and one password. Making them remember a second address to type into
+ * a mail client — while the password is the same — is the confusion the unified
+ * credential was meant to remove, only moved one field to the left.
+ *
+ * Only ever resolves to a mailbox already linked to that account, so this grants
+ * no access the account password did not already have. It is a second name for
+ * the same door.
+ *
+ * Ambiguity is refused rather than guessed. With more than one linked mailbox
+ * there is no answer to "which inbox did you mean", and picking one would
+ * silently show somebody the wrong mail; they name the mailbox instead.
+ */
+const mailboxForAccountEmail = async (email: string): Promise<Address | null> => {
+  const user = await db().one<User>(from(users).where((q) => q("email").equals(email)))
+  if (!user || user.status === "terminated" || !user.password_hash) return null
+
+  const linked = await db().all<Address>(
+    from(addresses).where((q) => [q("user_id").equals(user.id), q("disabled").equals(false)]),
+  )
+  return linked.length === 1 ? (linked[0] as Address) : null
+}
+
+/**
+ * Verifies a password against a resolved mailbox and builds its identity.
+ *
+ * Shared by both ways in — the mailbox address itself, and the owner's
+ * control-panel sign-in address — so the two cannot disagree about what counts
+ * as a valid mailbox or which hash to check.
+ */
+const authenticateResolved = async (
+  address: Address,
   password: string,
 ): Promise<MailIdentity | null> => {
-  const at = username.lastIndexOf("@")
-  if (at <= 0) return null
-  const localPart = username.slice(0, at).toLowerCase()
-  const domainName = username.slice(at + 1).toLowerCase()
-
-  const domain = await db().one<Domain>(from(domains).where((q) => q("name").equals(domainName)))
-  if (!domain) return null
-
-  const address = await db().one<Address>(
-    from(addresses).where((q) => [
-      q("domain_id").equals(domain.id),
-      q("local_part").equals(localPart),
-    ]),
-  )
-  if (!address || address.disabled) return null
+  if (address.disabled) return null
   if (address.type !== "standard" && address.type !== "catchall") return null
 
   /**
@@ -227,6 +246,11 @@ export const authenticateAddress = async (
   if (!expected) return null
   if (!(await verify(password, expected))) return null
 
+  const domain = await db().one<Domain>(
+    from(domains).where((q) => q("id").equals(address.domain_id)),
+  )
+  if (!domain) return null
+
   void db()
     .execute(
       from(addresses)
@@ -235,7 +259,34 @@ export const authenticateAddress = async (
     )
     .catch(() => {})
 
-  return { address, domain, email: `${localPart}@${domainName}` }
+  return { address, domain, email: `${address.local_part}@${domain.name}` }
+}
+
+export const authenticateAddress = async (
+  username: string,
+  password: string,
+): Promise<MailIdentity | null> => {
+  const at = username.lastIndexOf("@")
+  if (at <= 0) return null
+  const localPart = username.slice(0, at).toLowerCase()
+  const domainName = username.slice(at + 1).toLowerCase()
+
+  const domain = await db().one<Domain>(from(domains).where((q) => q("name").equals(domainName)))
+  if (!domain) {
+    // Not a hosted domain — but it may still be somebody's panel sign-in
+    // address, which opens the one mailbox linked to that account.
+    const viaAccount = await mailboxForAccountEmail(username.toLowerCase())
+    return viaAccount ? authenticateResolved(viaAccount, password) : null
+  }
+
+  const address = await db().one<Address>(
+    from(addresses).where((q) => [
+      q("domain_id").equals(domain.id),
+      q("local_part").equals(localPart),
+    ]),
+  )
+  if (!address) return null
+  return authenticateResolved(address, password)
 }
 
 // ------------------------------------------------------- webmail sessions --
@@ -286,7 +337,13 @@ export const resolveMailSession = async (
   const address = await db().one<Address>(
     from(addresses).where((q) => q("id").equals(payload.sub as string)),
   )
-  if (!address || address.disabled || !address.password_hash) return null
+  // NOT `address.password_hash`: a mailbox linked to a control-panel account
+  // deliberately has none, and checking for one here invalidated the session on
+  // the very next request — sign-in succeeded, then everything answered "Sign in
+  // to your mailbox first". `mailboxHash` asks the real question, and still
+  // ends the session if the owning account is terminated.
+  if (!address || address.disabled) return null
+  if (!(await mailboxHash(address))) return null
 
   const domain = await db().one<Domain>(
     from(domains).where((q) => q("id").equals(address.domain_id)),

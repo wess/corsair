@@ -7,6 +7,7 @@ import {
   plans,
   type Subscription,
   subscriptions,
+  users,
 } from "../schema/index.ts"
 
 export type Entitlement = {
@@ -27,7 +28,69 @@ const LIVE = ["trialing", "active", "past_due"]
  * nothing: a self-hosted instance that never configures billing should still
  * work, and "no row" is exactly the state a fresh install is in.
  */
+/**
+ * The account that owns this instance is not a customer of it.
+ *
+ * Whoever installed Corsair is paying for the server; metering them against a
+ * plan and asking them to upgrade their own machine is nonsense. The owner gets
+ * the most capable plan configured, every feature on, and no billing — resolved
+ * here rather than by writing a subscription row, so it cannot drift out of
+ * sync and there is no invoice to cancel.
+ *
+ * `users.is_owner` is claimed inside the signup INSERT and guarded by a partial
+ * unique index, so exactly one account can ever hold it.
+ */
+const ownerEntitlement = async (): Promise<Entitlement | null> => {
+  // The best plan on offer, so an operator who has customised the plan table
+  // gets their own top tier rather than something hardcoded.
+  const best = await db().one<Plan>(
+    from(plans)
+      .where((q) => q("is_trial").equals(false))
+      .orderBy("position", "DESC"),
+  )
+  if (!best) return null
+
+  return {
+    plan: {
+      ...best,
+      name: `${best.name} (owner)`,
+      monthly_cents: 0,
+      yearly_cents: 0,
+      // Read directly off `entitlement.plan` by the domain and address routes;
+      // null is "no cap" in both.
+      max_domains: null,
+      max_addresses: null,
+      storage_bytes: BigInt(Number.MAX_SAFE_INTEGER),
+      daily_in: 0,
+      daily_out: 0,
+    },
+    subscription: null,
+    // Limits come off entirely: null is "no cap" everywhere this is read, and
+    // 0 is "unmetered" for the daily counters.
+    storageBytes: Number.MAX_SAFE_INTEGER,
+    dailyIn: 0,
+    dailyOut: 0,
+    features: {
+      fallback_domains: true,
+      self_service: true,
+      custom_filters: true,
+      transfers: true,
+      ...best.features,
+    },
+  }
+}
+
 export const entitlementOf = async (userId: string): Promise<Entitlement> => {
+  const user = await db().one<{ is_owner: boolean }>(
+    from(users)
+      .select("is_owner")
+      .where((q) => q("id").equals(userId)),
+  )
+  if (user?.is_owner) {
+    const owner = await ownerEntitlement()
+    if (owner) return owner
+  }
+
   const subscription = await db().one<Subscription>(
     from(subscriptions).where((q) => [q("user_id").equals(userId), q("status").inList(LIVE)]),
   )

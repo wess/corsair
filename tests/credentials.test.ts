@@ -6,7 +6,13 @@ import {
   setPassword,
   unlinkFromAccount,
 } from "../src/addresses/index.ts"
-import { authenticateAddress, hashPassword } from "../src/auth/index.ts"
+import {
+  authenticateAddress,
+  hashPassword,
+  issueMailSession,
+  MAIL_COOKIE,
+  resolveMailSession,
+} from "../src/auth/index.ts"
 import { db } from "../src/db/index.ts"
 import { type Domain, users } from "../src/schema/index.ts"
 
@@ -261,5 +267,67 @@ describe("linking a mailbox explicitly", () => {
     expect(address.user_id).toBe(ownerId)
     expect(address.password_hash).toBeNull()
     expect(await authenticateAddress(`direct@${zone}`, ACCOUNT_PASSWORD)).not.toBeNull()
+  })
+})
+
+describe("the session a mailbox sign-in produces", () => {
+  /**
+   * The linked mailbox has no `password_hash` of its own, and the webmail
+   * session check treated a missing hash as "not a real mailbox". So sign-in
+   * succeeded, the cookie was issued, and the very next request answered
+   * "Sign in to your mailbox first" — a login that appears to work and then
+   * does not. Reported from the browser, not caught by any test.
+   */
+  test("a linked mailbox resolves its own session", async () => {
+    const identity = await authenticateAddress(`owner@${zone}`, ACCOUNT_PASSWORD)
+    expect(identity).not.toBeNull()
+
+    const cookie = `${MAIL_COOKIE}=${await issueMailSession(identity!.address.id)}`
+    const resolved = await resolveMailSession(cookie)
+
+    expect(resolved).not.toBeNull()
+    expect(resolved?.email).toBe(`owner@${zone}`)
+  })
+
+  test("the session dies with the account it belongs to", async () => {
+    const identity = await authenticateAddress(`owner@${zone}`, ACCOUNT_PASSWORD)
+    const cookie = `${MAIL_COOKIE}=${await issueMailSession(identity!.address.id)}`
+
+    await db().execute(
+      from(users)
+        .where((q) => q("id").equals(ownerId))
+        .update({ status: "terminated" }),
+    )
+    expect(await resolveMailSession(cookie)).toBeNull()
+
+    await db().execute(
+      from(users)
+        .where((q) => q("id").equals(ownerId))
+        .update({ status: "active" }),
+    )
+  })
+})
+
+describe("signing in with the control-panel address", () => {
+  /**
+   * Someone who signs up as `me@wess.io` and reads `wess@wess.dev` knows one
+   * address and one password. Requiring a second address in the mail client is
+   * the same confusion the shared password removed, moved one field left.
+   */
+  test("the account email opens the mailbox linked to it", async () => {
+    const identity = await authenticateAddress(`owner@${zone}`, ACCOUNT_PASSWORD)
+    expect(identity).not.toBeNull()
+    // Resolves to the mailbox, not to the address that was typed.
+    expect(identity?.email).toBe(`owner@${zone}`)
+  })
+
+  test("it refuses a wrong password just as flatly", async () => {
+    expect(await authenticateAddress(`owner@${zone}`, "not-the-password")).toBeNull()
+  })
+
+  test("an account with no linked mailbox opens nothing", async () => {
+    // `ceo@<zone>` is a registered account whose same-named mailbox is
+    // deliberately unlinked, because it does not own the domain.
+    expect(await authenticateAddress(`ceo@${zone}`, "squatter-password-5150")).toBeNull()
   })
 })
