@@ -7,6 +7,7 @@ import { emit } from "../../events/index.ts"
 import { inlineBody, releaseInline } from "../../outbound/index.ts"
 import { type Delivery, deliveries } from "../../schema/index.ts"
 import { getRaw } from "../../storage/index.ts"
+import { headersOf, sendBounce } from "../bounce/index.ts"
 import { deliverToDomain } from "../client/index.ts"
 
 const WORKER_ID = `${process.pid}-${randomUUID().slice(0, 8)}`
@@ -65,6 +66,14 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
       const raw = await bodyOf(row)
       if (!raw) {
         await fail(row, 550, "The queued message body is no longer available.")
+        await sendBounce({
+          recipient: row.rcpt_to,
+          returnPath: row.mail_from,
+          code: 550,
+          status: "5.1.1",
+          reason: "The queued message body is no longer available.",
+          originalMessageId: row.message_id,
+        }).catch(() => {})
         result.failed++
         return
       }
@@ -124,6 +133,29 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
       }
 
       await fail(row, outcome.code, outcome.message)
+
+      /**
+       * Tell the sender. Without this a message fails permanently and the only
+       * trace is a row in the database and a webhook nobody is necessarily
+       * consuming — the person who pressed send is never told, which is the one
+       * outcome a mail server must not produce.
+       *
+       * Built before `releaseInline`, because that deletes the body this quotes
+       * from. `sendBounce` refuses an empty return path, which is what stops a
+       * bounce bouncing.
+       */
+      await sendBounce({
+        recipient: row.rcpt_to,
+        returnPath: row.mail_from,
+        code: outcome.code,
+        status: outcome.code >= 500 ? "5.1.1" : "4.4.1",
+        reason: outcome.message,
+        originalHeaders: headersOf(raw),
+        originalMessageId: row.message_id,
+      }).catch((e) => {
+        console.error("[corsair] could not send a bounce:", (e as Error).message)
+      })
+
       await releaseInline(row.storage_key)
       void notify(row, "message.bounced", {
         code: outcome.code,

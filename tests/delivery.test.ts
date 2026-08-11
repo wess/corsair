@@ -8,6 +8,7 @@ import {
 } from "../src/addresses/index.ts"
 import { db, num } from "../src/db/index.ts"
 import { type Domain, domains, filters, users } from "../src/schema/index.ts"
+import { buildBounce, sendBounce } from "../src/smtp/bounce/index.ts"
 import { handleMessage, validateRecipient } from "../src/smtp/inbound/index.ts"
 import type { Envelope } from "../src/smtp/session/index.ts"
 import { messagesIn } from "../src/store/index.ts"
@@ -374,5 +375,44 @@ describe("accounting", () => {
       values: [userId],
     })
     expect(Number(after!.count)).toBeGreaterThan(Number(before!.count))
+  })
+})
+
+describe("a permanent failure tells the sender", () => {
+  /**
+   * A message that fails permanently used to leave a database row and a webhook
+   * event and nothing else. The person who pressed send was never told, which
+   * is the one outcome a mail server must not produce — found by sending a real
+   * message that a receiver rejected with a 554, and watching nothing come back.
+   */
+  test("a bounce is addressed to the envelope sender", () => {
+    const raw = buildBounce({
+      recipient: "nobody@example.invalid",
+      returnPath: "sender@example.test",
+      code: 554,
+      status: "5.1.1",
+      reason: "Client host blocked using zen.spamhaus.org",
+      originalMessageId: "<abc@example.test>",
+    })
+
+    expect(raw).toContain("To: <sender@example.test>")
+    expect(raw).toContain("nobody@example.invalid")
+    expect(raw).toContain("554")
+    expect(raw).toContain("zen.spamhaus.org")
+    // A DSN a client can parse, not just prose.
+    expect(raw).toContain("message/delivery-status")
+  })
+
+  test("a bounce is never sent to an empty return path", async () => {
+    // Bounces carry `MAIL FROM:<>`. Answering one with another is a loop.
+    expect(
+      await sendBounce({
+        recipient: "nobody@example.invalid",
+        returnPath: "",
+        code: 554,
+        status: "5.1.1",
+        reason: "rejected",
+      }),
+    ).toBe(false)
   })
 })
