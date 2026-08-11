@@ -120,7 +120,9 @@ cp .env.example .env</code></pre></figure>
 <p>In the panel: <strong>Domains → New domain</strong>. Use anything; <code>example.test</code> is fine locally. Corsair generates a verification token, three DKIM key pairs, and the full record set, then shows you the DNS Setup tab.</p>
 <p>Locally you cannot publish those records and the domain will stay pending. That is expected. Corsair still <strong>accepts</strong> mail for a pending domain — it just refuses to <strong>send</strong> from it, because sending before SPF and DKIM are published damages the IP's reputation for every other domain on the server.</p>
 <h2 id="create-a-mailbox">Create a mailbox<a class="anchor" href="#create-a-mailbox" aria-label="Link to this section">#</a></h2>
-<p><strong>Domains → your domain → New mailbox.</strong> Give it a local part and a password. This password is the <em>mailbox</em> credential — it is not your control-panel password, and the two are deliberately separate identities. A mailbox credential ends up in a phone that gets lost; it must not also unlock the panel.</p>
+<p><strong>Domains → your domain → New mailbox.</strong> Give it a local part.</p>
+<p>If the address is your own — the same one you signed up with — Corsair does not ask for a password. It signs in with your <strong>account password</strong>, the one you just used for the panel, and there is nothing else to remember.</p>
+<p>For anyone else's mailbox you set a password here. That is a mailbox credential and nothing more: it opens mail, never the panel.</p>
 <h2 id="deliver-a-message-to-it">Deliver a message to it<a class="anchor" href="#deliver-a-message-to-it" aria-label="Link to this section">#</a></h2>
 <p>Corsair's MX is listening on 2525. Talk to it directly:</p>
 <figure class="code"><span class="code-lang">sh</span><pre><code>printf 'EHLO test\r\nMAIL FROM:&lt;someone@elsewhere.test&gt;\r\nRCPT TO:&lt;you@example.test&gt;\r\nDATA\r\nFrom: Someone &lt;someone@elsewhere.test&gt;\r\nTo: you@example.test\r\nSubject: First message\r\n\r\nIt works.\r\n.\r\nQUIT\r\n' | nc localhost 2525</code></pre></figure>

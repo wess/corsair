@@ -62,7 +62,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <main class="prose"><div class="page-head"><p class="eyebrow">Start here</p></div><h1 id="core-concepts">Core concepts</h1>
 <p>Six ideas. Everything else in the manual is built on them, and the first one is the one people get wrong.</p>
 <h2 id="users-and-addresses-are-different-things">Users and addresses are different things<a class="anchor" href="#users-and-addresses-are-different-things" aria-label="Link to this section">#</a></h2>
-<p>There are two entirely separate identities in Corsair, and conflating them is the bug to avoid.</p>
+<p>There are two identities in Corsair, and conflating what they <em>own</em> is the bug to avoid.</p>
 <div class='table-wrap'><table><thead><tr>
 <th></th>
 <th>User</th>
@@ -71,7 +71,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <tr>
 <td>What it is</td>
 <td>A control-panel login</td>
-<td>A mailbox credential</td>
+<td>A mailbox</td>
 </tr>
 <tr>
 <td>Signs into</td>
@@ -89,7 +89,14 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td>Messages, folders</td>
 </tr>
 </tbody></table></div>
-<p>An address password never signs into the panel, and a user password never signs into a mail client. This is deliberate and it is not going to change: a mailbox credential is typed into phones, laptops, and printers, and one of those will eventually be lost or compromised. When that happens it must not also be the key to the account that owns every domain.</p>
+<p>They remain distinct. What they can share is the <strong>password</strong>.</p>
+<h3 id="your-own-mailbox-uses-your-account-password">Your own mailbox uses your account password<a class="anchor" href="#your-own-mailbox-uses-your-account-password" aria-label="Link to this section">#</a></h3>
+<p>If you sign up as <code>you@example.com</code> and then create the mailbox <code>you@example.com</code> on your own domain, that is one person. Corsair links the two and there is a single password: the one you use for the panel is the one your mail client uses. Change it in Account settings and it changes everywhere, because there is only one of it.</p>
+<p>The mailbox is created without asking for a password at all — the panel says so when it recognises your own address.</p>
+<h3 id="everyone-else-keeps-a-mailbox-only-credential">Everyone else keeps a mailbox-only credential<a class="anchor" href="#everyone-else-keeps-a-mailbox-only-credential" aria-label="Link to this section">#</a></h3>
+<p>A mailbox that is not a control-panel account — the other people on a family or team domain — has its own password and <strong>no panel login whatsoever</strong>. Merging those into the owner's account would hand every one of them the ability to edit your domains.</p>
+<aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span>The rule that makes this safe</p><p>A mailbox is linked to an account only when that account <strong>already owns the domain</strong>. Without that condition, someone could register a panel account as <code>ceo@your-company.com</code> before you added your domain, and the mailbox would authenticate against their password the moment you created it.</p></aside>
+<aside class="callout callout-tip"><p class="callout-title"><span aria-hidden="true">★</span>Turn on two-factor authentication</p><p>A mailbox password is typed into phones, laptops, and printers, and one of those will eventually be lost. Where it is also your account password, the panel is what you do not want it to reach — so put a second factor in front of the panel. Mail protocols cannot present one, which is exactly why it works: a stolen mailbox password alone will not get into the panel. Account → Two-factor authentication.</p></aside>
 <p>The <strong>first user created owns the instance</strong> (<code>users.is_owner</code>). The claim is made inside the INSERT and guarded by a partial unique index, so two simultaneous signups cannot both win.</p>
 <h2 id="a-domain-is-a-routing-decision-plus-proof">A domain is a routing decision plus proof<a class="anchor" href="#a-domain-is-a-routing-decision-plus-proof" aria-label="Link to this section">#</a></h2>
 <p>Adding a domain does three things: it generates a verification token, it creates three DKIM key pairs, and it produces the record set you have to publish.</p>
@@ -201,7 +208,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p>Three credentials pass through Corsair and are never persisted. Do not &quot;fix&quot; any of them by adding a column:</p>
 <ul><li><strong>DNS API tokens</strong> — used for one publish and discarded. One can usually rewrite every record on every domain in the account.</li><li><strong>Card details</strong> — never touch the server at all. The customer enters them on the provider's hosted page; a brand, four digits, and an opaque reference come back.</li><li><strong>Transfer source passwords</strong> — encrypted at rest and erased the moment the transfer reaches a terminal state. They are someone else's credential.</li></ul>
 <p>Reset and recovery tokens are stored only as SHA-256 hashes, and redeemed with a <code>used_at IS NULL</code> predicate <em>inside</em> the UPDATE — checking it in a separate read lets two concurrent requests both redeem the same link.</p><nav class="pager"><a class="pager-prev" href="./quickstart.html"><span>Previous</span><strong>Quickstart</strong></a><a class="pager-next" href="./prerequisites.html"><span>Next</span><strong>Prerequisites</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#users-and-addresses-are-different-things">Users and addresses are different things</a></li><li class="toc-h2"><a href="#a-domain-is-a-routing-decision-plus-proof">A domain is a routing decision plus proof</a></li><li class="toc-h2"><a href="#addresses-come-in-four-kinds">Addresses come in four kinds</a></li><li class="toc-h3"><a href="#how-a-recipient-is-resolved">How a recipient is resolved</a></li><li class="toc-h2"><a href="#folders-uids-and-why-they-are-fussy">Folders, UIDs, and why they are fussy</a></li><li class="toc-h2"><a href="#one-store-five-ways-in">One store, five ways in</a></li><li class="toc-h2"><a href="#plans-gate-features-even-when-nothing-is-charged">Plans gate features, even when nothing is charged</a></li><li class="toc-h2"><a href="#things-that-are-deliberately-never-stored">Things that are deliberately never stored</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#users-and-addresses-are-different-things">Users and addresses are different things</a></li><li class="toc-h3"><a href="#your-own-mailbox-uses-your-account-password">Your own mailbox uses your account password</a></li><li class="toc-h3"><a href="#everyone-else-keeps-a-mailbox-only-credential">Everyone else keeps a mailbox-only credential</a></li><li class="toc-h2"><a href="#a-domain-is-a-routing-decision-plus-proof">A domain is a routing decision plus proof</a></li><li class="toc-h2"><a href="#addresses-come-in-four-kinds">Addresses come in four kinds</a></li><li class="toc-h3"><a href="#how-a-recipient-is-resolved">How a recipient is resolved</a></li><li class="toc-h2"><a href="#folders-uids-and-why-they-are-fussy">Folders, UIDs, and why they are fussy</a></li><li class="toc-h2"><a href="#one-store-five-ways-in">One store, five ways in</a></li><li class="toc-h2"><a href="#plans-gate-features-even-when-nothing-is-charged">Plans gate features, even when nothing is charged</a></li><li class="toc-h2"><a href="#things-that-are-deliberately-never-stored">Things that are deliberately never stored</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

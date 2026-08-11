@@ -47,9 +47,12 @@ Configuration tab shows the exact values for your server.
 **Username is always the full email address**, not the part before the `@`. A bare
 local part would be ambiguous across the domains on the server.
 
-**Password is the mailbox password**, which is not your control-panel password.
-They are separate identities on purpose: a mailbox credential ends up in a phone
-that gets lost, and it must not also unlock the panel.
+**Password** — for your own address, this is your **account password**, the same
+one you use for the panel. Corsair links a mailbox to the account that owns the
+domain when the addresses match, so there is one password, not two.
+
+For a mailbox that is not a control-panel account — anyone else on your domain —
+it is that mailbox's own password, which opens mail and never the panel.
 
 993 and 465 are encrypted from the first byte. There is no upgrade to negotiate
 and none to get wrong, which is why they are the better ports even on a server

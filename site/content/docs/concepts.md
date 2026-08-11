@@ -14,21 +14,51 @@ the one people get wrong.
 
 ## Users and addresses are different things
 
-There are two entirely separate identities in Corsair, and conflating them is the
-bug to avoid.
+There are two identities in Corsair, and conflating what they *own* is the bug to
+avoid.
 
 | | User | Address |
 | --- | --- | --- |
-| What it is | A control-panel login | A mailbox credential |
+| What it is | A control-panel login | A mailbox |
 | Signs into | The panel at `/app` | SMTP, IMAP, POP3, JMAP, webmail |
 | Authenticated by | Session cookie (`corsair_session`) | Password on the protocol |
 | Owns | Domains, plans, webhooks, filters | Messages, folders |
 
-An address password never signs into the panel, and a user password never signs
-into a mail client. This is deliberate and it is not going to change: a mailbox
-credential is typed into phones, laptops, and printers, and one of those will
-eventually be lost or compromised. When that happens it must not also be the key
-to the account that owns every domain.
+They remain distinct. What they can share is the **password**.
+
+### Your own mailbox uses your account password
+
+If you sign up as `you@example.com` and then create the mailbox `you@example.com`
+on your own domain, that is one person. Corsair links the two and there is a
+single password: the one you use for the panel is the one your mail client uses.
+Change it in Account settings and it changes everywhere, because there is only
+one of it.
+
+The mailbox is created without asking for a password at all — the panel says so
+when it recognises your own address.
+
+### Everyone else keeps a mailbox-only credential
+
+A mailbox that is not a control-panel account — the other people on a family or
+team domain — has its own password and **no panel login whatsoever**. Merging
+those into the owner's account would hand every one of them the ability to edit
+your domains.
+
+:::note The rule that makes this safe
+A mailbox is linked to an account only when that account **already owns the
+domain**. Without that condition, someone could register a panel account as
+`ceo@your-company.com` before you added your domain, and the mailbox would
+authenticate against their password the moment you created it.
+:::
+
+:::tip Turn on two-factor authentication
+A mailbox password is typed into phones, laptops, and printers, and one of those
+will eventually be lost. Where it is also your account password, the panel is
+what you do not want it to reach — so put a second factor in front of the panel.
+Mail protocols cannot present one, which is exactly why it works: a stolen
+mailbox password alone will not get into the panel. Account → Two-factor
+authentication.
+:::
 
 The **first user created owns the instance** (`users.is_owner`). The claim is
 made inside the INSERT and guarded by a partial unique index, so two simultaneous

@@ -198,9 +198,10 @@ Corsair has no server-side STARTTLS (Bun cannot upgrade an accepted socket), so
 those ports can never become encrypted, and Corsair will not take a credential in
 the clear. **Use 465, 993, or 995.** See [TLS](tls.html).
 
-**"Wrong password"** — the mailbox password, not the control-panel password. They
-are separate identities. Alias and group addresses have no password at all; they
-cannot be signed into.
+**"Wrong password"** — for your own address, use your **account password**; the
+panel shows "signs in with your account password" on any mailbox that is linked.
+For anyone else's mailbox it is that mailbox's own password. Alias and group
+addresses have no password at all; they cannot be signed into.
 
 **Username** is always the **full email address**. A bare local part is ambiguous
 across the domains on the server.

@@ -67,6 +67,7 @@ type Address = {
   filter_name: string | null
   recovery_address: string | null
   disabled: boolean
+  uses_account_password: boolean
   last_login_at: string | null
 }
 
@@ -359,8 +360,21 @@ const CreateAddressDialog = ({
   const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
 
-  const needsPassword = type === "standard" || type === "catchall"
   const needsDestinations = type === "alias" || type === "group"
+  const isMailbox = type === "standard" || type === "catchall"
+
+  // Whether the mailbox being created is the account holder's own. It signs in
+  // with the account password, so asking for a second one here would create a
+  // credential that never works. Fetched rather than threaded through the page
+  // — one request when a dialog opens is cheaper than the prop.
+  const { data: account } = useLoad(() => get<{ email: string }>("/api/auth/me"))
+  const isOwnMailbox =
+    isMailbox &&
+    Boolean(account?.email) &&
+    `${localPart.trim().toLowerCase()}@${domain.name.toLowerCase()}` ===
+      account?.email.toLowerCase()
+
+  const needsPassword = isMailbox && !isOwnMailbox
 
   const description: Record<typeof type, string> = {
     standard: "A standard address with a mailbox.",
@@ -431,6 +445,18 @@ const CreateAddressDialog = ({
             placeholder="name to display as sender"
           />
         </Field>
+
+        {isOwnMailbox && (
+          <div style={{ marginBottom: 14 }}>
+            <Banner kind="good">
+              <Icon path={icons.check} size={15} />
+              <span>
+                This is your own address, so it signs in with your account password. No second
+                password to set or remember.
+              </span>
+            </Banner>
+          </div>
+        )}
 
         {needsPassword && (
           <Field label="Password" hint="This is what a mail client signs in with.">
@@ -1196,6 +1222,24 @@ const RecoveryAddress = ({ address, onSaved }: { address: Address; onSaved: () =
 }
 
 const ChangeAddressPassword = ({ address }: { address: Address }) => {
+  // A mailbox that is the account holder's own signs in with the account
+  // password. Offering a second field here would let someone set a password
+  // that never works, with nothing to say why.
+  if (address.uses_account_password) {
+    return (
+      <Card title="Password">
+        <p className="muted" style={{ margin: 0 }}>
+          This mailbox signs in with <strong>your account password</strong> — the same one you used
+          for this panel. Change it under Account and it changes here too.
+        </p>
+      </Card>
+    )
+  }
+
+  return <ChangeOwnAddressPassword address={address} />
+}
+
+const ChangeOwnAddressPassword = ({ address }: { address: Address }) => {
   const [password, setPassword] = useState("")
   const [show, setShow] = useState(false)
   const [done, setDone] = useState(false)

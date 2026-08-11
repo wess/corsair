@@ -61,35 +61,14 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </div></nav>
 <main class="prose"><div class="page-head"><p class="eyebrow">Install and operate</p></div><h1 id="security-model">Security model</h1>
 <p>What Corsair protects, how, and where the boundary is. Read the last section too — the parts that are your responsibility are not small.</p>
-<h2 id="two-identities-never-merged">Two identities, never merged<a class="anchor" href="#two-identities-never-merged" aria-label="Link to this section">#</a></h2>
-<div class='table-wrap'><table><thead><tr>
-<th></th>
-<th>User</th>
-<th>Address</th>
-</tr></thead><tbody>
-<tr>
-<td>Purpose</td>
-<td>Control-panel login</td>
-<td>Mailbox credential</td>
-</tr>
-<tr>
-<td>Credential</td>
-<td>Password + optional TOTP</td>
-<td>Password</td>
-</tr>
-<tr>
-<td>Carried by</td>
-<td><code>corsair_session</code> cookie, 14 days</td>
-<td>The mail protocol, per connection</td>
-</tr>
-<tr>
-<td>Grants</td>
-<td>Domains, billing, webhooks, filters</td>
-<td>Messages in one mailbox</td>
-</tr>
-</tbody></table></div>
-<p>An address password never signs into the panel, and a user password never signs into a mail client. A mailbox credential is typed into phones, laptops, and printers; one of those will eventually be lost. When it is, it must not also be the key to the account that owns every domain.</p>
-<p>The webmail uses a <strong>third</strong> thing: a separate <code>corsair_webmail</code> cookie with a 12-hour lifetime and a distinct claim, so a panel session cookie cannot be replayed against it. Shorter because a browser session on a shared machine is more likely to be left open.</p>
+<h2 id="two-identities-one-password-where-they-are-one-person">Two identities, one password where they are one person<a class="anchor" href="#two-identities-one-password-where-they-are-one-person" aria-label="Link to this section">#</a></h2>
+<ul><li>A <strong>user</strong> is a control-panel login. It owns domains, plans, and billing.</li><li>An <strong>address</strong> is a mailbox. It owns messages.</li></ul>
+<p>What they own never merges. The <strong>password</strong> does, in exactly one case: a mailbox that is its own owner's account. The address stores no hash of its own and every protocol verifies against the account's, so there is one credential rather than two for the same person.</p>
+<p><strong>A mailbox is linked to an account only when that account already owns the domain.</strong> This is the whole security of the arrangement. Without it, anyone could register a control-panel account as <code>ceo@some-company.com</code> before that company added its domain, and the mailbox would authenticate against the squatter's password the moment it was created. The condition means the only account that can ever be linked is one that could read the mail anyway.</p>
+<p>A mailbox with no linked account keeps its own password and has <strong>no panel login at all</strong>. That is most mailboxes on a family or team domain, and merging them into the owner's account would hand each of them the domains.</p>
+<p>A terminated account cannot authenticate anywhere, including to a mailbox linked to it.</p>
+<aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>What a shared password costs you</p><p>A mailbox password is transmitted on every IMAP poll and stored in phones, laptops, and printers. Where it is also the account password, whoever recovers it from a lost device has the panel too.</p>
+<p><strong>Put two-factor authentication in front of the panel.</strong> Mail protocols cannot present a second factor, so a stolen mailbox password on its own stops at the mailbox — which is the outcome you want. This is the mitigation that makes a shared credential a reasonable trade rather than a bad one.</p></aside>
 <h2 id="passwords-and-tokens">Passwords and tokens<a class="anchor" href="#passwords-and-tokens" aria-label="Link to this section">#</a></h2>
 <ul><li>Passwords are hashed, never stored or logged in the clear.</li><li>Reset and recovery tokens are stored <strong>only as SHA-256 hashes</strong>.</li><li>A token is redeemed with <code>used_at IS NULL</code> <strong>inside the UPDATE</strong>. Checking it in a separate read lets two concurrent requests both redeem the same link.</li><li>Sessions are rows, not just JWTs. The signature alone is not enough — a revoked session stops working immediately, which a stateless token cannot do.</li></ul>
 <p>Two-factor is TOTP. Turn it on for the owner account; it controls every domain.</p>
@@ -177,7 +156,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p><strong>Not hardened against a hostile operator.</strong> An operator can read every mailbox on the instance. That is inherent to running a mail server, and it is why you should run your own rather than trusting someone else's.</p>
 <h2 id="reporting-a-vulnerability">Reporting a vulnerability<a class="anchor" href="#reporting-a-vulnerability" aria-label="Link to this section">#</a></h2>
 <p>Do not open a public issue. Corsair serves a <code>security.txt</code> at <code>/.well-known/security.txt</code> with the current contact. Include what you did, what happened, and what you expected.</p><nav class="pager"><a class="pager-prev" href="./troubleshooting.html"><span>Previous</span><strong>Troubleshooting</strong></a><a class="pager-next" href="./control-panel.html"><span>Next</span><strong>The control panel</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#two-identities-never-merged">Two identities, never merged</a></li><li class="toc-h2"><a href="#passwords-and-tokens">Passwords and tokens</a></li><li class="toc-h2"><a href="#never-stored">Never stored</a></li><li class="toc-h2"><a href="#transport">Transport</a></li><li class="toc-h2"><a href="#enumeration">Enumeration</a></li><li class="toc-h2"><a href="#server-side-request-forgery">Server-side request forgery</a></li><li class="toc-h2"><a href="#content-sanitisation">Content sanitisation</a></li><li class="toc-h2"><a href="#browser-headers">Browser headers</a></li><li class="toc-h2"><a href="#header-injection">Header injection</a></li><li class="toc-h2"><a href="#rate-limiting-and-bans">Rate limiting and bans</a></li><li class="toc-h2"><a href="#outbound-abuse">Outbound abuse</a></li><li class="toc-h2"><a href="#multi-tenancy">Multi-tenancy</a></li><li class="toc-h2"><a href="#instance-ownership">Instance ownership</a></li><li class="toc-h2"><a href="#what-is-yours">What is yours</a></li><li class="toc-h2"><a href="#what-corsair-does-not-claim">What Corsair does not claim</a></li><li class="toc-h2"><a href="#reporting-a-vulnerability">Reporting a vulnerability</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#two-identities-one-password-where-they-are-one-person">Two identities, one password where they are one person</a></li><li class="toc-h2"><a href="#passwords-and-tokens">Passwords and tokens</a></li><li class="toc-h2"><a href="#never-stored">Never stored</a></li><li class="toc-h2"><a href="#transport">Transport</a></li><li class="toc-h2"><a href="#enumeration">Enumeration</a></li><li class="toc-h2"><a href="#server-side-request-forgery">Server-side request forgery</a></li><li class="toc-h2"><a href="#content-sanitisation">Content sanitisation</a></li><li class="toc-h2"><a href="#browser-headers">Browser headers</a></li><li class="toc-h2"><a href="#header-injection">Header injection</a></li><li class="toc-h2"><a href="#rate-limiting-and-bans">Rate limiting and bans</a></li><li class="toc-h2"><a href="#outbound-abuse">Outbound abuse</a></li><li class="toc-h2"><a href="#multi-tenancy">Multi-tenancy</a></li><li class="toc-h2"><a href="#instance-ownership">Instance ownership</a></li><li class="toc-h2"><a href="#what-is-yours">What is yours</a></li><li class="toc-h2"><a href="#what-corsair-does-not-claim">What Corsair does not claim</a></li><li class="toc-h2"><a href="#reporting-a-vulnerability">Reporting a vulnerability</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

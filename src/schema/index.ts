@@ -116,6 +116,11 @@ export type Token = RowOf<typeof tokens>
 export const addresses = defineSchema("addresses", {
   id: id(),
   domain_id: column.uuid().ref("domains", "id"),
+  // Set when this mailbox *is* a control-panel account, in which case it has no
+  // password of its own and every protocol verifies against the account's. Null
+  // for the other people on a domain, who keep a mailbox credential and have no
+  // panel login. See `authenticateAddress`.
+  user_id: column.uuid().nullable(),
   local_part: column.text(),
   type: column.text().default("standard"),
   name: column.text().nullable(),

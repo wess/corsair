@@ -136,14 +136,30 @@ not a 500.
 
 ## Auth
 
-Two entirely separate identities, and conflating them is the bug to avoid:
+Two identities. They stay distinct — what is shared is at most the credential.
 
 - A **user** is a control-panel login (session cookie). It owns domains.
 - An **address** is a mailbox credential (SMTP/IMAP/POP3). It owns messages.
 
-An address password never signs into the panel and a user password never signs
-into a mail client. Alias and group addresses have no password at all — they are
-routing entries.
+**A mailbox that *is* its owner's own account shares one password.**
+`addresses.user_id` links them; the address stores no `password_hash` and every
+protocol verifies against the account's via `mailboxHash` in `src/auth`. One
+person held two credentials for the same address and that was the most common
+way a first client setup went wrong.
+
+**The link is only made when the account already owns the domain.** This is
+load-bearing, not a formality: without it anyone could register a panel account
+as `ceo@some-company.com` before that company added its domain, and the mailbox
+would silently authenticate against the squatter's password the moment it was
+created. `tests/credentials.test.ts` asserts exactly that, and three of its
+tests fail if the condition is relaxed. Do not relax it.
+
+An unlinked mailbox keeps its own hash and has **no panel login at all** — the
+other people on a family or team domain. Merging those into the owner's account
+would hand them the panel. `setPassword` refuses on a linked mailbox rather than
+writing a second hash, which would silently re-split the credential.
+
+Alias and group addresses have no password at all — they are routing entries.
 
 ## Instance ownership
 

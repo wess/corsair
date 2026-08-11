@@ -12,6 +12,7 @@ import {
   domains,
   type Folder,
   folders,
+  users,
 } from "../schema/index.ts"
 
 export type AddressType = "standard" | "alias" | "catchall" | "group"
@@ -114,14 +115,49 @@ export type CreateAddressInput = {
   filterId?: string | null
 }
 
+/**
+ * The control-panel account this mailbox *is*, if any.
+ *
+ * A person who signs up as `me@example.com` and then creates the mailbox
+ * `me@example.com` on their own domain is one person, and asking them to hold
+ * two passwords for it was the single most common way a first client setup
+ * went wrong. Linked, the mailbox has no password of its own and every protocol
+ * verifies against the account's.
+ *
+ * The domain-ownership condition is load-bearing and not a formality. Without
+ * it, anyone could register a panel account as `ceo@some-company.com` before
+ * that company added its domain, and the mailbox would silently authenticate
+ * against the squatter's password the moment it was created. Requiring that the
+ * account already owns the domain means the only account that can be linked is
+ * one that could read the mail anyway.
+ */
+const accountFor = async (domainId: string, localPart: string): Promise<string | null> => {
+  const domain = await db().one<Domain>(from(domains).where((q) => q("id").equals(domainId)))
+  if (!domain) return null
+
+  const owner = await db().one<{ id: string; email: string }>(
+    from(users)
+      .select("id", "email")
+      .where((q) => q("id").equals(domain.user_id)),
+  )
+  if (!owner) return null
+
+  return owner.email.toLowerCase() === `${localPart}@${domain.name}`.toLowerCase() ? owner.id : null
+}
+
 export const createAddress = async (
   input: CreateAddressInput,
 ): Promise<{ address: Address; destinations: AddressDestination[] }> => {
   const localPart = normalizeLocalPart(input.localPart)
-  const needsPassword = input.type === "standard" || input.type === "catchall"
   const needsDestinations = input.type === "alias" || input.type === "group"
+  const isMailbox = input.type === "standard" || input.type === "catchall"
 
-  if (needsPassword && !input.password) {
+  // Resolved before the password check: a mailbox that is its owner's own
+  // account already has a password, and demanding a second one is the thing
+  // this is meant to stop.
+  const userId = isMailbox ? await accountFor(input.domainId, localPart) : null
+
+  if (isMailbox && !input.password && !userId) {
     throw invalidParameter("A mailbox needs a password.")
   }
   if (needsDestinations && !input.destinations?.length) {
@@ -158,14 +194,17 @@ export const createAddress = async (
         local_part: localPart,
         type: input.type,
         name: input.name ?? null,
-        password_hash: input.password ? await hashPassword(input.password) : null,
+        user_id: userId,
+        // A linked mailbox deliberately stores nothing here. Two hashes for one
+        // person is how they drift apart.
+        password_hash: userId ? null : input.password ? await hashPassword(input.password) : null,
         filter_id: input.filterId ?? null,
         password_changed_at: input.password ? new Date() : null,
       })
       .returning(...allColumns(addresses)),
   ))!
 
-  if (needsPassword) await provisionFolders(address.id)
+  if (isMailbox) await provisionFolders(address.id)
 
   const destinations: AddressDestination[] = []
   for (const [index, destination] of (input.destinations ?? []).entries()) {
@@ -191,7 +230,23 @@ export const destinationsOf = (addressId: string): Promise<AddressDestination[]>
       .orderBy("position", "ASC"),
   )
 
+/**
+ * Sets a mailbox's own password.
+ *
+ * Refuses on a mailbox linked to a control-panel account. Writing a hash there
+ * would silently re-split a credential that was deliberately merged: the
+ * account password would keep working, the new one would not, and nothing would
+ * say why. The account password is the one to change.
+ */
 export const setPassword = async (addressId: string, password: string): Promise<void> => {
+  const address = await db().one<Address>(from(addresses).where((q) => q("id").equals(addressId)))
+  if (!address) throw notFound("That address does not exist.")
+  if (address.user_id) {
+    throw invalidParameter(
+      "This mailbox signs in with your account password. Change it in Account settings and it changes here too.",
+    )
+  }
+
   await db().execute(
     from(addresses)
       .where((q) => q("id").equals(addressId))

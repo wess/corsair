@@ -159,7 +159,7 @@ ORDER BY updated_at DESC LIMIT 20;</code></pre></figure>
 <h2 id="clients-cannot-connect-or-log-in">Clients cannot connect or log in<a class="anchor" href="#clients-cannot-connect-or-log-in" aria-label="Link to this section">#</a></h2>
 <p><strong>&quot;Certificate not trusted&quot;</strong> — self-signed, or the chain is incomplete. You need <code>fullchain.pem</code>, not the leaf.</p>
 <p><strong>&quot;Server does not support authentication&quot;</strong> — you are on 587, 143, or 110. Corsair has no server-side STARTTLS (Bun cannot upgrade an accepted socket), so those ports can never become encrypted, and Corsair will not take a credential in the clear. <strong>Use 465, 993, or 995.</strong> See <a href="tls.html">TLS</a>.</p>
-<p><strong>&quot;Wrong password&quot;</strong> — the mailbox password, not the control-panel password. They are separate identities. Alias and group addresses have no password at all; they cannot be signed into.</p>
+<p><strong>&quot;Wrong password&quot;</strong> — for your own address, use your <strong>account password</strong>; the panel shows &quot;signs in with your account password&quot; on any mailbox that is linked. For anyone else's mailbox it is that mailbox's own password. Alias and group addresses have no password at all; they cannot be signed into.</p>
 <p><strong>Username</strong> is always the <strong>full email address</strong>. A bare local part is ambiguous across the domains on the server.</p>
 <p><strong>Check what is actually served:</strong></p>
 <figure class="code"><span class="code-lang">sh</span><pre><code>openssl s_client -connect mail.example.com:993 -servername mail.example.com &lt;/dev/null 2&gt;&amp;1 \

@@ -12,24 +12,40 @@ eyebrow: Install and operate
 What Corsair protects, how, and where the boundary is. Read the last section
 too — the parts that are your responsibility are not small.
 
-## Two identities, never merged
+## Two identities, one password where they are one person
 
-| | User | Address |
-| --- | --- | --- |
-| Purpose | Control-panel login | Mailbox credential |
-| Credential | Password + optional TOTP | Password |
-| Carried by | `corsair_session` cookie, 14 days | The mail protocol, per connection |
-| Grants | Domains, billing, webhooks, filters | Messages in one mailbox |
+- A **user** is a control-panel login. It owns domains, plans, and billing.
+- An **address** is a mailbox. It owns messages.
 
-An address password never signs into the panel, and a user password never signs
-into a mail client. A mailbox credential is typed into phones, laptops, and
-printers; one of those will eventually be lost. When it is, it must not also be
-the key to the account that owns every domain.
+What they own never merges. The **password** does, in exactly one case: a
+mailbox that is its own owner's account. The address stores no hash of its own
+and every protocol verifies against the account's, so there is one credential
+rather than two for the same person.
 
-The webmail uses a **third** thing: a separate `corsair_webmail` cookie with a
-12-hour lifetime and a distinct claim, so a panel session cookie cannot be
-replayed against it. Shorter because a browser session on a shared machine is
-more likely to be left open.
+**A mailbox is linked to an account only when that account already owns the
+domain.** This is the whole security of the arrangement. Without it, anyone
+could register a control-panel account as `ceo@some-company.com` before that
+company added its domain, and the mailbox would authenticate against the
+squatter's password the moment it was created. The condition means the only
+account that can ever be linked is one that could read the mail anyway.
+
+A mailbox with no linked account keeps its own password and has **no panel login
+at all**. That is most mailboxes on a family or team domain, and merging them
+into the owner's account would hand each of them the domains.
+
+A terminated account cannot authenticate anywhere, including to a mailbox linked
+to it.
+
+:::warning What a shared password costs you
+A mailbox password is transmitted on every IMAP poll and stored in phones,
+laptops, and printers. Where it is also the account password, whoever recovers it
+from a lost device has the panel too.
+
+**Put two-factor authentication in front of the panel.** Mail protocols cannot
+present a second factor, so a stolen mailbox password on its own stops at the
+mailbox — which is the outcome you want. This is the mitigation that makes a
+shared credential a reasonable trade rather than a bad one.
+:::
 
 ## Passwords and tokens
 

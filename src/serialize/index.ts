@@ -116,6 +116,10 @@ export const addressObject = (
   filter_name: extra.filterName ?? null,
   daily_in_limit: address.daily_in_limit,
   daily_out_limit: address.daily_out_limit,
+  // Whether this mailbox signs in with the account password rather than one of
+  // its own. Never the account id, and never a hash — the panel only needs to
+  // know which password to tell someone to use.
+  uses_account_password: Boolean(address.user_id),
   last_login_at: address.last_login_at?.toISOString() ?? null,
   created_at: address.created_at.toISOString(),
 })

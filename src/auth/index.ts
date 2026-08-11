@@ -164,6 +164,31 @@ export type MailIdentity = {
  * Alias and group addresses have no password and can never authenticate; they
  * are routing entries, not accounts.
  */
+/**
+ * The hash a mailbox authenticates against.
+ *
+ * One credential, where the mailbox and the panel account are the same person:
+ * a linked address carries no hash of its own and every protocol verifies
+ * against the account's. Changing the account password changes the mailbox
+ * password because there is only one of them.
+ *
+ * A mailbox with no link keeps its own hash — the other people on a family or
+ * team domain hold a mailbox credential and have no panel login at all. Those
+ * are still two identities; this only merges the case where one person was
+ * holding two.
+ *
+ * Returning null locks the mailbox rather than falling through to its own
+ * stale hash. A terminated account must not keep collecting mail, and an
+ * account with no password (one that only ever signed in another way) has
+ * nothing to verify against.
+ */
+const mailboxHash = async (address: Address): Promise<string | null> => {
+  if (!address.user_id) return address.password_hash
+  const owner = await db().one<User>(from(users).where((q) => q("id").equals(address.user_id!)))
+  if (!owner || owner.status === "terminated") return null
+  return owner.password_hash
+}
+
 export const authenticateAddress = async (
   username: string,
   password: string,
@@ -182,10 +207,25 @@ export const authenticateAddress = async (
       q("local_part").equals(localPart),
     ]),
   )
-  if (!address || address.disabled || !address.password_hash) return null
+  if (!address || address.disabled) return null
   if (address.type !== "standard" && address.type !== "catchall") return null
 
-  if (!(await verify(password, address.password_hash))) return null
+  /**
+   * One credential, where the mailbox and the panel account are the same
+   * person: the address carries no hash of its own and this verifies against
+   * the account's. Changing the account password changes the mailbox password
+   * because there is only one of them.
+   *
+   * A mailbox with no linked account still has its own hash — the other people
+   * on a family or team domain hold a mailbox credential and no panel login.
+   *
+   * A terminated or password-less account cannot authenticate anywhere. The
+   * check is here rather than at the call sites so that SMTP, IMAP, POP3, and
+   * the webmail cannot disagree about it.
+   */
+  const expected = await mailboxHash(address)
+  if (!expected) return null
+  if (!(await verify(password, expected))) return null
 
   void db()
     .execute(

@@ -115,10 +115,14 @@ IP's reputation for every other domain on the server.
 
 ## Create a mailbox
 
-**Domains → your domain → New mailbox.** Give it a local part and a password.
-This password is the *mailbox* credential — it is not your control-panel
-password, and the two are deliberately separate identities. A mailbox credential
-ends up in a phone that gets lost; it must not also unlock the panel.
+**Domains → your domain → New mailbox.** Give it a local part.
+
+If the address is your own — the same one you signed up with — Corsair does not
+ask for a password. It signs in with your **account password**, the one you just
+used for the panel, and there is nothing else to remember.
+
+For anyone else's mailbox you set a password here. That is a mailbox credential
+and nothing more: it opens mail, never the panel.
 
 ## Deliver a message to it
 
