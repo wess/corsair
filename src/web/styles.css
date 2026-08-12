@@ -770,3 +770,97 @@ dialog.dialog::backdrop {
     padding: 12px 14px;
   }
 }
+
+/* ------------------------------------------------------------- server logs */
+
+.log-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 12px 14px;
+}
+
+.log-controls select,
+.log-controls input {
+  font-size: 14px;
+  padding: 7px 10px;
+}
+
+.log-controls input {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.log-view {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--sunk);
+  /* A log is the one place horizontal truncation loses the answer, so long
+     lines wrap rather than scroll away. */
+  overflow-x: auto;
+  max-height: 68vh;
+  overflow-y: auto;
+}
+
+.log-day {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.log-line {
+  display: grid;
+  grid-template-columns: 74px 62px 1fr;
+  gap: 10px;
+  padding: 4px 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.55;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 45%, transparent);
+}
+
+.log-line:last-child { border-bottom: 0; }
+
+.log-time { color: var(--muted); }
+
+.log-sev {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  padding-top: 1px;
+  color: var(--muted);
+}
+
+.log-msg {
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.log-bad { background: color-mix(in srgb, var(--bad) 9%, transparent); }
+.log-bad .log-sev { color: var(--bad); font-weight: 650; }
+.log-warn { background: color-mix(in srgb, var(--warn) 9%, transparent); }
+.log-warn .log-sev { color: var(--warn); font-weight: 650; }
+.log-muted { opacity: 0.62; }
+
+@media (max-width: 620px) {
+  .log-line {
+    grid-template-columns: 62px 1fr;
+    row-gap: 2px;
+  }
+  /* The severity chip moves under the time rather than stealing width from
+     the message, which is the only column that matters on a phone. */
+  .log-sev { grid-column: 1; }
+  .log-msg { grid-column: 2; }
+  .log-time { grid-column: 1; }
+}

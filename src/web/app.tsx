@@ -8,6 +8,7 @@ import { BillingPage, PlansPage } from "./pages/billing.tsx"
 import { AddressDetailPage, DomainDetailPage, DomainsPage } from "./pages/domains.tsx"
 import { FilterEditPage, FiltersPage } from "./pages/filters.tsx"
 import { HookDetailPage, HooksPage } from "./pages/hooks.tsx"
+import { LogsPage } from "./pages/logs.tsx"
 import { OverviewPage } from "./pages/overview.tsx"
 import {
   AddressRecoveryPage,
@@ -68,7 +69,18 @@ const NAV = [
   { label: "Billing", path: "/billing", icon: icons.billing },
 ] as const
 
+/**
+ * Shown only to the account that owns the instance.
+ *
+ * The journal carries every account's addresses and delivery outcomes, so this
+ * is not a feature of a plan — it belongs to whoever runs the machine. The API
+ * enforces that independently; hiding the link is courtesy, not the control.
+ */
+const OWNER_NAV = [{ label: "Logs", path: "/logs", icon: icons.docs }] as const
+
 const titleFor = (route: string): string => {
+  if (route.startsWith("/logs")) return "Server logs"
+
   if (route.startsWith("/domains")) return "Domains"
   if (route.startsWith("/addresses")) return "Address"
   if (route.startsWith("/filters")) return "Filters"
@@ -91,7 +103,9 @@ const Shell = ({
 }) => {
   const route = useRoute()
 
-  const active = [...NAV]
+  const items = me.is_owner ? [...NAV, ...OWNER_NAV] : [...NAV]
+
+  const active = [...items]
     .sort((a, b) => b.path.length - a.path.length)
     .find((item) => (item.path === "/" ? route === "/" : route.startsWith(item.path)))
 
@@ -118,6 +132,7 @@ const Shell = ({
       return <AccountPage me={me} onUpdated={onUpdated} onSignOut={onSignOut} />
     if (route.startsWith("/plans")) return <PlansPage />
     if (route.startsWith("/billing")) return <BillingPage />
+    if (route.startsWith("/logs") && me.is_owner) return <LogsPage />
 
     return <OverviewPage name={me.name} />
   }
@@ -128,7 +143,7 @@ const Shell = ({
         <div className="brand">🏴 Corsair</div>
 
         <nav>
-          {NAV.map((item) => (
+          {items.map((item) => (
             <button
               type="button"
               key={item.path}

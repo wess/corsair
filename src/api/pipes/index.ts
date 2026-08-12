@@ -1,10 +1,12 @@
 import { clientIp, createDbRateLimit, parseTrustedProxies } from "@atlas/security"
+import { from } from "@atlas/db"
 import { assign, type Conn, isHttpError, json, type PipeFn, type Route } from "@atlas/server"
 import { type Principal, requirePrincipal } from "../../auth/index.ts"
 import { config } from "../../config/index.ts"
 import { db } from "../../db/index.ts"
-import { applicationError, errorBody, rateLimitExceeded } from "../../errors/index.ts"
+import { applicationError, errorBody, forbidden, rateLimitExceeded } from "../../errors/index.ts"
 import { type Entitlement, entitlementOf } from "../../plans/index.ts"
+import { users } from "../../schema/index.ts"
 
 const trustedProxies = parseTrustedProxies(config.trustedProxies)
 
@@ -112,8 +114,28 @@ export const publicLimit: PipeFn = async (conn) => {
   return conn
 }
 
+/**
+ * The instance owner, and nobody else.
+ *
+ * Not a role or a permission bit — the single account that claimed the server
+ * on first signup. Anything behind this sees across every account on the box,
+ * so the check is a database read of `is_owner` on each request rather than
+ * anything carried in the session, which would survive the flag being cleared.
+ */
+export const owner: PipeFn = async (conn) => {
+  const principal = (conn.assigns as { principal: Principal }).principal
+  const row = await db().one<{ is_owner: boolean }>(
+    from(users)
+      .select("is_owner")
+      .where((q) => q("id").equals(principal.userId)),
+  )
+  if (!row?.is_owner) throw forbidden("Only the owner of this server can do that.")
+  return conn
+}
+
 export const authed: readonly PipeFn[] = [auth, rateLimit]
 export const authedWithPlan: readonly PipeFn[] = [auth, rateLimit, withPlan]
+export const ownerOnly: readonly PipeFn[] = [auth, rateLimit, owner]
 
 export const principalOf = (conn: { assigns: unknown }): Principal =>
   (conn.assigns as { principal: Principal }).principal
