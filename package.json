@@ -35,6 +35,9 @@
     "format:fix": "biome format --write src/ scripts/ site/ tests/",
     "tidy": "bun run format:fix && bun run lint:fix",
     "test:starttls": "bun tests/starttls.ts",
+    "engine:build": "cargo build --release --manifest-path engine/Cargo.toml",
+    "engine:test": "cargo test --manifest-path engine/Cargo.toml",
+    "test:mxfront": "bun run engine:build && bun tests/mxfront.ts",
     "test:dns": "bun tests/dns.ts",
     "test:starttls:server": "bun tests/serverstarttls.ts"
   },

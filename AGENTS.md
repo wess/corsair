@@ -126,6 +126,23 @@ public key has nowhere to go and its mail fails while looking correct on the way
 out. `createDomain` adopts the pair already in use for the host. The private key
 being shared changes no blast radius — one server holds all of them either way.
 
+**Ports 25 and 587 are held by a Rust process, not by Bun.** `engine/` is a
+STARTTLS terminator: it relays the session verbatim and intervenes at exactly
+two points — it advertises STARTTLS in the EHLO reply, and it performs the
+upgrade Bun cannot. Every policy decision stays in Corsair, which listens on
+127.0.0.1:2525 and :2587 behind it. Submission on 465 is untouched, because
+implicit TLS never needed an upgrade.
+
+The client's address therefore arrives as a *claim* (`XCLIENT`) rather than as a
+socket fact, and two rules keep that honest. XCLIENT is refused unless the peer
+is in `SMTP_TRUSTED_PROXIES`, decided from the socket and never from the wire.
+And the loopback shortcut that skips SPF for "this is us" now requires the
+listener to confirm the session arrived directly — `spfExempt` needs both halves,
+because behind a terminator *every* message arrives from 127.0.0.1 and the
+address alone would hand a free SPF pass to the internet.
+`tests/proxy.test.ts` pins both; `bun run test:mxfront` drives a real handshake
+through the front into a recording backend and checks the body survives it.
+
 **A blocklisted sending IP defers; it does not bounce.** RFC 5321 says 5xx is
 permanent, and for the recipient it is. A `554 ... blocked using
 zen.spamhaus.org` is not about the recipient: it is a permanent-shaped answer

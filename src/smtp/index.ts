@@ -7,6 +7,7 @@ import {
 } from "../starttls/index.ts"
 import { tlsOptions } from "../tls/index.ts"
 import * as inbound from "./inbound/index.ts"
+import { isLoopback } from "./inbound/index.ts"
 import { createSession, type Identity, type Session, type SessionMode } from "./session/index.ts"
 import * as submission from "./submission/index.ts"
 
@@ -20,7 +21,12 @@ export { reverse as srsReverse, rewrite as srsRewrite } from "./srs/index.ts"
 
 type SocketData = {
   session: Session
+  /** The client's address: the socket's, or what a trusted proxy reported. */
   remoteIp: string
+  /** The address the socket itself came from, which nothing can forge. */
+  socketIp: string
+  /** True once a trusted proxy has identified the client it is relaying. */
+  proxied: boolean
   helo: string
   identity: Identity | null
   secure: boolean
@@ -38,6 +44,7 @@ type SocketData = {
 const createListener = (input: {
   mode: SessionMode
   port: number
+  bind: string
   implicitTls: boolean
   tls: { cert: string; key: string } | null
   label: string
@@ -49,10 +56,15 @@ const createListener = (input: {
 
   const handlers = {
     open(socket: Bun.Socket<SocketData>) {
-      const remoteIp = socket.remoteAddress ?? "unknown"
+      const socketIp = socket.remoteAddress ?? "unknown"
+      // Whether *this peer* may speak XCLIENT, decided here from the socket and
+      // never from anything the connection says about itself.
+      const trustProxy = config.smtp.trustedProxies.includes(socketIp)
       const data: SocketData = {
         session: null as never,
-        remoteIp,
+        remoteIp: socketIp,
+        socketIp,
+        proxied: false,
         helo: "",
         identity: null,
         secure: input.implicitTls,
@@ -64,8 +76,16 @@ const createListener = (input: {
         mode: input.mode,
         hostname: config.hostname,
         maxSize: config.maxMessageBytes,
-        remoteIp,
+        remoteIp: socketIp,
         isSecure: () => data.secure,
+        trustProxy,
+        onProxy: (info) => {
+          // The proxy's word replaces the socket's address for every purpose
+          // downstream: SPF, the Received header, the bans, the rate limits.
+          if (info.addr) data.remoteIp = info.addr
+          data.proxied = true
+          if (info.secure) data.secure = true
+        },
         ...(canStartTls
           ? {
               startTls: () => {
@@ -79,9 +99,9 @@ const createListener = (input: {
                 const result = await submission.authenticate(username, password)
                 if (result) {
                   data.identity = result
-                  await clearAuthFailures(remoteIp).catch(() => {})
+                  await clearAuthFailures(data.remoteIp).catch(() => {})
                 } else {
-                  await recordAuthFailure(remoteIp, "smtp", username).catch(() => {})
+                  await recordAuthFailure(data.remoteIp, "smtp", username).catch(() => {})
                 }
                 return result
               }
@@ -99,8 +119,12 @@ const createListener = (input: {
           return input.mode === "submission"
             ? submission.handleMessage(envelope, raw, identity)
             : inbound.handleMessage(envelope, raw, {
-                remoteIp,
+                remoteIp: data.remoteIp,
                 helo: envelope.helo,
+                // Only a connection that arrived on this socket from this
+                // machine is us. A session relayed by the proxy is somebody
+                // else's mail regardless of which address it came from.
+                local: !data.proxied && isLoopback(data.socketIp),
               })
         },
         onQuit: () => {
@@ -112,9 +136,9 @@ const createListener = (input: {
 
       // A banned source gets a 421 and nothing else. Answering at all costs one
       // packet; answering properly costs an Argon2 hash per attempt.
-      void isBanned(remoteIp).then((banned) => {
+      void isBanned(socketIp).then((banned) => {
         if (banned) {
-          socket.write(`421 4.7.0 Too many failed attempts from ${remoteIp}.\r\n`)
+          socket.write(`421 4.7.0 Too many failed attempts from ${socketIp}.\r\n`)
           socket.end()
           return
         }
@@ -180,7 +204,7 @@ const createListener = (input: {
   }
 
   const listener = Bun.listen<SocketData>({
-    hostname: "0.0.0.0",
+    hostname: input.bind,
     port: input.port,
     ...(input.implicitTls && input.tls ? { tls: input.tls } : {}),
     socket: handlers as never,
@@ -206,6 +230,7 @@ export const startSmtp = async (): Promise<void> => {
   createListener({
     mode: "mx",
     port: config.smtp.mxPort,
+    bind: config.smtp.bind,
     implicitTls: false,
     tls,
     label: "smtp mx",
@@ -213,6 +238,7 @@ export const startSmtp = async (): Promise<void> => {
   createListener({
     mode: "submission",
     port: config.smtp.submissionPort,
+    bind: config.smtp.bind,
     implicitTls: false,
     tls,
     label: "submission",
@@ -222,6 +248,11 @@ export const startSmtp = async (): Promise<void> => {
     createListener({
       mode: "submission",
       port: config.smtp.submissionTlsPort,
+      // Not `config.smtp.bind`: that setting exists to put the two plaintext
+      // listeners behind the STARTTLS terminator, and this port has no
+      // plaintext phase to protect. Binding it to loopback with them would
+      // take submission on 465 off the internet.
+      bind: "0.0.0.0",
       implicitTls: true,
       tls,
       label: "submission+tls",

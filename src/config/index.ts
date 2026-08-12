@@ -50,6 +50,20 @@ export const config = defineConfig({
     mxPort: env("SMTP_MX_PORT", { parse: Number, default: "2525" }),
     submissionPort: env("SMTP_SUBMISSION_PORT", { parse: Number, default: "2587" }),
     submissionTlsPort: env("SMTP_SUBMISSION_TLS_PORT", { parse: Number, default: "2465" }),
+    /**
+     * Where the two *plaintext-capable* listeners bind — the MX port and
+     * submission-with-STARTTLS. Set to 127.0.0.1 when the terminator is in
+     * front of them: it holds 25 and 587, and a backend still answering on a
+     * public address would be a way to talk to this server without TLS.
+     * Submission on 465 is unaffected; it has no plaintext phase.
+     */
+    bind: env("SMTP_BIND", { default: "0.0.0.0" }),
+    /**
+     * Peers allowed to speak XCLIENT and so to declare which address a session
+     * is really coming from. Empty by default — the command is refused outright
+     * unless an operator has put a proxy in front and named it here.
+     */
+    trustedProxies: env("SMTP_TRUSTED_PROXIES", { parse: list, default: "" }),
   },
 
   imap: {

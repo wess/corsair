@@ -39,6 +39,14 @@ export type SessionHooks = {
   remoteIp: string
   /** True once the connection is encrypted, however it got that way. */
   isSecure: () => boolean
+  /**
+   * Whether this peer may speak XCLIENT. Decided by the listener from the
+   * socket's address against the configured trusted proxies — never from the
+   * connection's own claims.
+   */
+  trustProxy?: boolean
+  /** What the proxy said about the client it is relaying. */
+  onProxy?: (info: { addr: string | null; secure: boolean }) => void
   /** Present only when a certificate is configured; drives the STARTTLS advert. */
   startTls?: () => void
   authenticate?: (username: string, password: string) => Promise<Identity | null>
@@ -143,6 +151,12 @@ export const createSession = (hooks: SessionHooks): Session => {
   let identity: Identity | null = null
   let envelope = emptyEnvelope("")
   let badCommands = 0
+
+  // What a trusted proxy has told us about the client on the other side of it.
+  // Null until XCLIENT arrives, which is what distinguishes a relayed session
+  // from a process on this machine talking to the listener directly.
+  let proxiedIp: string | null = null
+  let proxiedSecure = false
 
   // AUTH runs across several lines, so the session has to remember which step
   // of which mechanism it is waiting on.
@@ -311,6 +325,54 @@ export const createSession = (hooks: SessionHooks): Session => {
         helo = argument.trim()
         envelope = emptyEnvelope(helo)
         return format({ code: 250, message: `${hooks.hostname} at your service` })
+      }
+
+      /**
+       * The address of the client, as reported by a proxy in front of us.
+       *
+       * Accepted only when the peer is a configured trusted proxy — `trustProxy`
+       * is decided by the listener from the socket's own address, never from
+       * anything on the wire. Without that condition this command is a way for
+       * any sender to claim any address, which would defeat SPF, the IP bans,
+       * and the rate limits in one move.
+       *
+       * Per the XCLIENT specification the session resets to its initial state
+       * and the server answers with a fresh greeting, because everything
+       * negotiated so far belonged to the proxy's connection and not to the
+       * client's.
+       */
+      case "XCLIENT": {
+        if (!hooks.trustProxy) {
+          return badCommand({ code: 550, enhanced: "5.7.0", message: "Not permitted." })
+        }
+        const attributes = new Map<string, string>()
+        for (const part of argument.trim().split(/\s+/).filter(Boolean)) {
+          const eq = part.indexOf("=")
+          if (eq === -1) {
+            return badCommand({ code: 501, enhanced: "5.5.4", message: "Malformed XCLIENT." })
+          }
+          attributes.set(part.slice(0, eq).toUpperCase(), part.slice(eq + 1))
+        }
+
+        const addr = attributes.get("ADDR")
+        // "[UNAVAILABLE]" and "[TEMPUNAVAIL]" are the specified ways of saying
+        // the proxy does not know, and must not become a literal address.
+        if (addr && !addr.startsWith("[")) {
+          if (!/^[0-9a-fA-F:.]{3,45}$/.test(addr)) {
+            return badCommand({ code: 501, enhanced: "5.5.4", message: "Malformed XCLIENT ADDR." })
+          }
+          proxiedIp = addr
+        }
+        const proto = attributes.get("PROTO")?.toUpperCase()
+        if (proto === "ESMTPS" || proto === "ESMTPSA") proxiedSecure = true
+
+        hooks.onProxy?.({ addr: proxiedIp, secure: proxiedSecure })
+
+        greeted = false
+        helo = ""
+        envelope = emptyEnvelope("")
+        authState = null
+        return format({ code: 220, message: `${hooks.hostname} ESMTP` })
       }
 
       case "STARTTLS": {

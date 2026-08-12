@@ -36,6 +36,13 @@ import { rewrite } from "../srs/index.ts"
 
 export type InboundContext = {
   remoteIp: string
+  /**
+   * True only for a session this machine opened to itself, with no proxy
+   * involved. Decided by the listener from the socket, because once a
+   * terminator sits in front every connection arrives from loopback and
+   * "the peer is 127.0.0.1" stops meaning "this is us".
+   */
+  local?: boolean
   helo: string
 }
 
@@ -95,11 +102,24 @@ type AuthResults = {
  * "Undelivered Mail Returned to Sender" straight into Junk, which is the one
  * place a delivery failure must not go.
  *
- * Anything reaching port 25 from loopback is a process on this box, which is
- * us. Nothing outside can spoof it without already being inside.
+ * Anything reaching port 25 from loopback *directly* is a process on this box,
+ * which is us. That stops being true the moment a proxy sits in front: every
+ * relayed session then arrives from 127.0.0.1, and this shortcut would hand a
+ * free SPF pass to the whole internet. The caller decides — `ctx.local` — and
+ * this predicate only answers the narrower question of what the address is.
  */
 export const isLoopback = (ip: string): boolean =>
   ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1" || ip.startsWith("127.")
+
+/**
+ * Whether this session skips the SPF check because it is this server talking to
+ * itself. Both halves are required: the address must be loopback *and* the
+ * listener must have seen the connection arrive directly. Behind the STARTTLS
+ * terminator every session arrives from 127.0.0.1, so the address alone would
+ * exempt the entire internet.
+ */
+export const spfExempt = (ctx: { remoteIp: string; local?: boolean }): boolean =>
+  Boolean(ctx.local) && isLoopback(ctx.remoteIp)
 
 const authenticate = async (
   raw: string,
@@ -108,7 +128,7 @@ const authenticate = async (
   ctx: InboundContext,
 ): Promise<AuthResults> => {
   const [spf, dkim, ptr] = await Promise.all([
-    isLoopback(ctx.remoteIp)
+    spfExempt(ctx)
       ? Promise.resolve({ result: "pass" as const, domain: ctx.helo })
       : checkSpf({ ip: ctx.remoteIp, mailFrom: envelope.mailFrom, helo: ctx.helo }),
     verifySignature(raw, parsed),
