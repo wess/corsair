@@ -86,6 +86,38 @@ selectors let a key be rotated without a gap in signing.
 | `SMTP_MX_PORT` | `2525` | `25` |
 | `SMTP_SUBMISSION_PORT` | `2587` | `587` |
 | `SMTP_SUBMISSION_TLS_PORT` | `2465` | `465` |
+| `SMTP_BIND` | `0.0.0.0` | `127.0.0.1` behind the terminator |
+| `SMTP_TRUSTED_PROXIES` | empty | `127.0.0.1` behind the terminator |
+| `SMTP_STARTTLS_FRONTED` | `false` | `true` behind the terminator |
+| `SMTP_PUBLIC_SUBMISSION_PORT` | the listening port | `587` behind the terminator |
+| `SMTP_PUBLIC_SUBMISSION_TLS_PORT` | the listening port | `465` |
+
+### STARTTLS on 25 and 587
+
+Bun cannot upgrade a socket it accepted, so Corsair alone cannot answer
+STARTTLS: port 25 carries cleartext and port 587 cannot authenticate. `engine/`
+is a small Rust process that holds those two ports, performs the upgrade, and
+relays to Corsair on loopback. It makes no policy decisions — every rejection,
+every check, and the whole mail path stay in Corsair.
+
+Deploying it means four settings, and all four matter:
+
+- `SMTP_MX_PORT=2525` and `SMTP_SUBMISSION_PORT=2587` move Corsair off the
+  public ports so the terminator can take them.
+- `SMTP_BIND=127.0.0.1` keeps those listeners off the internet. Without it the
+  backend still answers on a public address, which is a way to reach this server
+  without TLS. Submission on 465 is unaffected — it has no plaintext phase.
+- `SMTP_TRUSTED_PROXIES=127.0.0.1` lets the terminator say which address a
+  session is really from, using `XCLIENT`. Leave it empty and every relayed
+  message appears to come from loopback, which breaks SPF for everyone.
+  **Only list a proxy you run.** Anything in this list can claim to be any
+  sender.
+- `SMTP_STARTTLS_FRONTED=true` tells the server to describe itself accurately:
+  it changes nothing about what Corsair does, but without it autoconfig steers
+  clients away from 587 and the MTA-STS policy stays at `mode: none`.
+
+`SMTP_PUBLIC_SUBMISSION_PORT=587` is what clients are told to connect to, as
+opposed to what Corsair listens on.
 | `IMAP_PORT` | `2143` | `143` |
 | `IMAP_TLS_PORT` | `2993` | `993` |
 | `POP3_PORT` | `2110` | `110` |

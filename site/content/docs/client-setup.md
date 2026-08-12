@@ -19,23 +19,28 @@ The settings, then the clients that need help.
 | POP3 | **995** | SSL/TLS | Normal password |
 | SMTP | **465** | SSL/TLS (implicit) | Normal password |
 
-:::danger Use the implicit-TLS ports unless your server advertises STARTTLS.
-STARTTLS depends on the runtime being able to upgrade an accepted socket to TLS,
-which older builds of Bun cannot do. Corsair **tests this at startup** rather
-than assuming it, and does not advertise what it cannot perform — advertising
-and then failing loses mail outright, because a peer that has committed to the
-upgrade cannot fall back.
+Port **587 with STARTTLS** also works when the operator runs the STARTTLS
+terminator described in [Configuration](configuration.html). 465 is listed above
+because it works on every install and needs no upgrade to get wrong.
 
-Where STARTTLS is unavailable, **587, 143, and 110 cannot authenticate.** Corsair
-refuses a credential on an unencrypted connection, and those ports have no way
-to become encrypted.
+:::tip Let your client configure itself.
+Autoconfig and autodiscover name the ports this particular server offers, which
+is the one answer that is right on every install. By hand, 993, 995, and 465
+always work.
+:::
 
-You do not have to work out which case you are in. Autoconfig and autodiscover
-name the port that actually works, so **let your client configure itself** and
-it will be right either way. Configuring by hand, use 993, 995, and 465 — those
-work in both cases.
+:::note Why 587 depends on the operator.
+Authenticating on 587 requires the connection to become encrypted, and that
+upgrade cannot be performed by every runtime — Bun cannot upgrade a socket it
+accepted. Corsair **tests this at startup** rather than assuming it, and never
+advertises what it cannot perform: advertising and then failing loses mail
+outright, because a peer that has committed to the upgrade cannot fall back.
 
-Port 25 is unaffected either way: it accepts mail from other servers, encrypted
+Where the terminator is not deployed and the runtime cannot upgrade, **587, 143,
+and 110 cannot authenticate** — Corsair refuses a credential on an unencrypted
+connection, and those ports have no way to become encrypted.
+
+Port 25 is unaffected either way. It accepts mail from other servers, encrypted
 where STARTTLS is available and in plaintext where it is not, which is what
 senders fall back to.
 :::

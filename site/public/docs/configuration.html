@@ -189,41 +189,36 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td><code>465</code></td>
 </tr>
 <tr>
-<td><code>IMAP_PORT</code></td>
-<td><code>2143</code></td>
-<td><code>143</code></td>
+<td><code>SMTP_BIND</code></td>
+<td><code>0.0.0.0</code></td>
+<td><code>127.0.0.1</code> behind the terminator</td>
 </tr>
 <tr>
-<td><code>IMAP_TLS_PORT</code></td>
-<td><code>2993</code></td>
-<td><code>993</code></td>
+<td><code>SMTP_TRUSTED_PROXIES</code></td>
+<td>empty</td>
+<td><code>127.0.0.1</code> behind the terminator</td>
 </tr>
 <tr>
-<td><code>POP3_PORT</code></td>
-<td><code>2110</code></td>
-<td><code>110</code></td>
+<td><code>SMTP_STARTTLS_FRONTED</code></td>
+<td><code>false</code></td>
+<td><code>true</code> behind the terminator</td>
 </tr>
 <tr>
-<td><code>POP3_TLS_PORT</code></td>
-<td><code>2995</code></td>
-<td><code>995</code></td>
+<td><code>SMTP_PUBLIC_SUBMISSION_PORT</code></td>
+<td>the listening port</td>
+<td><code>587</code> behind the terminator</td>
 </tr>
 <tr>
-<td><code>SMTP_ENABLED</code></td>
-<td><code>true</code></td>
-<td></td>
-</tr>
-<tr>
-<td><code>IMAP_ENABLED</code></td>
-<td><code>true</code></td>
-<td></td>
-</tr>
-<tr>
-<td><code>POP3_ENABLED</code></td>
-<td><code>true</code></td>
-<td></td>
+<td><code>SMTP_PUBLIC_SUBMISSION_TLS_PORT</code></td>
+<td>the listening port</td>
+<td><code>465</code></td>
 </tr>
 </tbody></table></div>
+<h3 id="starttls-on-25-and-587">STARTTLS on 25 and 587<a class="anchor" href="#starttls-on-25-and-587" aria-label="Link to this section">#</a></h3>
+<p>Bun cannot upgrade a socket it accepted, so Corsair alone cannot answer STARTTLS: port 25 carries cleartext and port 587 cannot authenticate. <code>engine/</code> is a small Rust process that holds those two ports, performs the upgrade, and relays to Corsair on loopback. It makes no policy decisions — every rejection, every check, and the whole mail path stay in Corsair.</p>
+<p>Deploying it means four settings, and all four matter:</p>
+<ul><li><code>SMTP_MX_PORT=2525</code> and <code>SMTP_SUBMISSION_PORT=2587</code> move Corsair off the public ports so the terminator can take them.</li><li><code>SMTP_BIND=127.0.0.1</code> keeps those listeners off the internet. Without it the backend still answers on a public address, which is a way to reach this server without TLS. Submission on 465 is unaffected — it has no plaintext phase.</li><li><code>SMTP_TRUSTED_PROXIES=127.0.0.1</code> lets the terminator say which address a session is really from, using <code>XCLIENT</code>. Leave it empty and every relayed message appears to come from loopback, which breaks SPF for everyone. <strong>Only list a proxy you run.</strong> Anything in this list can claim to be any sender.</li><li><code>SMTP_STARTTLS_FRONTED=true</code> tells the server to describe itself accurately: it changes nothing about what Corsair does, but without it autoconfig steers clients away from 587 and the MTA-STS policy stays at <code>mode: none</code>.</li></ul>
+<p><code>SMTP_PUBLIC_SUBMISSION_PORT=587</code> is what clients are told to connect to, as opposed to what Corsair listens on. | <code>IMAP_PORT</code> | <code>2143</code> | <code>143</code> | | <code>IMAP_TLS_PORT</code> | <code>2993</code> | <code>993</code> | | <code>POP3_PORT</code> | <code>2110</code> | <code>110</code> | | <code>POP3_TLS_PORT</code> | <code>2995</code> | <code>995</code> | | <code>SMTP_ENABLED</code> | <code>true</code> | | | <code>IMAP_ENABLED</code> | <code>true</code> | | | <code>POP3_ENABLED</code> | <code>true</code> | |</p>
 <p>The defaults are unprivileged so development needs no root. Ports below 1024 need <code>CAP_NET_BIND_SERVICE</code> — granted in the systemd unit with <code>AmbientCapabilities</code>, or with <code>setcap</code> on the binary when running outside a service manager. See <a href="installation.html">Installation</a>; the two are not interchangeable.</p>
 <p>The <code>*_ENABLED</code> flags accept <code>true</code>, <code>1</code>, or <code>yes</code>. Turning listeners off is how you <a href="installation.html">split the deployment</a>.</p>
 <h2 id="tls">TLS<a class="anchor" href="#tls" aria-label="Link to this section">#</a></h2>
@@ -464,7 +459,7 @@ STORAGE_SECRET_ACCESS_KEY=...</code></pre></figure>
 # or
 docker compose up -d</code></pre></figure>
 <p>There is no reload signal. A mail server that reconfigures itself mid-connection is a source of bugs nobody enjoys.</p><nav class="pager"><a class="pager-prev" href="./installation.html"><span>Previous</span><strong>Installation</strong></a><a class="pager-next" href="./dns-setup.html"><span>Next</span><strong>DNS setup</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#core">Core</a></li><li class="toc-h2"><a href="#mail-identity">Mail identity</a></li><li class="toc-h2"><a href="#listeners">Listeners</a></li><li class="toc-h2"><a href="#tls">TLS</a></li><li class="toc-h2"><a href="#delivery">Delivery</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#workers">Workers</a></li><li class="toc-h2"><a href="#payments">Payments</a></li><li class="toc-h2"><a href="#webhooks">Webhooks</a></li><li class="toc-h2"><a href="#limits">Limits</a></li><li class="toc-h2"><a href="#seeding">Seeding</a></li><li class="toc-h2"><a href="#a-production-starting-point">A production starting point</a></li><li class="toc-h2"><a href="#changing-configuration">Changing configuration</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#core">Core</a></li><li class="toc-h2"><a href="#mail-identity">Mail identity</a></li><li class="toc-h2"><a href="#listeners">Listeners</a></li><li class="toc-h3"><a href="#starttls-on-25-and-587">STARTTLS on 25 and 587</a></li><li class="toc-h2"><a href="#tls">TLS</a></li><li class="toc-h2"><a href="#delivery">Delivery</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#workers">Workers</a></li><li class="toc-h2"><a href="#payments">Payments</a></li><li class="toc-h2"><a href="#webhooks">Webhooks</a></li><li class="toc-h2"><a href="#limits">Limits</a></li><li class="toc-h2"><a href="#seeding">Seeding</a></li><li class="toc-h2"><a href="#a-production-starting-point">A production starting point</a></li><li class="toc-h2"><a href="#changing-configuration">Changing configuration</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">
