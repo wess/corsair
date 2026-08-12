@@ -44,8 +44,18 @@ const domainOf = (url: string): string => {
  */
 const submission = () =>
   startTlsOffered()
-    ? { port: config.smtp.submissionPort, mozilla: "STARTTLS", outlookSsl: "on", outlookEnc: "TLS" }
-    : { port: config.smtp.submissionTlsPort, mozilla: "SSL", outlookSsl: "on", outlookEnc: "SSL" }
+    ? {
+        port: config.smtp.publicSubmissionPort,
+        mozilla: "STARTTLS",
+        outlookSsl: "on",
+        outlookEnc: "TLS",
+      }
+    : {
+        port: config.smtp.publicSubmissionTlsPort,
+        mozilla: "SSL",
+        outlookSsl: "on",
+        outlookEnc: "SSL",
+      }
 
 export const autoconfigRoutes: Route[] = [
   // Thunderbird and anything else using the Mozilla ISPDB format.

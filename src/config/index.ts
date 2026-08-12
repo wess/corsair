@@ -65,6 +65,22 @@ export const config = defineConfig({
      */
     startTlsFronted: env("SMTP_STARTTLS_FRONTED", { parse: bool, default: "false" }),
     /**
+     * The ports clients are told to use, which stop matching the ports this
+     * process listens on the moment a terminator is in front: it holds 587
+     * while Corsair listens on 2587. Autoconfig, autodiscover, and the panel
+     * describe the server to somebody outside it, so they must name the port
+     * that somebody outside can reach. Default to the listening ports, which is
+     * correct whenever nothing is in front.
+     */
+    publicSubmissionPort: env("SMTP_PUBLIC_SUBMISSION_PORT", {
+      parse: Number,
+      default: process.env.SMTP_SUBMISSION_PORT ?? "2587",
+    }),
+    publicSubmissionTlsPort: env("SMTP_PUBLIC_SUBMISSION_TLS_PORT", {
+      parse: Number,
+      default: process.env.SMTP_SUBMISSION_TLS_PORT ?? "2465",
+    }),
+    /**
      * Peers allowed to speak XCLIENT and so to declare which address a session
      * is really coming from. Empty by default — the command is refused outright
      * unless an operator has put a proxy in front and named it here.

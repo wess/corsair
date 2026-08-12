@@ -126,7 +126,7 @@ export const dashboardRoutes: Route[] = [
         {
           protocol: "Outgoing Server (SMTP)",
           host: config.mail.smtp,
-          port: config.smtp.submissionTlsPort,
+          port: config.smtp.publicSubmissionTlsPort,
           security: "SSL/TLS",
         },
         ...(startTlsOffered()
@@ -134,7 +134,7 @@ export const dashboardRoutes: Route[] = [
               {
                 protocol: "Outgoing Server (SMTP)",
                 host: config.mail.smtp,
-                port: config.smtp.submissionPort,
+                port: config.smtp.publicSubmissionPort,
                 security: "STARTTLS",
               },
             ]
