@@ -3,7 +3,7 @@ import { config } from "../../../config/index.ts"
 import { db } from "../../../db/index.ts"
 import { formatBytes, usageOf } from "../../../plans/index.ts"
 import { entitlementObject } from "../../../serialize/index.ts"
-import { canUpgradeServerSocketToTls } from "../../../starttls/index.ts"
+import { startTlsOffered } from "../../../starttls/index.ts"
 import { authedWithPlan, entitlementFrom, principalOf } from "../../pipes/index.ts"
 
 /**
@@ -129,7 +129,7 @@ export const dashboardRoutes: Route[] = [
           port: config.smtp.submissionTlsPort,
           security: "SSL/TLS",
         },
-        ...(canUpgradeServerSocketToTls()
+        ...(startTlsOffered()
           ? [
               {
                 protocol: "Outgoing Server (SMTP)",

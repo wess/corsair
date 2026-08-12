@@ -1,6 +1,6 @@
 import { get, post, type Route, text } from "@atlas/server"
 import { config } from "../../../config/index.ts"
-import { canUpgradeServerSocketToTls } from "../../../starttls/index.ts"
+import { startTlsOffered } from "../../../starttls/index.ts"
 
 /**
  * Automatic mail-client configuration.
@@ -43,7 +43,7 @@ const domainOf = (url: string): string => {
  * get wrong.
  */
 const submission = () =>
-  canUpgradeServerSocketToTls()
+  startTlsOffered()
     ? { port: config.smtp.submissionPort, mozilla: "STARTTLS", outlookSsl: "on", outlookEnc: "TLS" }
     : { port: config.smtp.submissionTlsPort, mozilla: "SSL", outlookSsl: "on", outlookEnc: "SSL" }
 
@@ -156,7 +156,7 @@ export const autoconfigRoutes: Route[] = [
       200,
       [
         "version: STSv1",
-        `mode: ${canUpgradeServerSocketToTls() ? "testing" : "none"}`,
+        `mode: ${startTlsOffered() ? "testing" : "none"}`,
         `mx: ${config.mail.mx}`,
         "max_age: 604800",
         "",

@@ -59,6 +59,12 @@ export const config = defineConfig({
      */
     bind: env("SMTP_BIND", { default: "0.0.0.0" }),
     /**
+     * True when something in front of these listeners terminates STARTTLS for
+     * them — the terminator in `engine/`. It changes nothing about what this
+     * process does; it changes what the server tells the world it supports.
+     */
+    startTlsFronted: env("SMTP_STARTTLS_FRONTED", { parse: bool, default: "false" }),
+    /**
      * Peers allowed to speak XCLIENT and so to declare which address a session
      * is really coming from. Empty by default — the command is refused outright
      * unless an operator has put a proxy in front and named it here.

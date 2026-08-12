@@ -1,4 +1,5 @@
 import type { TlsMaterial } from "../tls/index.ts"
+import { config } from "../config/index.ts"
 
 /**
  * Whether this runtime can upgrade an *accepted* socket to TLS in place.
@@ -38,6 +39,22 @@ let supported: boolean | null = null
 
 /** The probe's answer. False until `probeServerStartTls` has run and succeeded. */
 export const canUpgradeServerSocketToTls = (): boolean => supported === true
+
+/**
+ * Whether STARTTLS is offered *by this server as the world sees it*.
+ *
+ * Not the same question as whether this runtime can perform the upgrade. Ports
+ * 25 and 587 are held by the terminator in `engine/`, which does the upgrade
+ * Bun cannot and relays to loopback listeners that never see a handshake — so
+ * the probe says no while the internet is served STARTTLS on both ports.
+ *
+ * The listeners keep asking the probe, because it answers what *they* can do.
+ * Everything that describes the server to somebody else — autoconfig, the MTA-STS
+ * policy, the dashboard — asks this instead, or it would publish `mode: none`
+ * and steer clients away from a port that works.
+ */
+export const startTlsOffered = (): boolean =>
+  canUpgradeServerSocketToTls() || config.smtp.startTlsFronted
 
 /** Test seam: force the answer without opening a socket. */
 export const setServerStartTlsSupport = (value: boolean | null): void => {
