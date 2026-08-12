@@ -46,6 +46,23 @@ const canonHeader = (name: string, value: string): string =>
     .trim()}${CRLF}`
 
 /**
+ * The DKIM-Signature header as it is fed to the hash: canonicalised like any
+ * other, with its `b=` value emptied, and **without the trailing CRLF**
+ * (RFC 6376 §3.7). It is the last thing hashed and nothing follows it, so the
+ * CRLF that separates headers is not part of the input.
+ *
+ * Getting this wrong is invisible from inside. The signer and the verifier here
+ * shared the mistake, so this server verified its own signatures perfectly and
+ * every other implementation on earth rejected them — outbound mail carried
+ * `dkim=fail` to every receiver, and inbound mail from correctly-signing
+ * senders failed here for the same reason. Nothing logged an error; the
+ * signature was well-formed, the key resolved, and the arithmetic just did not
+ * agree.
+ */
+const canonSignatureHeader = (value: string): string =>
+  canonHeader("dkim-signature", value).slice(0, -CRLF.length)
+
+/**
  * relaxed body canonicalisation (RFC 6376 §3.4.4): strip trailing whitespace on
  * each line, collapse internal whitespace runs, drop trailing empty lines, and
  * end with exactly one CRLF — unless the body is empty, which canonicalises to
@@ -138,7 +155,7 @@ export const sign = (input: SignInput): string => {
   ].join("; ")
 
   // The DKIM-Signature header signs itself with an empty b= value.
-  const toSign = canon + canonHeader("dkim-signature", tags)
+  const toSign = canon + canonSignatureHeader(tags)
   const signature = createSign("RSA-SHA256")
     .update(Buffer.from(toSign, "latin1"))
     .sign(input.privateKey, "base64")
@@ -299,7 +316,7 @@ export const verifySignature = async (
     canon += canonHeader(header.name, header.value)
   }
   const stripped = sigHeader.value.replace(/\bb=[^;]*/, "b=")
-  canon += canonHeader("dkim-signature", stripped)
+  canon += canonSignatureHeader(stripped)
 
   // Both the key and the signature come from the message and from DNS the sender
   // controls, and OpenSSL throws rather than returning false on malformed input.

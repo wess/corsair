@@ -142,6 +142,25 @@ export const recordSpec = (input: {
   return rows
 }
 
+/**
+ * The keypair already in use for a selector host, if any domain has one.
+ *
+ * Ordered by creation so every later domain adopts the first one minted, which
+ * is the one whose public half is published. Returns null on a host nothing has
+ * used yet, and the caller generates.
+ */
+const keyPairFor = async (
+  target: string,
+): Promise<{ privateKey: string; publicKey: string } | null> => {
+  const existing = await db().one<DkimKey>(
+    from(dkimKeys)
+      .where((q) => q("cname_target").equals(target))
+      .orderBy("created_at", "ASC")
+      .limit(1),
+  )
+  return existing ? { privateKey: existing.private_key, publicKey: existing.public_key } : null
+}
+
 export const createDomain = async (input: {
   userId: string
   name: string
@@ -168,11 +187,27 @@ export const createDomain = async (input: {
       .returning(...allColumns(domains)),
   ))!
 
-  // One key per configured selector host. The first is active; the rest exist
-  // so a rotation is a flag flip rather than a DNS change.
+  /**
+   * One key per selector *host*, shared by every domain on the installation.
+   *
+   * A customer publishes `corsair-1._domainkey.<their domain>` as a CNAME to
+   * `dkimHosts[0]` — one name, in this server's zone, holding one TXT record.
+   * Minting a fresh keypair per domain therefore produces keys that can never
+   * all be published: the second domain overwrites the first, or more often
+   * nothing is republished at all and the mismatch is invisible until a
+   * receiver checks. The signature is well-formed, the record parses, and
+   * verification fails everywhere with nothing in the logs to say why.
+   *
+   * This installation had exactly that: three selectors whose private keys
+   * matched no published record, so every outbound message failed DKIM.
+   *
+   * The private key is shared across domains, which sounds worse than it is —
+   * one server already holds all of them, so the blast radius of a compromise
+   * does not change. `tests/dkimkeys.test.ts` pins the invariant.
+   */
   const keys: DkimKey[] = []
   for (const [index, target] of config.mail.dkimHosts.entries()) {
-    const pair = generateKeyPair()
+    const pair = (await keyPairFor(target)) ?? generateKeyPair()
     const row = await db().one<DkimKey>(
       from(dkimKeys)
         .insert({
