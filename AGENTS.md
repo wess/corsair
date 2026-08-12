@@ -108,6 +108,24 @@ envelope sender, whose SPF does not list us, and the next hop sees a forgery.
 `packages/smtp/srs` rewrites it. The HMAC is not optional — without it the
 rewritten address is an open relay.
 
+**The DKIM-Signature header is hashed without its trailing CRLF** (RFC 6376
+§3.7). `canonSignatureHeader` in `src/dkim` exists only to enforce that. The
+signer and the verifier here both included it once, which meant they agreed with
+each other and with nobody else: the round-trip test passed while every receiver
+recorded `dkim=fail` on our mail and every correctly-signed message arriving
+failed here. Nothing logs an error in that state — the signature is well-formed
+and the key resolves. `tests/dkimwire.test.ts` rebuilds the signed input by hand
+from the spec and verifies with `node:crypto` rather than with this codebase,
+because a test that uses our own verifier cannot see this class of bug at all.
+
+**One DKIM keypair per selector host, shared by every domain.**
+`MAIL_DKIM_HOSTS` is installation-wide and each domain publishes
+`corsair-N._domainkey` as a CNAME to it, so that one name holds one TXT record.
+A keypair minted per domain cannot be expressed in that: the second domain's
+public key has nowhere to go and its mail fails while looking correct on the way
+out. `createDomain` adopts the pair already in use for the host. The private key
+being shared changes no blast radius — one server holds all of them either way.
+
 **A blocklisted sending IP defers; it does not bounce.** RFC 5321 says 5xx is
 permanent, and for the recipient it is. A `554 ... blocked using
 zen.spamhaus.org` is not about the recipient: it is a permanent-shaped answer
