@@ -108,6 +108,22 @@ envelope sender, whose SPF does not list us, and the next hop sees a forgery.
 `packages/smtp/srs` rewrites it. The HMAC is not optional — without it the
 rewritten address is an open relay.
 
+**A blocklisted sending IP defers; it does not bounce.** RFC 5321 says 5xx is
+permanent, and for the recipient it is. A `554 ... blocked using
+zen.spamhaus.org` is not about the recipient: it is a permanent-shaped answer
+to a condition the operator clears with a form, so bouncing destroys mail that
+would deliver an hour later and tells the sender their message failed. The rule
+in `src/smtp/client` is narrow in two directions on purpose — it applies only
+*before a recipient is named*, so "no such user" can never reach it, and only
+when the text names a blocklist. `tests/reputation.test.ts` pins both halves;
+dropping either makes two of them fail. `corsair-check` asks zen.spamhaus.org
+about this server's own outbound address directly, because the resolver a
+droplet is handed is one Spamhaus refuses — it answers `127.255.255.254` rather
+than an error, and reading that as a listing raises an alarm that can never
+clear. It reads dig's status rather than `+short`, because an empty `+short` is
+either "not listed" or "never got an answer" and a monitor that cannot tell
+those apart reports health for a server it failed to ask.
+
 ## One store, four protocols
 
 SMTP, IMAP, JMAP, POP3, and the webmail all read and write the same `messages`

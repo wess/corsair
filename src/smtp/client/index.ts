@@ -21,6 +21,25 @@ export type SendResult = {
   host: string | null
 }
 
+/**
+ * A 5xx that rejects *this server* rather than this message.
+ *
+ * A blocklisted sending IP is a permanent-looking answer to a temporary
+ * condition. Nothing about the message or the recipient is wrong, and the
+ * operator can fix it by getting delisted — so bouncing throws away mail that
+ * would have been delivered an hour later, and the sender is told their message
+ * failed when the truth is that the server needs attention.
+ *
+ * Deliberately narrow on both axes. It is applied only to rejections that
+ * arrive *before the recipient is named*, so "no such user" can never reach it,
+ * and only when the text actually names a blocklist. Every other 5xx keeps
+ * RFC 5321's rule that a permanent reply is permanent.
+ */
+const REPUTATION_BLOCK =
+  /\b(spamhaus|dnsbl|rbl|blocklist|blacklist|blocked using|listed by|poor reputation|bad reputation|barracudacentral|sorbs|spamcop)\b/i
+
+export const isReputationBlock = (text: string): boolean => REPUTATION_BLOCK.test(text)
+
 export type SendInput = {
   host: string
   port?: number
@@ -251,6 +270,10 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
   const port = input.port ?? 25
   const timeoutMs = input.timeoutMs ?? 60_000
   let conn: Conn | null = null
+  // Whether a recipient has been named yet. Everything before that point is the
+  // remote server's opinion of *us*; only after it can a rejection be about who
+  // the mail is for. See REPUTATION_BLOCK.
+  let namedRecipient = false
 
   try {
     conn = await connect({
@@ -283,6 +306,7 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
     conn.write(`MAIL FROM:<${input.mailFrom}>${sizeParam}${CRLF}`)
     await conn.read(250)
 
+    namedRecipient = true
     conn.write(`RCPT TO:<${input.rcptTo}>${CRLF}`)
     await conn.read(250)
 
@@ -304,7 +328,10 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
     if (e instanceof SmtpFailure) {
       return {
         ok: false,
-        retryable: e.retryable,
+        // A blocklist rejection of this server's own address, seen before any
+        // recipient was named, is deferred rather than bounced — the mail is
+        // still deliverable, just not from here yet.
+        retryable: e.retryable || (!namedRecipient && isReputationBlock(e.message)),
         code: e.code,
         message: e.message,
         host: input.host,
