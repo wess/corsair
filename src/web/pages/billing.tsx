@@ -48,7 +48,9 @@ export const PlansPage = () => {
   const [cancelling, setCancelling] = useState(false)
 
   const { data, loading, reload } = useLoad(() =>
-    get<{ data: Plan[]; current_plan_id: string | null; owner: boolean }>("/api/plans"),
+    get<{ data: Plan[]; current_plan_id: string | null; owner: boolean; beta?: boolean }>(
+      "/api/plans",
+    ),
   )
 
   if (loading) return <Loading />
@@ -134,6 +136,11 @@ export const PlansPage = () => {
         <p className="muted" style={{ textAlign: "center" }}>
           You own this server, so every feature is on and there is nothing to pay. Plans apply to
           the accounts you host on it.
+        </p>
+      ) : data?.beta ? (
+        <p className="muted" style={{ textAlign: "center" }}>
+          Free during the beta. Prices are what these plans will cost later — nothing is charged
+          now, and no card is needed to switch between them.
         </p>
       ) : (
         <div style={{ textAlign: "center" }}>
@@ -333,9 +340,16 @@ const PaymentMethods = () => {
   const { data, loading, error, reload } = useLoad(() =>
     get<{ data: PaymentMethod[] }>("/api/billing/payment-methods"),
   )
+  const provider = useLoad(() =>
+    get<{ configured: boolean; beta?: boolean }>("/api/billing/provider"),
+  )
   const [adding, setAdding] = useState(false)
 
   if (loading) return <Loading />
+
+  // Nothing is being charged, so inviting someone to add a card sends them
+  // looking for a provider this server has not got.
+  const beta = provider.data?.beta === true
 
   return (
     <>
@@ -343,12 +357,23 @@ const PaymentMethods = () => {
       <Card
         title="Payment methods"
         actions={
-          <button type="button" className="btn btn-sm btn-primary" onClick={() => setAdding(true)}>
-            <Icon path={icons.plus} size={14} /> Add
-          </button>
+          beta ? null : (
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              onClick={() => setAdding(true)}
+            >
+              <Icon path={icons.plus} size={14} /> Add
+            </button>
+          )
         }
         bodyless
       >
+        {beta && (
+          <p className="hint" style={{ padding: "12px 16px", margin: 0 }}>
+            Not needed during the beta — nothing is charged. You can add one when billing opens.
+          </p>
+        )}
         <table>
           <thead>
             <tr>

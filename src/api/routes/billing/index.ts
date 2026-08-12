@@ -85,6 +85,9 @@ export const billingRoutes: Route[] = [
       data: rows.map(planObject),
       current_plan_id: current?.plan_id ?? (owned?.is_owner ? entitlement.plan.id : null),
       owner: Boolean(owned?.is_owner),
+      // So the page can say the prices are not being charged, rather than
+      // showing them and letting someone find out by trying.
+      beta: config.payments.beta,
     })
   }),
 
@@ -112,7 +115,9 @@ export const billingRoutes: Route[] = [
       // Anything that costs money needs a payment method on file. A free or
       // trial plan does not, which is what makes a self-hosted instance with no
       // payment provider usable.
-      if (price > 0) {
+      // In beta nothing is charged, so demanding a card would block the plan
+      // change on a payment method this server has no way to collect.
+      if (price > 0 && !config.payments.beta) {
         const method = await db().one<PaymentMethod>(
           from(paymentMethods).where((q) => q("user_id").equals(principalOf(c).userId)),
         )
@@ -129,7 +134,9 @@ export const billingRoutes: Route[] = [
               .update({
                 plan_id: plan.id,
                 interval,
-                status: price > 0 ? "active" : "trialing",
+                // Beta subscriptions are active — the plan is genuinely in
+                // effect — they are simply not billed.
+                status: price > 0 && !config.payments.beta ? "active" : "trialing",
                 current_period_start: new Date(),
                 current_period_end: periodEnd,
                 cancel_at_period_end: false,
@@ -144,7 +151,9 @@ export const billingRoutes: Route[] = [
                 user_id: principalOf(c).userId,
                 plan_id: plan.id,
                 interval,
-                status: price > 0 ? "active" : "trialing",
+                // Beta subscriptions are active — the plan is genuinely in
+                // effect — they are simply not billed.
+                status: price > 0 && !config.payments.beta ? "active" : "trialing",
                 current_period_end: periodEnd,
               })
               .returning(...allColumns(subscriptions)),
@@ -187,6 +196,7 @@ export const billingRoutes: Route[] = [
       object: "payment_provider",
       name: payments.providerName(),
       configured: payments.isConfigured(),
+      beta: config.payments.beta,
     }),
   ),
 

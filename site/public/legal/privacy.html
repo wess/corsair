@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Privacy policy · Corsair</title>
+<meta name="description" content="What the hosted Corsair service at mx.wess.dev stores, why, for how long, who else can see it, and what is deliberately never kept." />
+<link rel="canonical" href="https://wess.io/corsair/legal/privacy.html" />
+<meta property="og:title" content="Privacy policy" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="What the hosted Corsair service at mx.wess.dev stores, why, for how long, who else can see it, and what is deliberately never kept." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.io/corsair/legal/privacy.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-page">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="../docs/index.html">Docs</a><a href="../docs/tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<main class="prose plain"><div class="page-head"><p class="eyebrow">Legal</p></div><p>This covers the <strong>hosted mail service at <code>mx.wess.dev</code></strong>. If you run Corsair on your own server, none of this applies to you — your data never reaches me, and you are the operator making these decisions for your own users.</p>
+<p>Last updated 12 August 2026. Operated by Wess Cope. Contact: <code>postmaster@wess.dev</code>.</p>
+<h2 id="the-short-version">The short version<a class="anchor" href="#the-short-version" aria-label="Link to this section">#</a></h2>
+<p>I hold your mail because you asked me to store and deliver it. I do not sell it, mine it, or train anything on it. I can technically read it, and I say so below rather than implying otherwise.</p>
+<h2 id="what-is-stored">What is stored<a class="anchor" href="#what-is-stored" aria-label="Link to this section">#</a></h2>
+<p><strong>Your messages.</strong> Headers, bodies, and attachments, for as long as you keep them. Bodies are held in object storage; the index, folder structure, and flags are held in a database. This is the service — there is no version of email hosting that does not store your email.</p>
+<p><strong>Your account.</strong> The email address you sign in with, your name if you gave one, an Argon2id hash of your password, and your domains, mailboxes, aliases, and filter rules. The password itself is never stored.</p>
+<p><strong>Connection and delivery records.</strong> For each message: the time, the sending and receiving addresses, the connecting IP address, the size, and the result. For sign-ins: the IP address and whether it succeeded. This is what makes it possible to answer &quot;did that message arrive?&quot; and to notice an account being brute-forced.</p>
+<h2 id="what-is-deliberately-never-stored">What is deliberately never stored<a class="anchor" href="#what-is-deliberately-never-stored" aria-label="Link to this section">#</a></h2>
+<p>These are design decisions in the software, not promises about behaviour:</p>
+<ul><li><strong>Card numbers never reach the server.</strong> When billing opens, card details will be entered on the payment provider's own page. What comes back is a brand, the last four digits, and an opaque reference.</li><li><strong>DNS API tokens are used once and discarded.</strong> If you let the panel publish DNS records for you, the token is used for that one publish and never written down. A DNS token can usually rewrite every record on every domain in the account, which is too much to keep lying around.</li><li><strong>Passwords for mail transfers are erased.</strong> If you migrate mail in from another provider, the source password is encrypted while the transfer runs and destroyed the moment it finishes. It is someone else's credential.</li><li><strong>Reset and recovery links are stored only as hashes</strong>, so the database does not contain a working link to anyone's account.</li></ul>
+<h2 id="who-can-see-your-mail">Who can see your mail<a class="anchor" href="#who-can-see-your-mail" aria-label="Link to this section">#</a></h2>
+<p><strong>You</strong>, through the webmail, IMAP, POP3, or JMAP.</p>
+<p><strong>Me</strong>, technically. I operate the database and the servers, and there is no architecture in which that is untrue while I am also able to fix things. What I will actually do:</p>
+<ul><li>I do not read message contents as a matter of course, and nothing samples your mail for analysis, model training, or product development.</li><li>I will look at message <em>metadata</em> — sender, recipient, timestamps, delivery results — when investigating a delivery problem, an abuse report, or a security incident.</li><li>I will look at message <em>contents</em> only when you ask me to in order to troubleshoot something, or where I am legally compelled to.</li></ul>
+<p><strong>Nobody else</strong>, except the infrastructure providers below, and except where a valid legal order requires disclosure. Your data is not sold, rented, or shared for advertising, and there are no third-party trackers or analytics on the panel or the webmail.</p>
+<h2 id="infrastructure-providers">Infrastructure providers<a class="anchor" href="#infrastructure-providers" aria-label="Link to this section">#</a></h2>
+<p>Running this service means other companies necessarily hold the data on their hardware:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Provider</th>
+<th>What they hold</th>
+</tr></thead><tbody>
+<tr>
+<td>DigitalOcean</td>
+<td>The server, the managed PostgreSQL database, and the object storage holding message bodies</td>
+</tr>
+<tr>
+<td>Let's Encrypt</td>
+<td>Issues the TLS certificates; sees the hostname, not your mail</td>
+</tr>
+<tr>
+<td>A payment provider</td>
+<td>Card details and billing address, when billing opens. Not in use during the beta</td>
+</tr>
+</tbody></table></div>
+<h2 id="how-long-things-are-kept">How long things are kept<a class="anchor" href="#how-long-things-are-kept" aria-label="Link to this section">#</a></h2>
+<p>These are the intervals the software actually enforces, not aspirations:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Data</th>
+<th>Kept for</th>
+</tr></thead><tbody>
+<tr>
+<td>Messages you keep</td>
+<td>Until you delete them</td>
+</tr>
+<tr>
+<td>Messages you delete</td>
+<td>Purged <strong>30 days</strong> after deletion</td>
+</tr>
+<tr>
+<td>Delivery and connection logs</td>
+<td><strong>90 days</strong></td>
+</tr>
+<tr>
+<td>Failed sign-in records</td>
+<td><strong>7 days</strong></td>
+</tr>
+<tr>
+<td>Expired sessions</td>
+<td><strong>30 days</strong></td>
+</tr>
+<tr>
+<td>Password reset and recovery tokens</td>
+<td><strong>7 days</strong> after expiry</td>
+</tr>
+<tr>
+<td>Encrypted backups</td>
+<td><strong>30 days</strong></td>
+</tr>
+<tr>
+<td>Everything, after you close your account</td>
+<td>Deleted after <strong>30 days</strong></td>
+</tr>
+</tbody></table></div>
+<p>Deleting a message removes it from your mailbox immediately. It is then purged permanently on the schedule above, and disappears from backups as those age out.</p>
+<h2 id="security">Security<a class="anchor" href="#security" aria-label="Link to this section">#</a></h2>
+<p>Mail is encrypted in transit: implicit TLS on the submission, IMAP, and POP3 ports, and STARTTLS on the MX and submission ports. Where a sending or receiving server does not support TLS, mail still flows in the clear — that is a property of email itself, and no provider can force the other end to encrypt.</p>
+<p>Passwords are hashed with Argon2id. Backups are encrypted before they leave the machine. The panel and webmail are served with a content security policy, and rendered mail is sanitised on the server against an allow-list before it reaches your browser. Remote images are withheld by default, because they are tracking pixels.</p>
+<h2 id="cookies">Cookies<a class="anchor" href="#cookies" aria-label="Link to this section">#</a></h2>
+<p>One session cookie for the panel and one for the webmail, so you stay signed in. No advertising cookies, no analytics, no third-party scripts.</p>
+<h2 id="your-data-your-call">Your data, your call<a class="anchor" href="#your-data-your-call" aria-label="Link to this section">#</a></h2>
+<p>Write to <code>postmaster@wess.dev</code> and you can:</p>
+<ul><li><strong>Get a copy</strong> of your mail and account data.</li><li><strong>Correct</strong> anything wrong in your account.</li><li><strong>Delete</strong> individual messages, a mailbox, or the whole account.</li><li><strong>Ask what is held</strong> about you and where it came from.</li></ul>
+<p>Requests are answered within 30 days. Verifying that you are who you say you are is part of that, and for an email account the bar is deliberately high.</p>
+<p>Depending on where you live you may have additional statutory rights — under the GDPR or the CCPA, for example. Those rights apply regardless of what this page says, and exercising them starts at the same address.</p>
+<h2 id="changes">Changes<a class="anchor" href="#changes" aria-label="Link to this section">#</a></h2>
+<p>Material changes will be announced by email to your account address before they take effect. The date at the top of this page is the last revision.</p></main>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="../docs/introduction.html">What it is</a></li><li><a href="../docs/architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="../docs/index.html">All documentation</a></li><li><a href="../docs/quickstart.html">Quickstart</a></li><li><a href="../docs/tutorials/index.html">Tutorials</a></li><li><a href="../docs/configuration.html">Configuration</a></li><li><a href="../docs/api.html">HTTP API</a></li><li><a href="../docs/troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy template</a></li><li><a href="../policies/acceptable-use.html">Acceptable use template</a></li></ul>
+    </div><div>
+      <p class="colophon-label">This service</p>
+      <ul><li><a href="./terms.html">Terms of service</a></li><li><a href="./privacy.html">Privacy policy</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

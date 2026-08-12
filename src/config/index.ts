@@ -135,6 +135,16 @@ export const config = defineConfig({
   payments: {
     stripeSecretKey: env("STRIPE_SECRET_KEY", { default: "" }),
     stripeWebhookSecret: env("STRIPE_WEBHOOK_SECRET", { default: "" }),
+    /**
+     * Nothing is charged and every plan is free to choose.
+     *
+     * For running a beta before billing is wired up. Without it, a server with
+     * no payment provider sends anyone who picks a paid plan into a dead end:
+     * "add a payment method" leads to "no payment provider is configured".
+     * Prices stay visible on purpose — people should see what the thing will
+     * cost — but the panel says plainly that this instance is not charging.
+     */
+    beta: env("BILLING_BETA", { parse: bool, default: "false" }),
   },
 
   // Webhook endpoints on private or loopback addresses are refused by default:

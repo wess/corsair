@@ -420,10 +420,30 @@ const FOOTER = [
       { href: REPO, label: "Source on GitHub" },
       { href: `${REPO}/issues`, label: "Issues" },
       { href: `${REPO}/blob/main/LICENSE`, label: "MIT license" },
-      { href: "policies/privacy.html", label: "Privacy" },
-      { href: "policies/acceptable-use.html", label: "Acceptable use" },
+      { href: "policies/privacy.html", label: "Privacy template" },
+      { href: "policies/acceptable-use.html", label: "Acceptable use template" },
     ],
   },
+  /**
+   * The policies this *instance* actually operates under, as opposed to the
+   * templates above, which exist for people running their own.
+   *
+   * App mode only: they are served by the mail server that is bound by them.
+   * On the project's own pages they would read as the software's terms, which
+   * they are not — Corsair is MIT licensed and imposes no terms on a
+   * self-hoster at all.
+   */
+  ...(MODE === "app"
+    ? [
+        {
+          label: "This service",
+          links: [
+            { href: "legal/terms.html", label: "Terms of service" },
+            { href: "legal/privacy.html", label: "Privacy policy" },
+          ],
+        },
+      ]
+    : []),
 ]
 
 const ATOM = `<svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">

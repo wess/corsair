@@ -48,4 +48,6 @@
   <url><loc>https://wess.io/corsair/policies/acceptable-use.html</loc><priority>0.5</priority></url>
   <url><loc>https://wess.io/corsair/policies/privacy.html</loc><priority>0.5</priority></url>
   <url><loc>https://wess.io/corsair/</loc><priority>1.0</priority></url>
+  <url><loc>https://wess.io/corsair/legal/privacy.html</loc><priority>0.5</priority></url>
+  <url><loc>https://wess.io/corsair/legal/terms.html</loc><priority>0.5</priority></url>
 </urlset>

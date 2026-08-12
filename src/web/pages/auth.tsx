@@ -140,6 +140,25 @@ export const AuthPage = ({
             >
               {busy ? <Spinner /> : mode === "signup" ? "Create account" : "Sign in"}
             </button>
+
+            {/*
+              Shown at the point of consent rather than buried in a footer. The
+              service holds people's mail; they should be told the terms before
+              they hand it over, not after.
+            */}
+            {mode === "signup" && (
+              <p className="hint" style={{ marginTop: 12, textAlign: "center" }}>
+                By creating an account you agree to the{" "}
+                <a href="/legal/terms.html" target="_blank" rel="noreferrer">
+                  terms of service
+                </a>{" "}
+                and the{" "}
+                <a href="/legal/privacy.html" target="_blank" rel="noreferrer">
+                  privacy policy
+                </a>
+                .
+              </p>
+            )}
           </form>
 
           <div style={{ marginTop: 16, textAlign: "center" }}>

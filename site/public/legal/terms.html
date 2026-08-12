@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Terms of service · Corsair</title>
+<meta name="description" content="The rules for using the hosted Corsair mail service at mx.wess.dev, including acceptable use, limits, suspension, and what is promised during the beta." />
+<link rel="canonical" href="https://wess.io/corsair/legal/terms.html" />
+<meta property="og:title" content="Terms of service" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="The rules for using the hosted Corsair mail service at mx.wess.dev, including acceptable use, limits, suspension, and what is promised during the beta." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.io/corsair/legal/terms.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-page">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="../docs/index.html">Docs</a><a href="../docs/tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<main class="prose plain"><div class="page-head"><p class="eyebrow">Legal</p></div><p>These terms cover the <strong>hosted mail service operated at <code>mx.wess.dev</code></strong>. They are not the licence for the Corsair software — if you run Corsair on your own server, nothing here applies to you and you set your own rules for your own users.</p>
+<p>Last updated 12 August 2026. The service is operated by Wess Cope. Questions go to <code>postmaster@wess.dev</code>; abuse reports go to <code>abuse@wess.dev</code>.</p>
+<h2 id="this-is-a-beta">This is a beta<a class="anchor" href="#this-is-a-beta" aria-label="Link to this section">#</a></h2>
+<p>The service is in beta, which has three consequences worth stating plainly rather than burying:</p>
+<ul><li><strong>It is free.</strong> Plan prices are shown so you know what the service will cost when billing opens. Nothing is charged today, and no payment method is required. You will be told before that changes.</li><li><strong>There is no uptime commitment.</strong> The service runs on a single machine. It will have outages, and some of them will be because someone is changing something.</li><li><strong>Do not make it your only copy of anything you cannot lose.</strong> Backups are taken nightly and kept off the server, and they have been test-restored — but a beta is a bad place to keep the only copy of your business.</li></ul>
+<p>Mail that matters should have a second home. That is true of every mail provider; it is more true of this one right now.</p>
+<h2 id="what-you-may-use-it-for">What you may use it for<a class="anchor" href="#what-you-may-use-it-for" aria-label="Link to this section">#</a></h2>
+<p>Ordinary email: sending and receiving your own mail, for yourself, your family, your team, or your business, on domains you control.</p>
+<h2 id="what-you-may-not-use-it-for">What you may not use it for<a class="anchor" href="#what-you-may-not-use-it-for" aria-label="Link to this section">#</a></h2>
+<p>The list is short because the principle is short — <strong>do not use this service to reach people who did not ask to hear from you, and do not use it to pretend to be someone else.</strong></p>
+<p>Specifically, you may not use the service to:</p>
+<ul><li>Send unsolicited bulk mail, cold outreach campaigns, or anything a reasonable recipient would call spam, whether or not it is legal where you are.</li><li>Warm up sending reputation, cycle through domains, or otherwise use the service as infrastructure for bulk sending conducted elsewhere.</li><li>Send phishing, fraud, malware, or any message designed to deceive the recipient about who sent it or what it will do.</li><li>Forge sender addresses, or send on behalf of a domain you do not own or administer. The service enforces this technically as well.</li><li>Distribute content that is illegal under United States law, or that facilitates violence, harassment, or the exploitation of children.</li><li>Consume so much of the shared machine's capacity that other people's mail suffers.</li><li>Resell the service, or operate a mail service for third parties on top of it, without agreement in writing.</li></ul>
+<p><strong>Why this matters more than it would elsewhere:</strong> every account here shares one sending IP address. One person sending spam damages deliverability for everyone on the server, including me. That is the reason abuse is handled abruptly rather than gradually.</p>
+<h2 id="your-domains-and-your-dns">Your domains and your DNS<a class="anchor" href="#your-domains-and-your-dns" aria-label="Link to this section">#</a></h2>
+<p>You must control every domain you send from. The service gives you the DNS records to publish — SPF, DKIM, DMARC, and MX — and will not deliver mail properly until they are in place.</p>
+<p>Publishing those records is your responsibility, as is keeping them published. A domain whose records disappear will start failing authentication at recipients, and the service cannot fix that from this side.</p>
+<h2 id="limits">Limits<a class="anchor" href="#limits" aria-label="Link to this section">#</a></h2>
+<p>Each plan carries a storage allowance and a daily cap on messages sent and received. The current values are shown on the Plans page in the panel and are enforced by the server, not by good behaviour.</p>
+<p>Hitting a cap means further messages are refused until the window resets. It is not a penalty and there is no charge attached to it.</p>
+<h2 id="suspension-and-termination">Suspension and termination<a class="anchor" href="#suspension-and-termination" aria-label="Link to this section">#</a></h2>
+<p>I may suspend or terminate an account <strong>immediately and without notice</strong> for abuse as described above, for activity that puts the server's sending reputation at risk, or where required by law. In that case you will be told what happened and given the chance to retrieve your data unless doing so would itself be unlawful.</p>
+<p>You may close your account at any time, from the panel or by asking. On closure:</p>
+<ul><li>Your mailboxes stop accepting mail immediately.</li><li>Your data is deleted after <strong>30 days</strong>, which is the window in which you can change your mind. See the <a href="privacy.html">Privacy Policy</a> for exactly what is held and for how long.</li></ul>
+<p>I may also discontinue the service itself. If that happens you will get at least <strong>30 days' notice</strong> and a way to export your mail, except where the service is being shut down because of abuse or a legal requirement.</p>
+<h2 id="backups">Backups<a class="anchor" href="#backups" aria-label="Link to this section">#</a></h2>
+<p>Backups are taken nightly, encrypted before they leave the machine, and kept for 30 days. They exist so that <em>I</em> can recover the service, and you benefit from that.</p>
+<p>They are not a per-message undelete facility, and I do not guarantee that any particular message can be recovered from them. Delete something you needed and the honest answer may be that it is gone.</p>
+<h2 id="what-is-not-promised">What is not promised<a class="anchor" href="#what-is-not-promised" aria-label="Link to this section">#</a></h2>
+<p>The service is provided as it is. Within the limits the law allows, I am not liable for lost profits, lost business, or consequential damages arising from downtime, delivery failure, misdelivery, or data loss — including where the mail was important.</p>
+<p>Email is a best-effort system end to end: a message you send can be delayed, filtered, or discarded by a recipient's server for reasons neither of us controls, and no provider can promise otherwise.</p>
+<h2 id="changes">Changes<a class="anchor" href="#changes" aria-label="Link to this section">#</a></h2>
+<p>These terms will change as the service leaves beta and billing opens. Material changes — anything affecting what you pay, what you may do, or what happens to your data — will be announced by email to your account address before they take effect.</p>
+<h2 id="getting-in-touch">Getting in touch<a class="anchor" href="#getting-in-touch" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>For</th>
+<th>Address</th>
+</tr></thead><tbody>
+<tr>
+<td>Abuse reports</td>
+<td><code>abuse@wess.dev</code></td>
+</tr>
+<tr>
+<td>Anything else about the service</td>
+<td><code>postmaster@wess.dev</code></td>
+</tr>
+</tbody></table></div>
+<p>Both addresses are monitored. Abuse reports are read first.</p></main>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="../docs/introduction.html">What it is</a></li><li><a href="../docs/architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="../docs/index.html">All documentation</a></li><li><a href="../docs/quickstart.html">Quickstart</a></li><li><a href="../docs/tutorials/index.html">Tutorials</a></li><li><a href="../docs/configuration.html">Configuration</a></li><li><a href="../docs/api.html">HTTP API</a></li><li><a href="../docs/troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy template</a></li><li><a href="../policies/acceptable-use.html">Acceptable use template</a></li></ul>
+    </div><div>
+      <p class="colophon-label">This service</p>
+      <ul><li><a href="./terms.html">Terms of service</a></li><li><a href="./privacy.html">Privacy policy</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>
