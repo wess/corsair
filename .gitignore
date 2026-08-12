@@ -28,8 +28,11 @@ coverage
 *.lcov
 
 # logs
-logs
-_.log
+# Anchored: an unanchored `logs` matches every path segment, which silently
+# excluded src/logs/ and src/api/routes/logs/ and shipped a server that could
+# not start. The same shape once swallowed site/content/docs/security.md.
+/logs
+*.log
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # dotenv environment variable files — match every form except the example.
