@@ -30,6 +30,9 @@ let userId = ""
 let domain: Domain
 let other: Domain
 
+// Accounts a single test needs for itself, torn down with the rest.
+const extraUsers: string[] = []
+
 const envelopeFor = (recipients: string[], mailFrom = "sender@far-away.invalid"): Envelope => ({
   helo: "far-away.invalid",
   mailFrom,
@@ -73,11 +76,13 @@ beforeAll(async () => {
 
 afterAll(async () => {
   // Cascades clear domains, addresses, folders, and messages.
-  await db().execute(
-    from(users)
-      .where((q) => q("id").equals(userId))
-      .del(),
-  )
+  for (const id of [userId, ...extraUsers]) {
+    await db().execute(
+      from(users)
+        .where((q) => q("id").equals(id))
+        .del(),
+    )
+  }
 })
 
 describe("routing", () => {
@@ -223,6 +228,95 @@ describe("routing", () => {
         .update({ fallback_domain_id: null }),
     )
     expect(address.id).toBeTruthy()
+  })
+})
+
+/**
+ * Every hosted domain answers `postmaster@` and `abuse@` whether or not anybody
+ * created them — RFC 5321 §4.5.1 and RFC 2142 respectively. Resolved as a
+ * fallback rather than provisioned as rows, so it holds for domains onboarded
+ * before the rule existed and cannot be deleted by accident.
+ *
+ * The ordering tests are the ones that matter: this may only ever turn a 550
+ * into a delivery, never divert mail from a route the customer set up.
+ */
+describe("role accounts", () => {
+  const owner = () => `owner-${suffix}@corsair.test`
+
+  test("postmaster falls back to the account that owns the domain", async () => {
+    const route = await resolveRecipient(`postmaster@${otherName}`)
+    expect(route.kind).toBe("forward")
+    if (route.kind === "forward") {
+      expect(route.address).toBeNull()
+      expect(route.localPart).toBe("postmaster")
+      expect(route.destinations).toEqual([owner()])
+    }
+  })
+
+  test("abuse resolves the same way", async () => {
+    const route = await resolveRecipient(`abuse@${otherName}`)
+    expect(route.kind).toBe("forward")
+    if (route.kind === "forward") expect(route.destinations).toEqual([owner()])
+  })
+
+  test("RCPT TO is accepted instead of rejected", async () => {
+    const reply = await validateRecipient(
+      `postmaster@${otherName}`,
+      null,
+      envelopeFor([`postmaster@${otherName}`]),
+    )
+    expect(reply).toBeNull()
+  })
+
+  test("the fallback does not widen into accepting anything else", async () => {
+    const route = await resolveRecipient(`nobody@${otherName}`)
+    expect(route.kind).toBe("unknown")
+  })
+
+  test("a catch-all still wins over the fallback", async () => {
+    // `domain` carries a catch-all from the routing suite; `other` does not.
+    const route = await resolveRecipient(`postmaster@${domainName}`)
+    expect(route.kind).toBe("mailbox")
+    if (route.kind === "mailbox") expect(route.address.local_part).toBe("catchall")
+  })
+
+  test("an address the customer creates wins over the fallback", async () => {
+    const { address } = await createAddress({
+      domainId: other.id,
+      localPart: "postmaster",
+      type: "standard",
+      password: "hunter2hunter2",
+    })
+
+    const route = await resolveRecipient(`postmaster@${otherName}`)
+    expect(route.kind).toBe("mailbox")
+    if (route.kind === "mailbox") expect(route.address.id).toBe(address.id)
+  })
+
+  test("a role account is never forwarded to itself", async () => {
+    // The loop this guards is not hypothetical: it is what happens when someone
+    // signs up as postmaster@ on a domain they then host here.
+    const loopName = `loop-${suffix}.invalid`
+    const user = (await db().one<{ id: string }>({
+      text: `INSERT INTO users (email, password_hash, name, referral_code)
+             VALUES ($1, 'x', 'Loop', $2) RETURNING id`,
+      values: [`postmaster@${loopName}`, `${suffix}loop`],
+    }))!
+    extraUsers.push(user.id)
+    await db().execute({
+      text: `INSERT INTO domains (user_id, name, verification_token, status)
+             VALUES ($1, $2, 'mail-host-verify=test', 'active')`,
+      values: [user.id, loopName],
+    })
+
+    const route = await resolveRecipient(`postmaster@${loopName}`)
+    expect(route.kind).toBe("unknown")
+
+    // Only the self-referential one is refused. abuse@ on the same domain has
+    // somewhere to go, so it still resolves.
+    const abuse = await resolveRecipient(`abuse@${loopName}`)
+    expect(abuse.kind).toBe("forward")
+    if (abuse.kind === "forward") expect(abuse.destinations).toEqual([`postmaster@${loopName}`])
   })
 })
 

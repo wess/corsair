@@ -104,10 +104,42 @@ For `anything@example.com`, in order:
 3. The domain's **catch-all**, if one exists.
 4. The domain's **fallback domain**, followed exactly once. (Following it twice
    is how you build a loop.)
+5. `postmaster@` and `abuse@`, which forward to the account that owns the
+   domain.
 
 If none match, the message is rejected at SMTP time with a 550. Corsair does not
 accept-then-bounce: a bounce to a forged sender is backscatter, and refusing
 during the transaction puts the problem back where it belongs.
+
+### Role accounts answer whether or not you create them
+
+`postmaster@` is required by RFC 5321 §4.5.1 and `abuse@` by RFC 2142. The
+second is the one that matters day to day: blocklist operators and ISP abuse
+desks reach an installation through it, so a domain that 550s `abuse@` is
+unreachable at exactly the moment reachability decides whether the MX keeps
+delivering anywhere.
+
+Both are resolved as a fallback rather than created as addresses on a new
+domain. That distinction is worth understanding, because it is what makes the
+guarantee hold:
+
+- It applies to every domain, including ones added before the rule existed.
+  Nothing needs backfilling.
+- There is no row to delete, so a domain cannot drift back out of compliance.
+- It runs **last**, after every route you configured. Creating a real
+  `postmaster` address, or a catch-all, takes precedence — the fallback can only
+  ever turn a 550 into a delivery, never divert mail away from something you set
+  up on purpose.
+
+The one case it declines is forwarding an address to itself, which is what it
+would otherwise do when the owning account's own email *is* `postmaster@` on the
+domain being resolved. That resolves to a 550 rather than a loop.
+
+Because these forward, mail sent to them lands in whatever inbox the owning
+account uses, and it arrives unfiltered — forwarding relays the message as-is.
+Both addresses are heavily harvested, so point the owning account somewhere you
+are willing to have receive spam, or create real `postmaster` and `abuse`
+addresses and let them take precedence.
 
 ## Folders, UIDs, and why they are fussy
 

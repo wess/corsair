@@ -337,7 +337,7 @@ const deliverToForward = async (
   ctx: InboundContext,
   results: AuthResults,
 ): Promise<DeliveryOutcome> => {
-  const recipient = `${route.address.local_part}@${route.domain.name}`
+  const recipient = `${route.localPart}@${route.domain.name}`
   const stamped = `${receivedHeader(ctx, recipient)}\r\n${authenticationResults(results, envelope)}\r\n${raw}`
 
   // The envelope sender is rewritten into the forwarding domain so the next hop
@@ -348,7 +348,7 @@ const deliverToForward = async (
     mailFrom: rewrite(envelope.mailFrom, route.domain.name),
     recipients: route.destinations,
     domainId: route.domain.id,
-    addressId: route.address.id,
+    addressId: route.address?.id ?? null,
   })
 
   return {
@@ -405,7 +405,7 @@ export const handleMessage = async (
         from(mailLog).insert({
           user_id: userId,
           domain_id: route.kind === "unknown" ? null : route.domain.id,
-          address_id: route.kind === "unknown" ? null : route.address.id,
+          address_id: route.kind === "unknown" ? null : (route.address?.id ?? null),
           direction: "inbound",
           status: outcome.status,
           mail_from: envelope.mailFrom,

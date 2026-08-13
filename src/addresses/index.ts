@@ -17,6 +17,24 @@ import {
 
 export type AddressType = "standard" | "alias" | "catchall" | "group"
 
+/**
+ * The addresses a hosted domain is not allowed to refuse.
+ *
+ * `postmaster` is required by RFC 5321 §4.5.1; `abuse` by RFC 2142. The second
+ * is the one that matters operationally — blocklist operators and ISP abuse
+ * desks reach an installation through it, so a domain that 550s `abuse@` is
+ * unreachable at exactly the moment reachability decides whether the MX keeps
+ * delivering anywhere.
+ *
+ * These resolve as a fallback instead of being written as rows when a domain is
+ * created, which is the deliberate part. A row can be deleted, putting the
+ * domain back out of compliance silently, and rows would only ever cover
+ * domains onboarded after the change — every domain already hosted would need a
+ * backfill. A fallback covers all of them at once, and an address the customer
+ * creates still wins, because the exact-match lookup runs first.
+ */
+export const ROLE_ACCOUNTS: readonly string[] = ["postmaster", "abuse"]
+
 // RFC 5321 allows far stranger local parts than this, including quoted strings
 // with spaces. Refusing them costs nothing real and avoids a class of parsing
 // bug in every downstream consumer.
@@ -332,7 +350,14 @@ export const unlinkFromAccount = async (addressId: string, password: string): Pr
 
 export type Route =
   | { kind: "mailbox"; address: Address; domain: Domain }
-  | { kind: "forward"; address: Address; domain: Domain; destinations: string[] }
+  | {
+      kind: "forward"
+      // Null for a role account, which forwards with no address row behind it.
+      address: Address | null
+      localPart: string
+      domain: Domain
+      destinations: string[]
+    }
   | { kind: "unknown"; domain: Domain | null }
 
 /**
@@ -343,9 +368,14 @@ export type Route =
  *   2. sub-addressing — user+tag@domain routes to user@domain
  *   3. the domain's catch-all
  *   4. the domain's fallback domain, followed once
+ *   5. a role account, forwarded to whoever owns the domain
  *
  * Sub-addressing is checked before the catch-all so that a domain with both
  * still delivers `me+receipts@` to `me@` rather than sweeping it up.
+ *
+ * Role accounts come last, after every route the customer configured has been
+ * tried, so this only ever turns a 550 into a delivery — it can never take mail
+ * away from an address somebody set up on purpose.
  */
 export const resolveRecipient = async (recipient: string, depth = 0): Promise<Route> => {
   const at = recipient.lastIndexOf("@")
@@ -390,6 +420,27 @@ export const resolveRecipient = async (recipient: string, depth = 0): Promise<Ro
       )
       if (fallback) return resolveRecipient(`${localPart}@${fallback.name}`, depth + 1)
     }
+
+    if (ROLE_ACCOUNTS.includes(localPart)) {
+      const owner = await db().one<{ email: string }>(
+        from(users)
+          .select("email")
+          .where((q) => q("id").equals(domain.user_id)),
+      )
+      // Forwarding an address to itself is a loop that survives every hop count
+      // we control, and it is the exact shape this reaches when someone signs
+      // up as postmaster@ on a domain they then host here.
+      if (owner && owner.email.toLowerCase() !== `${localPart}@${domain.name}`) {
+        return {
+          kind: "forward",
+          address: null,
+          localPart,
+          domain,
+          destinations: [owner.email],
+        }
+      }
+    }
+
     return { kind: "unknown", domain }
   }
 
@@ -397,7 +448,7 @@ export const resolveRecipient = async (recipient: string, depth = 0): Promise<Ro
 
   if (address.type === "alias" || address.type === "group") {
     const destinations = (await destinationsOf(address.id)).map((d) => d.destination)
-    return { kind: "forward", address, domain, destinations }
+    return { kind: "forward", address, localPart: address.local_part, domain, destinations }
   }
 
   return { kind: "mailbox", address, domain }
