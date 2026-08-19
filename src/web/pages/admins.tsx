@@ -21,12 +21,19 @@ import { del, get, post, RequestError } from "../lib/api.ts"
  */
 
 type Admin = {
-  user_id: string
+  /**
+   * Exactly one of these is set. A server-wide grant is always an account; a
+   * domain grant is usually a mailbox, which is the whole point — the person
+   * running a client's mail has no panel account and does not need one.
+   */
+  user_id: string | null
+  address_id?: string | null
+  subject?: "account" | "mailbox"
   email: string
   name: string | null
-  status: string
-  is_owner: boolean
-  is_admin: boolean
+  status?: string
+  is_owner?: boolean
+  is_admin?: boolean
   granted_at: string | null
 }
 
@@ -124,7 +131,7 @@ export const AdminsPage = () => {
         >
           <Field
             label="Account email"
-            hint="Their panel sign-in address. It can be the same as a mailbox here, but it is a separate credential — a mailbox password never opens the panel."
+            hint="A panel sign-in address. Server administration is an account-level grant, so unlike a single domain it cannot be given to a mailbox."
           >
             <input
               type="email"
@@ -203,6 +210,11 @@ export const DomainAdminsTab = ({ domainId }: { domainId: string }) => {
         passwords. They cannot touch its DNS, its billing, or the domain itself — and they cannot
         appoint anybody else here.
       </p>
+      <p className="muted">
+        Enter a <strong>mailbox on this domain</strong> and they manage it from a Users section
+        inside their webmail, with the password they already have — no second login, and they never
+        see this panel. Any other address is treated as a panel account, which has to exist already.
+      </p>
 
       {loading ? (
         <Loading />
@@ -217,27 +229,30 @@ export const DomainAdminsTab = ({ domainId }: { domainId: string }) => {
         <table>
           <thead>
             <tr>
-              <th>Account</th>
+              <th>Administrator</th>
               <th>Since</th>
               <th />
             </tr>
           </thead>
           <tbody>
             {admins.map((admin) => (
-              <tr key={admin.user_id}>
+              <tr key={admin.user_id ?? admin.address_id}>
                 <td>
                   <div>{admin.email}</div>
                   {admin.name && <div className="muted">{admin.name}</div>}
                 </td>
                 <td className="muted">
-                  {admin.granted_at ? new Date(admin.granted_at).toLocaleDateString() : "—"}
+                  {admin.subject === "mailbox" ? "Mailbox here" : "Panel account"}
+                  {admin.granted_at ? ` · ${new Date(admin.granted_at).toLocaleDateString()}` : ""}
                 </td>
                 <td style={{ textAlign: "right" }}>
                   <button
                     type="button"
                     className="btn btn-sm"
                     onClick={async () => {
-                      await del(`/api/domains/${domainId}/admins/${admin.user_id}`)
+                      await del(
+                        `/api/domains/${domainId}/admins/${admin.user_id ?? admin.address_id}`,
+                      )
                       reload()
                     }}
                   >
@@ -285,7 +300,7 @@ export const DomainAdminsTab = ({ domainId }: { domainId: string }) => {
       >
         <Field
           label="Account email"
-          hint="Their panel sign-in address. It can be the same as a mailbox here, but it is a separate credential — a mailbox password never opens the panel."
+          hint="A mailbox here, or the sign-in address of an existing panel account."
         >
           <input
             type="email"
@@ -295,7 +310,7 @@ export const DomainAdminsTab = ({ domainId }: { domainId: string }) => {
               setEmail(e.target.value)
               setCreating(false)
             }}
-            placeholder="them@example.com"
+            placeholder="them@yourdomain.com"
           />
         </Field>
 
