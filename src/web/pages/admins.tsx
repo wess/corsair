@@ -10,7 +10,7 @@ import {
   Spinner,
   useLoad,
 } from "../components/index.tsx"
-import { del, get, post } from "../lib/api.ts"
+import { del, get, post, RequestError } from "../lib/api.ts"
 
 /**
  * Who else may act on this server.
@@ -33,6 +33,8 @@ type Admin = {
 export const AdminsPage = () => {
   const { data, loading, error, reload } = useLoad(() => get<{ data: Admin[] }>("/api/admins"))
   const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [creating, setCreating] = useState(false)
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState<unknown>(null)
 
@@ -102,11 +104,19 @@ export const AdminsPage = () => {
             setBusy(true)
             setFormError(null)
             try {
+              if (creating) await post("/api/users", { email, password })
               await post("/api/admins", { email })
               setEmail("")
+              setPassword("")
+              setCreating(false)
               reload()
             } catch (err) {
-              setFormError(err)
+              if (!creating && err instanceof RequestError && err.status === 404) {
+                setCreating(true)
+                setFormError(null)
+              } else {
+                setFormError(err)
+              }
             } finally {
               setBusy(false)
             }
@@ -114,19 +124,51 @@ export const AdminsPage = () => {
         >
           <Field
             label="Account email"
-            hint="They need a panel account on this server already. This is their sign-in address, not a mailbox."
+            hint="Their panel sign-in address. It can be the same as a mailbox here, but it is a separate credential — a mailbox password never opens the panel."
           >
             <input
               type="email"
               required
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                setCreating(false)
+              }}
               placeholder="them@example.com"
             />
           </Field>
+
+          {creating && (
+            <>
+              <Banner kind="warn">
+                <Icon path={icons.warn} size={15} />
+                <span>
+                  No panel account exists for {email}. Set a password below and one will be created,
+                  then granted.
+                </span>
+              </Banner>
+              <Field label="Initial password" hint="At least 8 characters.">
+                <input
+                  type="text"
+                  required
+                  minLength={8}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="off"
+                />
+              </Field>
+            </>
+          )}
+
           <ErrorText error={formError} />
           <button type="submit" className="btn btn-primary" disabled={busy}>
-            {busy ? <Spinner /> : "Grant server administration"}
+            {busy ? (
+              <Spinner />
+            ) : creating ? (
+              "Create account and grant"
+            ) : (
+              "Grant server administration"
+            )}
           </button>
         </form>
       </Card>
@@ -147,6 +189,8 @@ export const DomainAdminsTab = ({ domainId }: { domainId: string }) => {
     [domainId],
   )
   const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [creating, setCreating] = useState(false)
   const [busy, setBusy] = useState(false)
   const [formError, setFormError] = useState<unknown>(null)
 
@@ -213,11 +257,27 @@ export const DomainAdminsTab = ({ domainId }: { domainId: string }) => {
           setBusy(true)
           setFormError(null)
           try {
+            if (creating) {
+              // Signups are closed on a private server, so a delegate has no way
+              // to make themselves an account. The owner makes it here, in the
+              // same step as the grant — the alternative is a dead end that says
+              // "no such account" and offers nothing.
+              await post("/api/users", { email, password })
+            }
             await post(`/api/domains/${domainId}/admins`, { email })
             setEmail("")
+            setPassword("")
+            setCreating(false)
             reload()
           } catch (err) {
-            setFormError(err)
+            // 404 here means the address has no panel account. That is a thing
+            // to offer to fix, not an error to report.
+            if (!creating && err instanceof RequestError && err.status === 404) {
+              setCreating(true)
+              setFormError(null)
+            } else {
+              setFormError(err)
+            }
           } finally {
             setBusy(false)
           }
@@ -225,19 +285,45 @@ export const DomainAdminsTab = ({ domainId }: { domainId: string }) => {
       >
         <Field
           label="Account email"
-          hint="They need a panel account on this server already. This is their sign-in address, not a mailbox."
+          hint="Their panel sign-in address. It can be the same as a mailbox here, but it is a separate credential — a mailbox password never opens the panel."
         >
           <input
             type="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              setCreating(false)
+            }}
             placeholder="them@example.com"
           />
         </Field>
+
+        {creating && (
+          <>
+            <Banner kind="warn">
+              <Icon path={icons.warn} size={15} />
+              <span>
+                No panel account exists for {email}. Set a password below and one will be created,
+                then granted. Pass the password on to them — they can change it once they sign in.
+              </span>
+            </Banner>
+            <Field label="Initial password" hint="At least 8 characters.">
+              <input
+                type="text"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="off"
+              />
+            </Field>
+          </>
+        )}
+
         <ErrorText error={formError} />
         <button type="submit" className="btn btn-primary" disabled={busy}>
-          {busy ? <Spinner /> : "Add administrator"}
+          {busy ? <Spinner /> : creating ? "Create account and grant" : "Add administrator"}
         </button>
       </form>
     </Card>

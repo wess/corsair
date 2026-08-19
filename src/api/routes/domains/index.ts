@@ -40,13 +40,18 @@ import { authed, authedWithPlan, entitlementFrom, principalOf } from "../../pipe
 const domainParam = z.object({ domain_id: z.string().uuid() })
 
 /**
- * Everything about the domain *itself* — its DNS, its keys, its settings, its
- * deletion — stays with whoever owns it, plus a system administrator.
+ * The line between looking and changing.
  *
- * A domain administrator is deliberately not here. They were delegated the
- * mailboxes (see `routes/addresses`), and the one route below that they do
- * reach is the domain's own detail, because the panel cannot show them a
- * mailbox list without first showing them the domain it belongs to.
+ * A domain administrator reads: the domain's detail, its expected DNS records,
+ * the zone file, its DKIM keys, and the re-check that says whether DNS is
+ * healthy. They are the person fielding "why did that message bounce", and
+ * answering it without being able to see the records is not a job.
+ *
+ * `owned` — the domain's owner, or a system administrator — is required for
+ * everything that *changes* the domain or spends something: publishing DNS with
+ * an API token, the settings patch, the fallback, rotating a DKIM key,
+ * transferring, and deletion. Moving a route from `administeredDomain` to
+ * `owned` is a widening of trust; do it deliberately or not at all.
  */
 const owned = ownedDomain
 
@@ -179,7 +184,7 @@ export const domainRoutes: Route[] = [
     "/api/domains/:domain_id/dns",
     { params: domainParam, before: authed, assigns: {} as never },
     async (c) => {
-      const domain = await owned(principalOf(c).userId, c.params.domain_id)
+      const domain = await administeredDomain(principalOf(c).userId, c.params.domain_id)
       const records = await recordsOf(domain.id)
       return json(c, 200, {
         object: "dns_setup",
@@ -203,7 +208,7 @@ export const domainRoutes: Route[] = [
     "/api/domains/:domain_id/dns/zone",
     { params: domainParam, before: authed, assigns: {} as never },
     async (c) => {
-      const domain = await owned(principalOf(c).userId, c.params.domain_id)
+      const domain = await administeredDomain(principalOf(c).userId, c.params.domain_id)
       const body = zoneFile(domain, await recordsOf(domain.id))
       const response = text(c, 200, body)
       return {
@@ -307,7 +312,7 @@ export const domainRoutes: Route[] = [
     "/api/domains/:domain_id/check",
     { params: domainParam, before: authed, assigns: {} as never },
     async (c) => {
-      const domain = await owned(principalOf(c).userId, c.params.domain_id)
+      const domain = await administeredDomain(principalOf(c).userId, c.params.domain_id)
       const result = await checkDomain(domain)
       return json(c, 200, {
         object: "dns_check",
@@ -402,7 +407,7 @@ export const domainRoutes: Route[] = [
     "/api/domains/:domain_id/keys",
     { params: domainParam, before: authed, assigns: {} as never },
     async (c) => {
-      const domain = await owned(principalOf(c).userId, c.params.domain_id)
+      const domain = await administeredDomain(principalOf(c).userId, c.params.domain_id)
       const keys = await db().all<DkimKey>(
         from(dkimKeys)
           .where((q) => q("domain_id").equals(domain.id))

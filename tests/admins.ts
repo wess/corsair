@@ -27,7 +27,23 @@ const check = (label: string, ok: boolean, detail?: unknown) => {
   console.log(`  FAIL  ${label}`, detail ?? "")
 }
 
-const call = async (method: string, path: string, cookie: string, body?: unknown) => {
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * Retries a 429 rather than reporting it.
+ *
+ * The API rate limit is per principal per second, and this file drives dozens
+ * of calls as three accounts back to back. Without this the failures land on
+ * whichever assertion happened to be in the burst, which reads exactly like an
+ * authorization bug and is not one.
+ */
+const call = async (
+  method: string,
+  path: string,
+  cookie: string,
+  body?: unknown,
+  attempt = 0,
+): Promise<{ status: number; body: any }> => {
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: {
@@ -36,6 +52,10 @@ const call = async (method: string, path: string, cookie: string, body?: unknown
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   })
+  if (res.status === 429 && attempt < 8) {
+    await sleep(1000)
+    return call(method, path, cookie, body, attempt + 1)
+  }
   return { status: res.status, body: await res.json().catch(() => null) }
 }
 
@@ -151,6 +171,42 @@ const sAdd = await call("POST", `/api/domains/${domain.id}/addresses`, strangerC
   password: "nope-password-123",
 })
 check("cannot add a mailbox", sAdd.status === 404, sAdd.status)
+
+console.log("\ncreating an account to delegate to")
+const noAccount = await call("POST", `/api/domains/${domain.id}/admins`, ownerC, {
+  email: `fresh-${suffix}@${zone}`,
+})
+check("granting to an address with no account is refused", noAccount.status === 404, noAccount.body)
+const madeUser = await call("POST", "/api/users", ownerC, {
+  email: `fresh-${suffix}@${zone}`,
+  password: PW,
+})
+check("a non-instance-owner cannot create accounts", madeUser.status === 403, madeUser.status)
+
+console.log("\nwhat a delegate may read")
+const dns = await call("GET", `/api/domains/${domain.id}/dns`, delegateC)
+check("a delegate can read the expected DNS records", dns.status === 200, dns.status)
+const zoneFile = await call("GET", `/api/domains/${domain.id}/dns/zone`, delegateC)
+check("and the zone file", zoneFile.status === 200, zoneFile.status)
+const keys = await call("GET", `/api/domains/${domain.id}/keys`, delegateC)
+check("and the DKIM keys", keys.status === 200, keys.status)
+const recheck = await call("POST", `/api/domains/${domain.id}/check`, delegateC)
+check("and can re-run the DNS check", recheck.status === 200, recheck.status)
+
+console.log("\nbut still not change the domain")
+// Bodies have to be well formed, or validation answers before authorization
+// does and the assertion proves nothing.
+const publish = await call("POST", `/api/domains/${domain.id}/dns/publish`, delegateC, {
+  provider: "digitalocean",
+  token: "not-a-real-token-but-well-formed",
+})
+check("cannot publish DNS", publish.status === 404, publish.status)
+const rotate = await call(
+  "POST",
+  `/api/domains/${domain.id}/keys/00000000-0000-0000-0000-000000000000/activate`,
+  delegateC,
+)
+check("cannot rotate a DKIM key", rotate.status === 404, rotate.status)
 
 console.log("\nrevoking")
 const revoked = await call("DELETE", `/api/domains/${domain.id}/admins/${delegateId}`, ownerC)
