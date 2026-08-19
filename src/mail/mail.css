@@ -3,10 +3,36 @@
  * panes on a desktop, one at a time on a phone.
  */
 
+/*
+ * Notices sit above the three panes, not inside one of them. Putting them in
+ * the message list meant a 380px column wrapping a sentence into a tower and
+ * pushing its action button out of view.
+ */
+.mail-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.mail-notices {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
 .mail {
   display: grid;
   grid-template-columns: 220px 380px 1fr;
   height: 100%;
+}
+
+.mail-shell > .mail {
+  flex: 1;
+  /* Without this the grid refuses to shrink and the panes stop scrolling. */
+  min-height: 0;
+  height: auto;
 }
 
 .mail-folders {

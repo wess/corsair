@@ -18,6 +18,7 @@ import { activeDkimKey } from "../../../domains/index.ts"
 import { invalidParameter, notFound, unauthorized } from "../../../errors/index.ts"
 import { rfcMessageId, uidValidity } from "../../../ids/index.ts"
 import * as mime from "../../../mime/index.ts"
+import { mailboxNotices } from "../../../notices/index.ts"
 import { enqueue } from "../../../outbound/index.ts"
 import { withinDailyLimit } from "../../../plans/index.ts"
 import { sanitizeHtml, textToHtml } from "../../../sanitize/index.ts"
@@ -224,6 +225,19 @@ export const webmailRoutes: Route[] = [
       })
     },
   ),
+
+  /**
+   * What this mailbox should be told about, on its own endpoint rather than
+   * folded into `/api/mail/me`. `me` is polled to keep a session alive; these
+   * cost queries and are wanted once, after signing in.
+   */
+  getR("/api/mail/notices", { before: mailed, assigns: {} as never }, async (c) => {
+    const identity = identityOf(c)
+    return json(c, 200, {
+      object: "list",
+      data: mailboxNotices(identity.address, identity.domain),
+    })
+  }),
 
   getR("/api/mail/me", { before: mailed, assigns: {} as never }, async (c) => {
     const identity = identityOf(c)

@@ -34,6 +34,14 @@ type Mailbox = {
   administers: { id: string; name: string }[]
 }
 
+type Notice = {
+  id: string
+  level: "info" | "warn"
+  title: string
+  body: string
+  action?: { label: string; target: string }
+}
+
 type Folder = {
   id: string
   name: string
@@ -189,6 +197,51 @@ const LoginPage = ({ onSignedIn }: { onSignedIn: (mailbox: Mailbox) => void }) =
   )
 }
 
+// ---------------------------------------------------------------- notices --
+
+/**
+ * What this mailbox should do something about, shown where mail is read.
+ *
+ * The action opens the dialog that fixes it rather than linking away, because
+ * "go to settings and find the field" is where people stop. There is no dismiss
+ * — the server only raises what this mailbox can fix, so acting is what clears
+ * it, and a banner that could be waved away without changing anything would
+ * teach people to wave them away.
+ */
+const MailNotices = ({
+  nonce,
+  onAction,
+}: {
+  nonce: number
+  onAction: (target: string) => void
+}) => {
+  const { data } = useLoad(() => get<{ data: Notice[] }>("/api/mail/notices"), [nonce])
+  const notices = data?.data ?? []
+  if (!notices.length) return null
+
+  return (
+    <div className="mail-notices">
+      {notices.map((notice) => (
+        <Banner key={notice.id} kind={notice.level === "warn" ? "warn" : "info"}>
+          <Icon path={icons.warn} size={15} />
+          <span style={{ flex: 1 }}>
+            <strong>{notice.title}</strong> — {notice.body}
+          </span>
+          {notice.action && (
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => onAction(notice.action!.target)}
+            >
+              {notice.action.label}
+            </button>
+          )}
+        </Banner>
+      ))}
+    </div>
+  )
+}
+
 // --------------------------------------------------------------- settings --
 
 /**
@@ -199,7 +252,15 @@ const LoginPage = ({ onSignedIn }: { onSignedIn: (mailbox: Mailbox) => void }) =
  * own address logged you out in effect. A mailbox holder's settings belong to
  * the mailbox, and this is where they live.
  */
-const Settings = ({ mailbox, onClose }: { mailbox: Mailbox; onClose: () => void }) => {
+const Settings = ({
+  mailbox,
+  focus,
+  onClose,
+}: {
+  mailbox: Mailbox
+  focus?: string
+  onClose: () => void
+}) => {
   const [current, setCurrent] = useState("")
   const [next, setNext] = useState("")
   const [confirm, setConfirm] = useState("")
@@ -214,6 +275,20 @@ const Settings = ({ mailbox, onClose }: { mailbox: Mailbox; onClose: () => void 
       <Field label="Address">
         <input value={mailbox.email} readOnly disabled />
       </Field>
+
+      {/*
+       * The section the notice asked for goes first.
+       *
+       * Scrolling to it was the obvious move and does not survive contact with
+       * a native `<dialog>`: a child's effect runs before the parent calls
+       * `showModal()`, so the target is still `display: none` when it fires.
+       * Ordering needs no timing and cannot half-work.
+       */}
+      {focus === "recovery" && <Recovery mailbox={mailbox} />}
+
+      {/* Labelled explicitly: whichever section the notice put first, the other
+          must not read as a stray pair of password fields. */}
+      <h3 style={{ margin: "24px 0 10px", fontSize: "0.95rem" }}>Change password</h3>
 
       {mailbox.uses_account_password ? (
         /**
@@ -294,7 +369,7 @@ const Settings = ({ mailbox, onClose }: { mailbox: Mailbox; onClose: () => void 
         </form>
       )}
 
-      <Recovery mailbox={mailbox} />
+      {focus !== "recovery" && <Recovery mailbox={mailbox} />}
     </Dialog>
   )
 }
@@ -315,8 +390,8 @@ const Recovery = ({ mailbox }: { mailbox: Mailbox }) => {
   const [error, setError] = useState<unknown>(null)
 
   return (
-    <div style={{ marginTop: 24, borderTop: "1px solid var(--line)", paddingTop: 18 }}>
-      <h3 style={{ margin: "0 0 10px", fontSize: "0.95rem" }}>Recovery address</h3>
+    <div>
+      <h3 style={{ margin: "24px 0 10px", fontSize: "0.95rem" }}>Recovery address</h3>
 
       {!mailbox.recovery_enabled && (
         <Banner kind="warn">
@@ -908,6 +983,11 @@ const App = () => {
   const [creating, setCreating] = useState(false)
   const [settings, setSettings] = useState(false)
   const [users, setUsers] = useState(false)
+  // Bumped when a dialog that can resolve a notice closes, so acting on one
+  // makes the banner go away without a reload.
+  const [noticeNonce, setNoticeNonce] = useState(0)
+  // Which part of settings the notice asked for, so the dialog opens there.
+  const [settingsFocus, setSettingsFocus] = useState<string | undefined>()
 
   useEffect(() => {
     get<Mailbox>("/api/mail/me")
@@ -998,229 +1078,246 @@ const App = () => {
   if (!mailbox) return <LoginPage onSignedIn={setMailbox} />
 
   return (
-    <div className={`mail${selected ? " reading" : ""}`}>
-      <aside className="mail-folders">
-        <div className="brand" style={{ padding: "4px 8px 14px" }}>
-          ✉️ Webmail
-        </div>
+    <div className="mail-shell">
+      <MailNotices
+        nonce={noticeNonce}
+        onAction={(target) => {
+          if (target === "users") {
+            setUsers(true)
+            return
+          }
+          setSettingsFocus(target === "settings" ? "recovery" : undefined)
+          setSettings(true)
+        }}
+      />
+      <div className={`mail${selected ? " reading" : ""}`}>
+        <aside className="mail-folders">
+          <div className="brand" style={{ padding: "4px 8px 14px" }}>
+            ✉️ Webmail
+          </div>
 
-        <button
-          type="button"
-          className="btn btn-primary"
-          style={{ marginBottom: 10 }}
-          onClick={() => setCompose({ to: "", cc: "", bcc: "", subject: "", text: "" })}
-        >
-          <Icon path={icons.plus} size={15} /> Compose
-        </button>
-
-        {folders.data?.data.map((folder) => (
           <button
-            key={folder.id}
             type="button"
-            className={`nav-item${folder.id === folderId ? " active" : ""}`}
-            onClick={() => {
-              setFolderId(folder.id)
-              setSelected(null)
-              setPage(1)
-            }}
+            className="btn btn-primary"
+            style={{ marginBottom: 10 }}
+            onClick={() => setCompose({ to: "", cc: "", bcc: "", subject: "", text: "" })}
           >
-            <Icon path={FOLDER_ICON[folder.special_use ?? ""] ?? icons.domains} />
-            <span className="truncate" style={{ flex: 1 }}>
-              {folder.name}
-            </span>
-            {folder.unseen > 0 && <span className="pill">{folder.unseen}</span>}
+            <Icon path={icons.plus} size={15} /> Compose
           </button>
-        ))}
 
-        <div className="sidebar-footer">
-          <button type="button" className="nav-item" onClick={() => setCreating(true)}>
-            <Icon path={icons.plus} />
-            New folder
-          </button>
-          {mailbox.administers.length > 0 && (
+          {folders.data?.data.map((folder) => (
+            <button
+              key={folder.id}
+              type="button"
+              className={`nav-item${folder.id === folderId ? " active" : ""}`}
+              onClick={() => {
+                setFolderId(folder.id)
+                setSelected(null)
+                setPage(1)
+              }}
+            >
+              <Icon path={FOLDER_ICON[folder.special_use ?? ""] ?? icons.domains} />
+              <span className="truncate" style={{ flex: 1 }}>
+                {folder.name}
+              </span>
+              {folder.unseen > 0 && <span className="pill">{folder.unseen}</span>}
+            </button>
+          ))}
+
+          <div className="sidebar-footer">
+            <button type="button" className="nav-item" onClick={() => setCreating(true)}>
+              <Icon path={icons.plus} />
+              New folder
+            </button>
+            {mailbox.administers.length > 0 && (
+              <button
+                type="button"
+                className="nav-item"
+                onClick={() => setUsers(true)}
+                title="Manage mailboxes"
+              >
+                <Icon path={icons.account} />
+                Users
+              </button>
+            )}
             <button
               type="button"
               className="nav-item"
-              onClick={() => setUsers(true)}
-              title="Manage mailboxes"
+              onClick={() => setSettings(true)}
+              title="Mailbox settings"
             >
               <Icon path={icons.account} />
-              Users
+              <span className="truncate">{mailbox.email}</span>
             </button>
-          )}
-          <button
-            type="button"
-            className="nav-item"
-            onClick={() => setSettings(true)}
-            title="Mailbox settings"
-          >
-            <Icon path={icons.account} />
-            <span className="truncate">{mailbox.email}</span>
-          </button>
-          <button
-            type="button"
-            className="nav-item"
-            onClick={async () => {
-              await post("/api/mail/logout").catch(() => {})
-              setMailbox(null)
-            }}
-          >
-            <Icon path={icons.logout} />
-            Sign out
-          </button>
-        </div>
-      </aside>
-
-      <section className="mail-list">
-        <div className="mail-list-head">
-          <input
-            placeholder={`Search ${currentFolder?.name ?? "mail"}`}
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value)
-              setPage(1)
-            }}
-          />
-          <button type="button" className="btn btn-sm" onClick={refresh} title="Refresh">
-            <Icon path={icons.refresh} size={15} />
-          </button>
-        </div>
-
-        <div className="mail-list-scroll">
-          {messages.loading && (
-            <div className="empty">
-              <Spinner />
-            </div>
-          )}
-          {!messages.loading && !messages.data?.data.length && (
-            <div className="empty">{search ? "Nothing matches that." : "Nothing here yet."}</div>
-          )}
-          {messages.data?.data.map((message) => (
-            <button
-              key={message.id}
-              type="button"
-              className={`mail-item${message.seen ? "" : " unseen"}${
-                message.id === selected ? " active" : ""
-              }`}
-              onClick={() => setSelected(message.id)}
-            >
-              <div className="mail-item-top">
-                <span className="mail-from truncate">
-                  {message.flagged && "★ "}
-                  {currentFolder?.special_use === "sent" || currentFolder?.special_use === "drafts"
-                    ? `To ${message.to.map(displayName).join(", ") || "(nobody)"}`
-                    : displayName(message.from)}
-                </span>
-                <span className="mail-date">{shortDate(message.date)}</span>
-              </div>
-              <div className="mail-subject truncate">
-                {message.has_attachments && "📎 "}
-                {message.subject || "(no subject)"}
-              </div>
-              <div className="mail-snippet truncate">{message.snippet}</div>
-            </button>
-          ))}
-        </div>
-
-        {messages.data && messages.data.pages > 1 && (
-          <div className="row spread" style={{ padding: 10, borderTop: "1px solid var(--border)" }}>
             <button
               type="button"
-              className="btn btn-sm"
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
+              className="nav-item"
+              onClick={async () => {
+                await post("/api/mail/logout").catch(() => {})
+                setMailbox(null)
+              }}
             >
-              Previous
-            </button>
-            <span className="muted">
-              {messages.data.page} / {messages.data.pages}
-            </span>
-            <button
-              type="button"
-              className="btn btn-sm"
-              disabled={page >= messages.data.pages}
-              onClick={() => setPage(page + 1)}
-            >
-              Next
+              <Icon path={icons.logout} />
+              Sign out
             </button>
           </div>
-        )}
-      </section>
+        </aside>
 
-      <section className="mail-reader">
-        {selected ? (
-          <>
-            <div
-              className="row"
-              style={{ padding: "10px 24px 0", justifyContent: "flex-end", gap: 8 }}
-            >
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() =>
-                  act("/api/mail/messages/flags", { ids: [selected], add: ["\\Flagged"] })
-                }
-              >
-                ★ Flag
-              </button>
-              <button
-                type="button"
-                className="btn btn-sm"
-                onClick={() =>
-                  act("/api/mail/messages/flags", { ids: [selected], remove: ["\\Seen"] })
-                }
-              >
-                Mark unread
-              </button>
-              <select
-                className="btn btn-sm"
-                style={{ width: "auto" }}
-                defaultValue=""
-                onChange={(e) => {
-                  if (!e.target.value) return
-                  void act("/api/mail/messages/move", {
-                    ids: [selected],
-                    folder_id: e.target.value,
-                  })
-                }}
-              >
-                <option value="">Move to…</option>
-                {folders.data?.data
-                  .filter((f) => f.id !== folderId)
-                  .map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name}
-                    </option>
-                  ))}
-              </select>
-              <button
-                type="button"
-                className="btn btn-sm btn-danger"
-                onClick={() => act("/api/mail/messages/delete", { ids: [selected] })}
-              >
-                <Icon path={icons.trash} size={14} /> Delete
-              </button>
-            </div>
-
-            <Reader
-              id={selected}
-              onChanged={refresh}
-              onClose={() => setSelected(null)}
-              onReply={(message, mode) => setCompose(replyDraft(message, mode))}
+        <section className="mail-list">
+          <div className="mail-list-head">
+            <input
+              placeholder={`Search ${currentFolder?.name ?? "mail"}`}
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
             />
-          </>
-        ) : (
-          <div className="mail-empty">
-            <div>
-              <div style={{ fontSize: 40, marginBottom: 8 }}>✉️</div>
-              <div>Select a message to read it.</div>
-              <div className="faint" style={{ marginTop: 6, fontSize: 13 }}>
-                {formatBytes(mailbox.quota_bytes)} stored in this mailbox
+            <button type="button" className="btn btn-sm" onClick={refresh} title="Refresh">
+              <Icon path={icons.refresh} size={15} />
+            </button>
+          </div>
+
+          <div className="mail-list-scroll">
+            {messages.loading && (
+              <div className="empty">
+                <Spinner />
+              </div>
+            )}
+            {!messages.loading && !messages.data?.data.length && (
+              <div className="empty">{search ? "Nothing matches that." : "Nothing here yet."}</div>
+            )}
+            {messages.data?.data.map((message) => (
+              <button
+                key={message.id}
+                type="button"
+                className={`mail-item${message.seen ? "" : " unseen"}${
+                  message.id === selected ? " active" : ""
+                }`}
+                onClick={() => setSelected(message.id)}
+              >
+                <div className="mail-item-top">
+                  <span className="mail-from truncate">
+                    {message.flagged && "★ "}
+                    {currentFolder?.special_use === "sent" ||
+                    currentFolder?.special_use === "drafts"
+                      ? `To ${message.to.map(displayName).join(", ") || "(nobody)"}`
+                      : displayName(message.from)}
+                  </span>
+                  <span className="mail-date">{shortDate(message.date)}</span>
+                </div>
+                <div className="mail-subject truncate">
+                  {message.has_attachments && "📎 "}
+                  {message.subject || "(no subject)"}
+                </div>
+                <div className="mail-snippet truncate">{message.snippet}</div>
+              </button>
+            ))}
+          </div>
+
+          {messages.data && messages.data.pages > 1 && (
+            <div
+              className="row spread"
+              style={{ padding: 10, borderTop: "1px solid var(--border)" }}
+            >
+              <button
+                type="button"
+                className="btn btn-sm"
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+              >
+                Previous
+              </button>
+              <span className="muted">
+                {messages.data.page} / {messages.data.pages}
+              </span>
+              <button
+                type="button"
+                className="btn btn-sm"
+                disabled={page >= messages.data.pages}
+                onClick={() => setPage(page + 1)}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </section>
+
+        <section className="mail-reader">
+          {selected ? (
+            <>
+              <div
+                className="row"
+                style={{ padding: "10px 24px 0", justifyContent: "flex-end", gap: 8 }}
+              >
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() =>
+                    act("/api/mail/messages/flags", { ids: [selected], add: ["\\Flagged"] })
+                  }
+                >
+                  ★ Flag
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() =>
+                    act("/api/mail/messages/flags", { ids: [selected], remove: ["\\Seen"] })
+                  }
+                >
+                  Mark unread
+                </button>
+                <select
+                  className="btn btn-sm"
+                  style={{ width: "auto" }}
+                  defaultValue=""
+                  onChange={(e) => {
+                    if (!e.target.value) return
+                    void act("/api/mail/messages/move", {
+                      ids: [selected],
+                      folder_id: e.target.value,
+                    })
+                  }}
+                >
+                  <option value="">Move to…</option>
+                  {folders.data?.data
+                    .filter((f) => f.id !== folderId)
+                    .map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-danger"
+                  onClick={() => act("/api/mail/messages/delete", { ids: [selected] })}
+                >
+                  <Icon path={icons.trash} size={14} /> Delete
+                </button>
+              </div>
+
+              <Reader
+                id={selected}
+                onChanged={refresh}
+                onClose={() => setSelected(null)}
+                onReply={(message, mode) => setCompose(replyDraft(message, mode))}
+              />
+            </>
+          ) : (
+            <div className="mail-empty">
+              <div>
+                <div style={{ fontSize: 40, marginBottom: 8 }}>✉️</div>
+                <div>Select a message to read it.</div>
+                <div className="faint" style={{ marginTop: 6, fontSize: 13 }}>
+                  {formatBytes(mailbox.quota_bytes)} stored in this mailbox
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </section>
+          )}
+        </section>
+      </div>
 
       {compose && (
         <Compose
@@ -1233,7 +1330,17 @@ const App = () => {
         />
       )}
 
-      {settings && <Settings mailbox={mailbox} onClose={() => setSettings(false)} />}
+      {settings && (
+        <Settings
+          mailbox={mailbox}
+          focus={settingsFocus}
+          onClose={() => {
+            setSettingsFocus(undefined)
+            setSettings(false)
+            setNoticeNonce((n) => n + 1)
+          }}
+        />
+      )}
 
       {users && <Users mailbox={mailbox} onClose={() => setUsers(false)} />}
 

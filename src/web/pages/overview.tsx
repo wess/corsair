@@ -1,11 +1,8 @@
 import { navigate } from "../app.tsx"
 import {
-  Banner,
   Card,
   Copyable,
   ErrorText,
-  Icon,
-  icons,
   Loading,
   Pill,
   Sparkline,
@@ -56,23 +53,9 @@ export const OverviewPage = ({ name }: { name: string | null }) => {
         <span className="muted">here are your latest statistics.</span>
       </h2>
 
-      {data.pending_domains.length > 0 && (
-        <Banner kind="warn">
-          <Icon path={icons.warn} size={16} />
-          <span>
-            {data.pending_domains.length === 1
-              ? `${data.pending_domains[0]!.name} is not verified yet — mail cannot be sent from it.`
-              : `${data.pending_domains.length} domains are not verified yet.`}{" "}
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost"
-              onClick={() => navigate(`/domains/${data.pending_domains[0]!.id}?tab=dns`)}
-            >
-              Finish DNS setup
-            </button>
-          </span>
-        </Banner>
-      )}
+      {/* An unverified domain is raised by the notice banners in the shell, on
+          every screen and named individually. Keeping this one as well meant
+          the overview said it twice. */}
 
       <div className="grid grid-2">
         <Card title="Recent activity">

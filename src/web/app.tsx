@@ -1,6 +1,6 @@
 import { StrictMode, useCallback, useEffect, useState } from "react"
 import { createRoot } from "react-dom/client"
-import { Icon, icons, Loading } from "./components/index.tsx"
+import { Banner, Icon, icons, Loading, useLoad } from "./components/index.tsx"
 import { get, post } from "./lib/api.ts"
 import { AccountPage } from "./pages/account.tsx"
 import { AdminsPage } from "./pages/admins.tsx"
@@ -33,6 +33,14 @@ export type Me = {
   is_owner: boolean
   referral_code: string
   notification_prefs: Record<string, boolean>
+}
+
+type Notice = {
+  id: string
+  level: "info" | "warn"
+  title: string
+  body: string
+  action?: { label: string; target: string }
 }
 
 // ------------------------------------------------------------------ router --
@@ -200,8 +208,47 @@ const Shell = ({
             </a>
           </div>
         </header>
-        <div className="content">{render()}</div>
+        <div className="content">
+          <Notices route={route} />
+          {render()}
+        </div>
       </main>
+    </div>
+  )
+}
+
+/**
+ * What needs doing, above whatever page you happened to open.
+ *
+ * Reloaded on navigation rather than only at sign-in, so acting on one makes it
+ * disappear without a refresh — which is also why there is no dismiss button.
+ * Every notice here is something this account can fix, and fixing it is the
+ * only way to clear it.
+ */
+const Notices = ({ route }: { route: string }) => {
+  const { data } = useLoad(() => get<{ data: Notice[] }>("/api/notices"), [route])
+  const notices = data?.data ?? []
+  if (!notices.length) return null
+
+  return (
+    <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
+      {notices.map((notice) => (
+        <Banner key={notice.id} kind={notice.level === "warn" ? "warn" : "info"}>
+          <Icon path={notice.level === "warn" ? icons.warn : icons.overview} size={15} />
+          <span style={{ flex: 1 }}>
+            <strong>{notice.title}</strong> — {notice.body}
+          </span>
+          {notice.action && (
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => navigate(notice.action!.target)}
+            >
+              {notice.action.label}
+            </button>
+          )}
+        </Banner>
+      ))}
     </div>
   )
 }

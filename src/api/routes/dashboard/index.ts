@@ -1,10 +1,11 @@
 import { getR, json, type Route } from "@atlas/server"
 import { config } from "../../../config/index.ts"
 import { db } from "../../../db/index.ts"
+import { accountNotices } from "../../../notices/index.ts"
 import { formatBytes, usageOf } from "../../../plans/index.ts"
 import { entitlementObject } from "../../../serialize/index.ts"
 import { startTlsOffered } from "../../../starttls/index.ts"
-import { authedWithPlan, entitlementFrom, principalOf } from "../../pipes/index.ts"
+import { authed, authedWithPlan, entitlementFrom, principalOf } from "../../pipes/index.ts"
 
 /**
  * The Overview screen, in one request.
@@ -14,6 +15,14 @@ import { authedWithPlan, entitlementFrom, principalOf } from "../../pipes/index.
  * dominate the cost.
  */
 export const dashboardRoutes: Route[] = [
+  /**
+   * Raised on every panel screen rather than only the overview: the thing that
+   * needs doing is rarely on the page somebody happens to open.
+   */
+  getR("/api/notices", { before: authed, assigns: {} as never }, async (c) =>
+    json(c, 200, { object: "list", data: await accountNotices(principalOf(c).userId) }),
+  ),
+
   getR("/api/overview", { before: authedWithPlan, assigns: {} as never }, async (c) => {
     const userId = principalOf(c).userId
     const usage = await usageOf(userId)
