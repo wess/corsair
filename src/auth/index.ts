@@ -262,6 +262,26 @@ const authenticateResolved = async (
   return { address, domain, email: `${address.local_part}@${domain.name}` }
 }
 
+/**
+ * Checks a password against a mailbox without signing anything in.
+ *
+ * Shares `mailboxHash` with `authenticateResolved`, so confirming the current
+ * password before changing it cannot disagree with what the login path would
+ * have accepted — the linked-account case in particular, where the credential
+ * being checked is the owner's and not the address's.
+ *
+ * Deliberately does not touch `last_login_at`. Proving you already hold the
+ * credential is not a sign-in, and recording it as one would put a login on the
+ * mailbox every time somebody opened the settings panel and changed their mind.
+ */
+export const verifyMailboxPassword = async (
+  address: Address,
+  password: string,
+): Promise<boolean> => {
+  const expected = await mailboxHash(address)
+  return expected ? verify(password, expected) : false
+}
+
 export const authenticateAddress = async (
   username: string,
   password: string,

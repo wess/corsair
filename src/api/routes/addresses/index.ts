@@ -1,6 +1,7 @@
 import { from } from "@atlas/db"
 import { delR, getR, json, patchR, postR, type Route } from "@atlas/server"
 import { z } from "zod"
+import { administeredDomain, grantFor } from "../../../access/index.ts"
 import {
   createAddress,
   destinationsOf,
@@ -17,7 +18,6 @@ import {
   addressDestinations,
   addresses,
   type Domain,
-  domains,
   type Filter,
   filters,
 } from "../../../schema/index.ts"
@@ -27,26 +27,25 @@ import { authed, authedWithPlan, entitlementFrom, principalOf } from "../../pipe
 const domainParam = z.object({ domain_id: z.string().uuid() })
 const addressParam = z.object({ address_id: z.string().uuid() })
 
-const ownedDomain = async (userId: string, id: string): Promise<Domain> => {
-  const row = await db().one<Domain>(
-    from(domains).where((q) => [q("id").equals(id), q("user_id").equals(userId)]),
-  )
-  if (!row) throw notFound("Domain not found.")
-  return row
-}
-
+/**
+ * Mailboxes are the delegated surface.
+ *
+ * Everything in this file is reachable by anyone who administers the domain —
+ * its owner, a domain administrator named on it, or a system administrator —
+ * because "add a mailbox without going through me" is the entire reason the
+ * grant exists. What is *not* here is what stays with the owner: the domain
+ * itself, its DNS, its billing, and who administers it.
+ */
 const ownedAddress = async (
   userId: string,
   id: string,
 ): Promise<{ address: Address; domain: Domain }> => {
-  const row = await db().one<Address & { d_id: string }>({
-    text: `SELECT a.*, d.id AS d_id FROM addresses a
-             JOIN domains d ON d.id = a.domain_id
-            WHERE a.id = $1 AND d.user_id = $2`,
-    values: [id, userId],
-  })
+  const row = await db().one<Address>(from(addresses).where((q) => q("id").equals(id)))
   if (!row) throw notFound("Address not found.")
-  const domain = (await db().one<Domain>(from(domains).where((q) => q("id").equals(row.d_id))))!
+  // Resolved through the same check the domain routes use, so an address cannot
+  // be reached by a grant its domain would have refused.
+  const domain = await administeredDomain(userId, row.domain_id).catch(() => null)
+  if (!domain) throw notFound("Address not found.")
   return { address: row, domain }
 }
 
@@ -65,7 +64,7 @@ export const addressRoutes: Route[] = [
     "/api/domains/:domain_id/addresses",
     { params: domainParam, before: authed, assigns: {} as never },
     async (c) => {
-      const domain = await ownedDomain(principalOf(c).userId, c.params.domain_id)
+      const domain = await administeredDomain(principalOf(c).userId, c.params.domain_id)
       const page = await paginate<Address>({
         source: "addresses",
         columns: "*",
@@ -106,8 +105,27 @@ export const addressRoutes: Route[] = [
       assigns: {} as never,
     },
     async (c) => {
-      const domain = await ownedDomain(principalOf(c).userId, c.params.domain_id)
+      const domain = await administeredDomain(principalOf(c).userId, c.params.domain_id)
+      const grant = await grantFor(principalOf(c).userId, domain)
       const entitlement = entitlementFrom(c)
+
+      /**
+       * Only an owner may hand a mailbox their own account password.
+       *
+       * `createAddress` takes `ownerId` on trust, because until domains could be
+       * delegated the route above had already proved the caller owned this
+       * domain. A domain administrator is not that: honouring the flag for one
+       * would bind a mailbox on somebody else's domain to the *administrator's*
+       * credential, which the domain's owner then cannot change — `setPassword`
+       * refuses a linked mailbox outright. Refused rather than quietly ignored,
+       * because a mailbox that silently got a different password than the one
+       * asked for fails later, in a mail client, with nothing to point at.
+       */
+      if (c.body.use_account_password === true && !grant.owns) {
+        throw invalidParameter(
+          "Only this domain's owner can give a mailbox their account password. Set a password for this mailbox instead.",
+        )
+      }
 
       if (entitlement.plan.max_addresses !== null) {
         const row = await db().one<{ count: string }>({
@@ -128,8 +146,8 @@ export const addressRoutes: Route[] = [
         type: c.body.type,
         name: c.body.name ?? null,
         password: c.body.password ?? null,
-        // `ownedDomain` above is the proof that this caller owns the domain,
-        // which is the condition the whole arrangement rests on.
+        // Guarded above: only reachable when this caller owns the domain, which
+        // is the condition the whole arrangement rests on.
         useAccountPassword: c.body.use_account_password === true,
         ownerId: principalOf(c).userId,
         destinations: c.body.destinations,
@@ -316,10 +334,16 @@ export const addressRoutes: Route[] = [
    * Make this mailbox sign in with the account password, or give it one of its
    * own again.
    *
-   * `ownedAddress` proves the caller owns the domain, which is the same
-   * condition an automatic link requires. Unlinking demands a password rather
-   * than accepting none: a mailbox nothing can sign into fails later, as a
-   * client that has quietly stopped working.
+   * Linking is owner-only, for the reason spelled out on the create route:
+   * `linkToAccount` binds the mailbox to whichever account is passed and checks
+   * no ownership of its own, so a domain administrator could otherwise point a
+   * mailbox on somebody else's domain at their own credential and leave the
+   * domain's owner unable to change it. Unlinking stays open to any
+   * administrator — it hands the mailbox back its own password, which is the
+   * remedy, not the hazard.
+   *
+   * Unlinking demands a password rather than accepting none: a mailbox nothing
+   * can sign into fails later, as a client that has quietly stopped working.
    */
   postR(
     "/api/addresses/:address_id/link",
@@ -333,9 +357,14 @@ export const addressRoutes: Route[] = [
       assigns: {} as never,
     },
     async (c) => {
-      const { address } = await ownedAddress(principalOf(c).userId, c.params.address_id)
+      const { address, domain } = await ownedAddress(principalOf(c).userId, c.params.address_id)
 
       if (c.body.use_account_password) {
+        if (!(await grantFor(principalOf(c).userId, domain)).owns) {
+          throw invalidParameter(
+            "Only this domain's owner can give a mailbox their account password. Set a password for this mailbox instead.",
+          )
+        }
         await linkToAccount(address.id, principalOf(c).userId)
       } else {
         if (!c.body.password) {

@@ -39,7 +39,8 @@
     "engine:test": "cargo test --manifest-path engine/Cargo.toml",
     "test:mxfront": "bun run engine:build && bun tests/mxfront.ts",
     "test:dns": "bun tests/dns.ts",
-    "test:starttls:server": "bun tests/serverstarttls.ts"
+    "test:starttls:server": "bun tests/serverstarttls.ts",
+    "test:admins": "bun tests/admins.ts"
   },
   "dependencies": {
     "atlas": "github:wess/atlas#main",

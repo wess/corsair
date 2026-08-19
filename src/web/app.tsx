@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client"
 import { Icon, icons, Loading } from "./components/index.tsx"
 import { get, post } from "./lib/api.ts"
 import { AccountPage } from "./pages/account.tsx"
+import { AdminsPage } from "./pages/admins.tsx"
 import { AuthPage } from "./pages/auth.tsx"
 import { BillingPage, PlansPage } from "./pages/billing.tsx"
 import { AddressDetailPage, DomainDetailPage, DomainsPage } from "./pages/domains.tsx"
@@ -76,10 +77,14 @@ const NAV = [
  * is not a feature of a plan — it belongs to whoever runs the machine. The API
  * enforces that independently; hiding the link is courtesy, not the control.
  */
-const OWNER_NAV = [{ label: "Logs", path: "/logs", icon: icons.docs }] as const
+const OWNER_NAV = [
+  { label: "Administrators", path: "/admins", icon: icons.account },
+  { label: "Logs", path: "/logs", icon: icons.docs },
+] as const
 
 const titleFor = (route: string): string => {
   if (route.startsWith("/logs")) return "Server logs"
+  if (route.startsWith("/admins")) return "Administrators"
 
   if (route.startsWith("/domains")) return "Domains"
   if (route.startsWith("/addresses")) return "Address"
@@ -132,6 +137,7 @@ const Shell = ({
       return <AccountPage me={me} onUpdated={onUpdated} onSignOut={onSignOut} />
     if (route.startsWith("/plans")) return <PlansPage />
     if (route.startsWith("/billing")) return <BillingPage />
+    if (route.startsWith("/admins") && me.is_owner) return <AdminsPage />
     if (route.startsWith("/logs") && me.is_owner) return <LogsPage />
 
     return <OverviewPage name={me.name} />

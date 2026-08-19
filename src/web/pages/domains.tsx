@@ -28,6 +28,7 @@ import {
   qs,
   RequestError,
 } from "../lib/api.ts"
+import { DomainAdminsTab } from "./admins.tsx"
 
 type Domain = {
   id: string
@@ -37,6 +38,8 @@ type Domain = {
   verification_token?: string
   dmarc_policy?: string
   self_service_enabled?: boolean
+  // Absent on the list endpoint; only the detail response carries it.
+  can_manage_domain?: boolean
   fallback_domain?: { id: string; name: string } | null
   address_count?: number
   records?: DomainRecord[]
@@ -201,12 +204,21 @@ const AddDomainDialog = ({
 
 // ----------------------------------------------------------------- detail --
 
+/**
+ * `owner: true` means the tab is only for someone who owns this domain.
+ *
+ * A domain administrator reaches this page for the mailboxes and nothing else;
+ * the API refuses them the rest with a 404, so showing the tabs would offer
+ * five buttons of which four are dead ends. Hiding them is presentation — the
+ * routes are the control.
+ */
 const TABS = [
-  { key: "mailboxes", label: "Mailboxes" },
-  { key: "fallback", label: "Fallback domain" },
-  { key: "dns", label: "DNS setup" },
-  { key: "client", label: "Client configuration" },
-  { key: "self-service", label: "User self service" },
+  { key: "mailboxes", label: "Mailboxes", owner: false },
+  { key: "admins", label: "Administrators", owner: true },
+  { key: "fallback", label: "Fallback domain", owner: true },
+  { key: "dns", label: "DNS setup", owner: true },
+  { key: "client", label: "Client configuration", owner: false },
+  { key: "self-service", label: "User self service", owner: true },
 ] as const
 
 export const DomainDetailPage = ({ id }: { id: string }) => {
@@ -229,7 +241,7 @@ export const DomainDetailPage = ({ id }: { id: string }) => {
       </div>
 
       <div className="tabs">
-        {TABS.map((t) => (
+        {TABS.filter((t) => !t.owner || data.can_manage_domain !== false).map((t) => (
           <button
             key={t.key}
             type="button"
@@ -242,6 +254,7 @@ export const DomainDetailPage = ({ id }: { id: string }) => {
       </div>
 
       {tab === "mailboxes" && <MailboxesTab domain={data} />}
+      {tab === "admins" && <DomainAdminsTab domainId={data.id} />}
       {tab === "fallback" && <FallbackTab domain={data} onSaved={reload} />}
       {tab === "dns" && <DnsTab domain={data} onChecked={reload} />}
       {tab === "client" && <ClientConfigTab />}

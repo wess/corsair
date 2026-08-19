@@ -8,6 +8,7 @@ import panel from "../web/index.html"
 import { wrapAll } from "./pipes/index.ts"
 import { accountRoutes } from "./routes/account/index.ts"
 import { addressRoutes } from "./routes/addresses/index.ts"
+import { adminRoutes } from "./routes/admins/index.ts"
 import { authRoutes } from "./routes/auth/index.ts"
 import { autoconfigRoutes } from "./routes/autoconfig/index.ts"
 import { billingRoutes } from "./routes/billing/index.ts"
@@ -38,6 +39,9 @@ export const allRoutes = (): Route[] => [
   // Addresses register `/api/domains/:domain_id/addresses`, which must not be
   // shadowed by the domain routes' own `:domain_id` patterns.
   ...wrapAll(addressRoutes),
+  // Same reason: `/api/domains/:domain_id/admins` must be registered ahead of
+  // the domain routes' own `:domain_id` patterns.
+  ...wrapAll(adminRoutes),
   ...wrapAll(domainRoutes),
   ...wrapAll(recoveryRoutes),
   ...wrapAll(hookRoutes),

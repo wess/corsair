@@ -84,9 +84,19 @@ export const domainRecordObject = (record: DomainRecord) => ({
 export const domainObject = (
   domain: Domain,
   records: DomainRecord[] = [],
-  extra: { fallback?: Domain | null; addressCount?: number } = {},
+  extra: {
+    fallback?: Domain | null
+    addressCount?: number
+    /**
+     * What the caller may do here, so the panel can render one domain page for
+     * an owner and for a delegate. Advisory only — every route re-checks. A
+     * client that ignored this would get 404s, not access.
+     */
+    grant?: { owns: boolean; system: boolean }
+  } = {},
 ) => ({
   ...domainListItem(domain),
+  can_manage_domain: Boolean(extra.grant?.owns || extra.grant?.system),
   verification_token: domain.verification_token,
   dmarc_policy: domain.dmarc_policy,
   self_service_enabled: domain.self_service_enabled,

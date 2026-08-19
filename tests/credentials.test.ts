@@ -12,9 +12,10 @@ import {
   issueMailSession,
   MAIL_COOKIE,
   resolveMailSession,
+  verifyMailboxPassword,
 } from "../src/auth/index.ts"
 import { db } from "../src/db/index.ts"
-import { type Domain, users } from "../src/schema/index.ts"
+import { type Address, type Domain, users } from "../src/schema/index.ts"
 
 /**
  * One password for the panel and the mailbox, where they are the same person.
@@ -173,6 +174,55 @@ describe("a mailbox that is not an account", () => {
     await expect(
       createAddress({ domainId: domain.id, localPart: "nopassword", type: "standard" }),
     ).rejects.toThrow(/needs a password/i)
+  })
+})
+
+describe("re-authenticating a mailbox without signing it in", () => {
+  /**
+   * `verifyMailboxPassword` backs the webmail's change-password form, which has
+   * to confirm the current password before writing a new one. It shares
+   * `mailboxHash` with the login path on purpose: a check that disagreed with
+   * what `authenticateAddress` accepts would either refuse a correct password
+   * or, worse, accept one the login would not.
+   */
+  test("accepts exactly what the login path accepts, for a mailbox with its own password", async () => {
+    const address = (await db().one<Address>({
+      text: `SELECT * FROM addresses WHERE domain_id = $1 AND local_part = 'family'`,
+      values: [domain.id],
+    }))!
+
+    expect(await verifyMailboxPassword(address, MAILBOX_PASSWORD)).toBe(true)
+    expect(await verifyMailboxPassword(address, ACCOUNT_PASSWORD)).toBe(false)
+    expect(await verifyMailboxPassword(address, "not-the-password")).toBe(false)
+  })
+
+  test("checks the account's password for a mailbox that is its owner's account", async () => {
+    const address = (await db().one<Address>({
+      text: `SELECT * FROM addresses WHERE domain_id = $1 AND local_part = 'owner'`,
+      values: [domain.id],
+    }))!
+
+    // The address carries no hash of its own; the credential is the owner's.
+    expect(address.password_hash).toBeNull()
+    expect(await verifyMailboxPassword(address, ACCOUNT_PASSWORD)).toBe(true)
+    expect(await verifyMailboxPassword(address, MAILBOX_PASSWORD)).toBe(false)
+  })
+
+  test("does not record a login", async () => {
+    // Opening the settings panel and changing your mind must not look like a
+    // sign-in on the mailbox.
+    const before = (await db().one<Address>({
+      text: `SELECT * FROM addresses WHERE domain_id = $1 AND local_part = 'family'`,
+      values: [domain.id],
+    }))!
+
+    await verifyMailboxPassword(before, MAILBOX_PASSWORD)
+
+    const after = (await db().one<Address>({
+      text: `SELECT * FROM addresses WHERE domain_id = $1 AND local_part = 'family'`,
+      values: [domain.id],
+    }))!
+    expect(after.last_login_at).toEqual(before.last_login_at)
   })
 })
 

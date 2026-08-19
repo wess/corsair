@@ -27,6 +27,8 @@ type Mailbox = {
   name: string | null
   domain: string
   quota_bytes: number
+  recovery_address: string | null
+  recovery_enabled: boolean
 }
 
 type Folder = {
@@ -180,6 +182,181 @@ const LoginPage = ({ onSignedIn }: { onSignedIn: (mailbox: Mailbox) => void }) =
           </div>
         </Card>
       </div>
+    </div>
+  )
+}
+
+// --------------------------------------------------------------- settings --
+
+/**
+ * Mailbox settings.
+ *
+ * This used to be a link to `/app`, which is the control panel — a surface a
+ * mailbox identity has no account for and cannot sign into, so clicking your
+ * own address logged you out in effect. A mailbox holder's settings belong to
+ * the mailbox, and this is where they live.
+ */
+const Settings = ({ mailbox, onClose }: { mailbox: Mailbox; onClose: () => void }) => {
+  const [current, setCurrent] = useState("")
+  const [next, setNext] = useState("")
+  const [confirm, setConfirm] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+  const [done, setDone] = useState(false)
+
+  const mismatch = confirm.length > 0 && next !== confirm
+
+  return (
+    <Dialog title="Mailbox settings" onClose={onClose}>
+      <Field label="Address">
+        <input value={mailbox.email} readOnly disabled />
+      </Field>
+
+      {done ? (
+        <Banner kind="good">
+          Your password has been changed. Anywhere else you are already signed in — another browser,
+          a mail client — keeps working until it next signs in.
+        </Banner>
+      ) : (
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault()
+            if (mismatch) return
+            setBusy(true)
+            setError(null)
+            try {
+              await post("/api/mail/password", {
+                current_password: current,
+                new_password: next,
+              })
+              setDone(true)
+              setCurrent("")
+              setNext("")
+              setConfirm("")
+            } catch (err) {
+              setError(err)
+            } finally {
+              setBusy(false)
+            }
+          }}
+        >
+          <Field label="Current password">
+            <input
+              type="password"
+              value={current}
+              onChange={(e) => setCurrent(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
+          </Field>
+          <Field label="New password" hint="At least 8 characters.">
+            <input
+              type="password"
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+          </Field>
+          <Field label="Confirm new password">
+            <input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              required
+              autoComplete="new-password"
+            />
+          </Field>
+
+          {mismatch && <ErrorText error="Those two do not match." />}
+          <ErrorText error={error} />
+
+          <button type="submit" className="btn btn-primary" disabled={busy || mismatch}>
+            {busy ? <Spinner /> : "Change password"}
+          </button>
+        </form>
+      )}
+
+      <Recovery mailbox={mailbox} />
+    </Dialog>
+  )
+}
+
+/**
+ * Where a reset link goes if this password is ever forgotten.
+ *
+ * Requires the current password for the same reason changing the password does:
+ * whoever sets this can afterwards mail themselves a reset for this mailbox, so
+ * an unattended signed-in session would otherwise be a full account takeover
+ * rather than a read of today's mail.
+ */
+const Recovery = ({ mailbox }: { mailbox: Mailbox }) => {
+  const [value, setValue] = useState(mailbox.recovery_address ?? "")
+  const [current, setCurrent] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+
+  return (
+    <div style={{ marginTop: 24, borderTop: "1px solid var(--line)", paddingTop: 18 }}>
+      <h3 style={{ margin: "0 0 10px", fontSize: "0.95rem" }}>Recovery address</h3>
+
+      {!mailbox.recovery_enabled && (
+        <Banner kind="warn">
+          Recovery is switched off for {mailbox.domain}. You can set an address here, but no reset
+          link will be sent until whoever runs this domain turns it on.
+        </Banner>
+      )}
+
+      <form
+        onSubmit={async (e) => {
+          e.preventDefault()
+          setBusy(true)
+          setError(null)
+          setSaved(false)
+          try {
+            await post("/api/mail/recovery", {
+              current_password: current,
+              recovery_address: value.trim() || null,
+            })
+            setSaved(true)
+            setCurrent("")
+          } catch (err) {
+            setError(err)
+          } finally {
+            setBusy(false)
+          }
+        }}
+      >
+        <Field
+          label="Send reset links to"
+          hint="Another mailbox you can reach — not this one. Leave it empty to turn recovery off for this mailbox."
+        >
+          <input
+            type="email"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="you@somewhere-else.com"
+          />
+        </Field>
+        <Field label="Confirm with your current password">
+          <input
+            type="password"
+            value={current}
+            onChange={(e) => setCurrent(e.target.value)}
+            required
+            autoComplete="current-password"
+          />
+        </Field>
+
+        {saved && <Banner kind="good">Saved.</Banner>}
+        <ErrorText error={error} />
+
+        <button type="submit" className="btn" disabled={busy}>
+          {busy ? <Spinner /> : "Save recovery address"}
+        </button>
+      </form>
     </div>
   )
 }
@@ -451,6 +628,7 @@ const App = () => {
   const [compose, setCompose] = useState<Draft | null>(null)
   const [nonce, setNonce] = useState(0)
   const [creating, setCreating] = useState(false)
+  const [settings, setSettings] = useState(false)
 
   useEffect(() => {
     get<Mailbox>("/api/mail/me")
@@ -583,7 +761,8 @@ const App = () => {
           <button
             type="button"
             className="nav-item"
-            onClick={() => (window.location.href = "/app")}
+            onClick={() => setSettings(true)}
+            title="Mailbox settings"
           >
             <Icon path={icons.account} />
             <span className="truncate">{mailbox.email}</span>
@@ -763,6 +942,8 @@ const App = () => {
           }}
         />
       )}
+
+      {settings && <Settings mailbox={mailbox} onClose={() => setSettings(false)} />}
 
       {creating && (
         <Dialog title="New folder" onClose={() => setCreating(false)}>

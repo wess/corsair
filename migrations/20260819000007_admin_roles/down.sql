@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS domain_admins;
+ALTER TABLE users DROP COLUMN IF EXISTS is_admin;

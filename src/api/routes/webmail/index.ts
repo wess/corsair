@@ -1,7 +1,7 @@
 import { from } from "@atlas/db"
 import { assign, delR, getR, json, type PipeFn, postR, type Route, text } from "@atlas/server"
 import { z } from "zod"
-import { folderBySpecialUse, ownerOfDomain } from "../../../addresses/index.ts"
+import { folderBySpecialUse, ownerOfDomain, setPassword } from "../../../addresses/index.ts"
 import {
   authenticateAddress,
   clearedMailCookie,
@@ -9,9 +9,10 @@ import {
   type MailIdentity,
   mailCookie,
   requireMailIdentity,
+  verifyMailboxPassword,
 } from "../../../auth/index.ts"
 import { config } from "../../../config/index.ts"
-import { db, num } from "../../../db/index.ts"
+import { allColumns, db, num } from "../../../db/index.ts"
 import { sign } from "../../../dkim/index.ts"
 import { activeDkimKey } from "../../../domains/index.ts"
 import { invalidParameter, notFound, unauthorized } from "../../../errors/index.ts"
@@ -20,7 +21,15 @@ import * as mime from "../../../mime/index.ts"
 import { enqueue } from "../../../outbound/index.ts"
 import { withinDailyLimit } from "../../../plans/index.ts"
 import { sanitizeHtml, textToHtml } from "../../../sanitize/index.ts"
-import { type Folder, folders, type Message, mailLog, messages } from "../../../schema/index.ts"
+import {
+  type Address,
+  addresses,
+  type Folder,
+  folders,
+  type Message,
+  mailLog,
+  messages,
+} from "../../../schema/index.ts"
 import { getRaw } from "../../../storage/index.ts"
 import { deliver, expunge, moveTo, setFlags } from "../../../store/index.ts"
 import { ipOf, publicLimit } from "../../pipes/index.ts"
@@ -120,6 +129,112 @@ export const webmailRoutes: Route[] = [
     }
   }),
 
+  /**
+   * Changes the signed-in mailbox's own password.
+   *
+   * Not gated on `domains.self_service_enabled`, which the unauthenticated
+   * recovery flow does check. That flag guards mailing a reset link to a third
+   * party — an account-takeover surface the domain owner should be able to
+   * switch off. Somebody who has just proved possession of the current password
+   * is not being granted anything they did not already hold, and a mailbox user
+   * with no way to rotate a credential they believe is compromised is worse off
+   * than one who can.
+   *
+   * `setPassword` refuses a mailbox whose credential is the owner's account
+   * password, so the linked case cannot be written through from here.
+   */
+  postR(
+    "/api/mail/password",
+    {
+      body: z.object({
+        current_password: z.string().max(200),
+        new_password: z.string().min(8).max(200),
+      }),
+      before: mailed,
+      assigns: {} as never,
+    },
+    async (c) => {
+      const identity = identityOf(c)
+
+      if (!(await verifyMailboxPassword(identity.address, c.body.current_password))) {
+        // Counted like a failed login: this endpoint takes a password guess, so
+        // leaving it out of the ban logic would make it the cheap way to try.
+        const { recordAuthFailure } = await import("../../../auth/index.ts")
+        await recordAuthFailure(ipOf(c as never), "webmail", identity.email).catch(() => {})
+        throw unauthorized("That is not your current password.")
+      }
+
+      if (c.body.current_password === c.body.new_password) {
+        throw invalidParameter("That is already your password.")
+      }
+
+      await setPassword(identity.address.id, c.body.new_password)
+
+      /**
+       * Other sessions survive this. A webmail session is a signed JWT with no
+       * server-side record, so there is nothing to revoke — `password_changed_at`
+       * is written but never read back on the session path. Anyone already
+       * signed in elsewhere stays signed in for up to `MAIL_SESSION_TTL_SECONDS`,
+       * and IMAP or SMTP clients keep working until they next authenticate.
+       */
+      return json(c, 200, { object: "mail_password", changed: true })
+    },
+  ),
+
+  /**
+   * Where this mailbox's own recovery link is sent.
+   *
+   * The owner can already set this from the panel, and until now that was the
+   * only way — which made "forgot your mailbox password?" a link the mailbox
+   * holder could not make work for themselves. Setting it here is what turns
+   * the recovery flow into something that does not route through the operator.
+   *
+   * The current password is required, and that is not ceremony. Whoever can
+   * change this address can afterwards mail themselves a password reset for
+   * this mailbox, so an unattended signed-in session would otherwise be a
+   * complete account takeover rather than a read of today's mail.
+   */
+  postR(
+    "/api/mail/recovery",
+    {
+      body: z.object({
+        current_password: z.string().max(200),
+        recovery_address: z.string().email().max(320).nullable(),
+      }),
+      before: mailed,
+      assigns: {} as never,
+    },
+    async (c) => {
+      const identity = identityOf(c)
+
+      if (!(await verifyMailboxPassword(identity.address, c.body.current_password))) {
+        const { recordAuthFailure } = await import("../../../auth/index.ts")
+        await recordAuthFailure(ipOf(c as never), "webmail", identity.email).catch(() => {})
+        throw unauthorized("That is not your current password.")
+      }
+
+      const next = c.body.recovery_address?.trim().toLowerCase() ?? null
+      // A link sent to the mailbox you cannot get into is no help. The panel
+      // route refuses the same thing; both have to, because either can set it.
+      if (next && next === identity.email.toLowerCase()) {
+        throw invalidParameter(
+          "Use a different mailbox — a recovery link sent here is no use if you cannot sign in.",
+        )
+      }
+
+      const saved = await db().one<Address>(
+        from(addresses)
+          .where((q) => q("id").equals(identity.address.id))
+          .update({ recovery_address: next, updated_at: new Date() })
+          .returning(...allColumns(addresses)),
+      )
+      return json(c, 200, {
+        object: "mail_recovery",
+        recovery_address: saved?.recovery_address ?? null,
+      })
+    },
+  ),
+
   getR("/api/mail/me", { before: mailed, assigns: {} as never }, async (c) => {
     const identity = identityOf(c)
     return json(c, 200, {
@@ -128,6 +243,12 @@ export const webmailRoutes: Route[] = [
       name: identity.address.name,
       domain: identity.domain.name,
       quota_bytes: num(identity.address.bytes_used),
+      recovery_address: identity.address.recovery_address,
+      // Whether a recovery link would actually be sent for this mailbox. Both
+      // halves have to be true, and only one of them is the mailbox holder's to
+      // set — so the settings panel can say which half is missing instead of
+      // offering a reset that silently goes nowhere.
+      recovery_enabled: identity.domain.self_service_enabled,
       smtp: { host: config.mail.smtp, port: 587 },
     })
   }),

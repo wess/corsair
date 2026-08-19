@@ -1,6 +1,12 @@
 import { from } from "@atlas/db"
 import { delR, getR, json, patchR, postR, type Route, text } from "@atlas/server"
 import { z } from "zod"
+import {
+  administeredDomain,
+  administeredDomainIds,
+  grantFor,
+  ownedDomain,
+} from "../../../access/index.ts"
 import { config } from "../../../config/index.ts"
 import { allColumns, db } from "../../../db/index.ts"
 import { detectProvider, publishRecords } from "../../../dnsprovider/index.ts"
@@ -33,13 +39,16 @@ import { authed, authedWithPlan, entitlementFrom, principalOf } from "../../pipe
 
 const domainParam = z.object({ domain_id: z.string().uuid() })
 
-const owned = async (userId: string, id: string): Promise<Domain> => {
-  const row = await db().one<Domain>(
-    from(domains).where((q) => [q("id").equals(id), q("user_id").equals(userId)]),
-  )
-  if (!row) throw notFound("Domain not found.")
-  return row
-}
+/**
+ * Everything about the domain *itself* — its DNS, its keys, its settings, its
+ * deletion — stays with whoever owns it, plus a system administrator.
+ *
+ * A domain administrator is deliberately not here. They were delegated the
+ * mailboxes (see `routes/addresses`), and the one route below that they do
+ * reach is the domain's own detail, because the panel cannot show them a
+ * mailbox list without first showing them the domain it belongs to.
+ */
+const owned = ownedDomain
 
 const recordsOf = (domainId: string): Promise<DomainRecord[]> =>
   db().all<DomainRecord>(
@@ -58,11 +67,32 @@ const addressCount = async (domainId: string): Promise<number> => {
 
 export const domainRoutes: Route[] = [
   getR("/api/domains", { before: authed, assigns: {} as never }, async (c) => {
+    /**
+     * Owned domains, plus any this account has been made an administrator of.
+     *
+     * A delegate who could manage a domain's mailboxes but could not see the
+     * domain in their own list would have nowhere to start from — the panel is
+     * built around picking a domain first.
+     */
+    const scope = await administeredDomainIds(principalOf(c).userId)
     const page = await paginate<Domain>({
       source: "domains",
       columns: "*",
-      where: "user_id = $1",
-      values: [principalOf(c).userId],
+      where:
+        scope === "all"
+          ? "true"
+          : scope.length
+            ? // Bun's Postgres driver does not bind a JS array to a Postgres
+              // array; the list is expanded server-side from jsonb, and goes in
+              // as-is because pre-stringifying makes a jsonb scalar.
+              "(user_id = $1 OR id = ANY(SELECT jsonb_array_elements_text($2::jsonb)::uuid))"
+            : "user_id = $1",
+      values:
+        scope === "all"
+          ? []
+          : scope.length
+            ? [principalOf(c).userId, scope]
+            : [principalOf(c).userId],
       searchColumns: ["name"],
       sortable: { name: "name", data_usage: "bytes_used", status: "status" },
       defaultSort: "name",
@@ -127,7 +157,7 @@ export const domainRoutes: Route[] = [
     "/api/domains/:domain_id",
     { params: domainParam, before: authed, assigns: {} as never },
     async (c) => {
-      const domain = await owned(principalOf(c).userId, c.params.domain_id)
+      const domain = await administeredDomain(principalOf(c).userId, c.params.domain_id)
       const fallback = domain.fallback_domain_id
         ? await db().one<Domain>(
             from(domains).where((q) => q("id").equals(domain.fallback_domain_id!)),
@@ -139,6 +169,7 @@ export const domainRoutes: Route[] = [
         domainObject(domain, await recordsOf(domain.id), {
           fallback,
           addressCount: await addressCount(domain.id),
+          grant: await grantFor(principalOf(c).userId, domain),
         }),
       )
     },

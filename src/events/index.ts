@@ -46,6 +46,11 @@ export const EVENT_TYPES = [
   "address.created",
   "address.deleted",
   "address.password_changed",
+  // Administration. A grant over somebody else's mail is exactly the kind of
+  // change an operator wants a record of, and webhooks are where that record
+  // leaves the box.
+  "admin.granted",
+  "admin.revoked",
   // Domain lifecycle
   "domain.created",
   "domain.verified",

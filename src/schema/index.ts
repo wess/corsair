@@ -46,6 +46,9 @@ export const users = defineSchema("users", {
   referral_code: column.text().unique(),
   referred_by: column.uuid().nullable(),
   is_owner: column.boolean().default(false),
+  // Acts on every account on the instance. Distinct from `is_owner`, which is
+  // one account forever; this one is granted and revoked.
+  is_admin: column.boolean().default(false),
   // The payment provider's customer record, created lazily at first checkout.
   provider_customer_ref: column.text().nullable(),
   email_verified_at: column.timestamp().nullable(),
@@ -439,7 +442,16 @@ export const dkimKeys = defineSchema("dkim_keys", {
   rotated_at: column.timestamp().nullable(),
 })
 
+export const domainAdmins = defineSchema("domain_admins", {
+  id: id(),
+  domain_id: column.uuid(),
+  user_id: column.uuid(),
+  granted_by: column.uuid().nullable(),
+  created_at: now(),
+})
+
 export type Domain = RowOf<typeof domains>
+export type DomainAdmin = RowOf<typeof domainAdmins>
 export type DomainRecord = RowOf<typeof domainRecords>
 export type DkimKey = RowOf<typeof dkimKeys>
 
@@ -762,6 +774,7 @@ export const allSchemas = [
   bounces,
   deliveries,
   dkimKeys,
+  domainAdmins,
   domainRecords,
   domains,
   filters,

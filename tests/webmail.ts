@@ -341,6 +341,97 @@ const run = async () => {
     check("another mailbox's message is not found", foreignRead.status === 404, foreignRead.body)
   }
 
+  section("password")
+  const wrongCurrent = await call("POST", "/api/mail/password", {
+    current_password: "not-the-password",
+    new_password: "a-brand-new-password-1",
+  })
+  check("a wrong current password is refused", wrongCurrent.status === 401, wrongCurrent.body)
+
+  const sameAgain = await call("POST", "/api/mail/password", {
+    current_password: password,
+    new_password: password,
+  })
+  check("setting the same password again is refused", sameAgain.status === 400, sameAgain.body)
+
+  const tooShort = await call("POST", "/api/mail/password", {
+    current_password: password,
+    new_password: "short",
+  })
+  check("a password under 8 characters is refused", tooShort.status >= 400, tooShort.body)
+
+  const rotated = "a-brand-new-password-1"
+  const change = await call("POST", "/api/mail/password", {
+    current_password: password,
+    new_password: rotated,
+  })
+  check("the mailbox changes its own password", change.status === 200, change.body)
+
+  // The session outlives the change by design — it is a signed JWT with nothing
+  // to revoke — so the mailbox is still readable on the old cookie.
+  const stillIn = await call("GET", "/api/mail/me")
+  check("the existing session survives the change", stillIn.status === 200, stillIn.body)
+
+  const held = cookie
+  cookie = ""
+  const oldPassword = await call("POST", "/api/mail/login", { email, password })
+  check("the old password no longer signs in", oldPassword.status === 401, oldPassword.body)
+
+  const newPassword = await call("POST", "/api/mail/login", { email, password: rotated })
+  check("the new password signs in", newPassword.status === 200, newPassword.body)
+  if (!cookie) cookie = held
+
+  const anon = await fetch(`${BASE}/api/mail/password`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ current_password: rotated, new_password: "another-password-22" }),
+  })
+  check("an unauthenticated caller cannot change a password", anon.status === 401, anon.status)
+
+  section("recovery address")
+  const recoveryWrongPassword = await call("POST", "/api/mail/recovery", {
+    current_password: "not-the-password",
+    recovery_address: "backup@elsewhere.invalid",
+  })
+  check(
+    "setting a recovery address needs the current password",
+    recoveryWrongPassword.status === 401,
+    recoveryWrongPassword.body,
+  )
+
+  const recoverySelf = await call("POST", "/api/mail/recovery", {
+    current_password: rotated,
+    recovery_address: email,
+  })
+  check(
+    "the mailbox cannot be its own recovery address",
+    recoverySelf.status === 400,
+    recoverySelf.body,
+  )
+
+  const recoverySet = await call("POST", "/api/mail/recovery", {
+    current_password: rotated,
+    recovery_address: "backup@elsewhere.invalid",
+  })
+  check("a recovery address can be set", recoverySet.status === 200, recoverySet.body)
+
+  const meAfter = await call("GET", "/api/mail/me")
+  check(
+    "it comes back on the mailbox",
+    meAfter.body?.recovery_address === "backup@elsewhere.invalid",
+    meAfter.body,
+  )
+
+  const recoveryCleared = await call("POST", "/api/mail/recovery", {
+    current_password: rotated,
+    recovery_address: null,
+  })
+  check(
+    "and can be cleared again",
+    recoveryCleared.status === 200 && recoveryCleared.body?.recovery_address === null,
+    recoveryCleared.body,
+  )
+
   section("cleanup")
   await call("POST", "/api/mail/logout")
   const afterLogout = await call("GET", "/api/mail/me")
