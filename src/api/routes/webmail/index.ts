@@ -1,6 +1,7 @@
 import { from } from "@atlas/db"
-import { assign, delR, getR, json, type PipeFn, postR, type Route, text } from "@atlas/server"
+import { delR, getR, json, postR, type Route, text } from "@atlas/server"
 import { z } from "zod"
+import { domainsAdministeredByAddress } from "../../../access/index.ts"
 import { folderBySpecialUse, ownerOfDomain, setPassword } from "../../../addresses/index.ts"
 import {
   authenticateAddress,
@@ -8,7 +9,6 @@ import {
   issueMailSession,
   type MailIdentity,
   mailCookie,
-  requireMailIdentity,
   verifyMailboxPassword,
 } from "../../../auth/index.ts"
 import { config } from "../../../config/index.ts"
@@ -32,7 +32,7 @@ import {
 } from "../../../schema/index.ts"
 import { getRaw } from "../../../storage/index.ts"
 import { deliver, expunge, moveTo, setFlags } from "../../../store/index.ts"
-import { ipOf, publicLimit } from "../../pipes/index.ts"
+import { identityOf, ipOf, mailed, publicLimit } from "../../pipes/index.ts"
 
 /**
  * The webmail API.
@@ -41,16 +41,6 @@ import { ipOf, publicLimit } from "../../pipes/index.ts"
  * exactly one address — every query below filters on `identity.address.id`, so
  * there is no request shape that can reach another mailbox's mail.
  */
-
-const mailAuth: PipeFn = async (conn) => {
-  const identity = await requireMailIdentity(conn.headers.get("cookie"))
-  return assign(conn, { identity })
-}
-
-const mailed: readonly PipeFn[] = [mailAuth]
-
-const identityOf = (conn: { assigns: unknown }): MailIdentity =>
-  (conn.assigns as { identity: MailIdentity }).identity
 
 const ownedMessage = async (identity: MailIdentity, id: string): Promise<Message> => {
   const row = await db().one<Message>(
@@ -249,6 +239,16 @@ export const webmailRoutes: Route[] = [
       // set — so the settings panel can say which half is missing instead of
       // offering a reset that silently goes nowhere.
       recovery_enabled: identity.domain.self_service_enabled,
+      // A linked mailbox has no password of its own — it signs in with the
+      // account's, so changing it here is refused and has to happen in the
+      // panel. The client needs to know that before it offers the form.
+      uses_account_password: identity.address.user_id !== null,
+      // Non-empty only for a delegate, and it is what makes the Users section
+      // appear. The routes re-check on every call; this is presentation.
+      administers: (await domainsAdministeredByAddress(identity.address.id)).map((d) => ({
+        id: d.id,
+        name: d.name,
+      })),
       smtp: { host: config.mail.smtp, port: 587 },
     })
   }),

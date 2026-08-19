@@ -18,6 +18,7 @@ import { filterRoutes } from "./routes/filters/index.ts"
 import { hookRoutes } from "./routes/hooks/index.ts"
 import { jmapRoutes } from "./routes/jmap/index.ts"
 import { logRoutes } from "./routes/logs/index.ts"
+import { mailAdminRoutes } from "./routes/mailadmin/index.ts"
 import { recoveryRoutes } from "./routes/recovery/index.ts"
 import { transferRoutes } from "./routes/transfers/index.ts"
 import { webhookRoutes } from "./routes/webhooks/index.ts"
@@ -49,6 +50,9 @@ export const allRoutes = (): Route[] => [
   ...wrapAll(transferRoutes),
   ...wrapAll(billingRoutes),
   ...wrapAll(webhookRoutes),
+  // Ahead of the webmail's own routes: `/api/mail/admin/...` must not be
+  // shadowed by anything matching `/api/mail/:something`.
+  ...wrapAll(mailAdminRoutes),
   ...wrapAll(webmailRoutes),
   ...wrapAll(jmapRoutes),
   ...wrapAll(autoconfigRoutes),

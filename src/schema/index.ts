@@ -442,10 +442,16 @@ export const dkimKeys = defineSchema("dkim_keys", {
   rotated_at: column.timestamp().nullable(),
 })
 
+/**
+ * One of `user_id` or `address_id`, never both — a database CHECK enforces it.
+ * A panel account is granted by the first; a mailbox on this server by the
+ * second, which is how somebody manages a domain without a second identity.
+ */
 export const domainAdmins = defineSchema("domain_admins", {
   id: id(),
   domain_id: column.uuid(),
-  user_id: column.uuid(),
+  user_id: column.uuid().nullable(),
+  address_id: column.uuid().nullable(),
   granted_by: column.uuid().nullable(),
   created_at: now(),
 })

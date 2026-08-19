@@ -4,12 +4,13 @@ import { z } from "zod"
 import { administeredDomain, grantFor } from "../../../access/index.ts"
 import {
   createAddress,
+  deleteAddress,
   destinationsOf,
   linkToAccount,
   setPassword,
   unlinkFromAccount,
 } from "../../../addresses/index.ts"
-import { allColumns, db, num } from "../../../db/index.ts"
+import { allColumns, db } from "../../../db/index.ts"
 import { conflict, invalidParameter, notFound } from "../../../errors/index.ts"
 import { emit } from "../../../events/index.ts"
 import { paginate, parsePageQuery } from "../../../pagination/index.ts"
@@ -430,20 +431,7 @@ export const addressRoutes: Route[] = [
     { params: addressParam, before: authed, assigns: {} as never },
     async (c) => {
       const { address } = await ownedAddress(principalOf(c).userId, c.params.address_id)
-      const bytes = num(address.bytes_used)
-      await db().execute(
-        from(addresses)
-          .where((q) => q("id").equals(address.id))
-          .del(),
-      )
-
-      // The cascade removed the messages but not the domain's running total.
-      if (bytes) {
-        await db().execute({
-          text: "UPDATE domains SET bytes_used = GREATEST(0, bytes_used - $2) WHERE id = $1",
-          values: [address.domain_id, bytes],
-        })
-      }
+      await deleteAddress(address.id)
       void emit({
         userId: principalOf(c).userId,
         domainId: address.domain_id,

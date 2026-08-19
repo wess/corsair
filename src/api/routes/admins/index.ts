@@ -7,7 +7,7 @@ import { allColumns, db } from "../../../db/index.ts"
 import { conflict, invalidParameter, notFound } from "../../../errors/index.ts"
 import { emit } from "../../../events/index.ts"
 import { referralCode } from "../../../ids/index.ts"
-import { domainAdmins, type User, users } from "../../../schema/index.ts"
+import { type Address, addresses, domainAdmins, type User, users } from "../../../schema/index.ts"
 import { authed, ownerOnly, principalOf } from "../../pipes/index.ts"
 
 /**
@@ -188,17 +188,39 @@ export const adminRoutes: Route[] = [
     { params: domainParam, before: authed, assigns: {} as never },
     async (c) => {
       const domain = await ownedDomain(principalOf(c).userId, c.params.domain_id)
-      const rows = await db().all<User & { granted_at: Date }>({
-        text: `SELECT u.*, da.created_at AS granted_at
-                 FROM domain_admins da
-                 JOIN users u ON u.id = da.user_id
+      const rows = await db().all<{
+        subject: string
+        user_id: string | null
+        address_id: string | null
+        email: string
+        name: string | null
+        granted_at: Date
+      }>({
+        text: `SELECT 'account' AS subject, u.id AS user_id, NULL::uuid AS address_id,
+                      u.email, u.name, da.created_at AS granted_at
+                 FROM domain_admins da JOIN users u ON u.id = da.user_id
                 WHERE da.domain_id = $1
-             ORDER BY u.email ASC`,
+                UNION ALL
+               SELECT 'mailbox', NULL::uuid, a.id,
+                      a.local_part || '@' || d.name, a.name, da.created_at
+                 FROM domain_admins da
+                 JOIN addresses a ON a.id = da.address_id
+                 JOIN domains d ON d.id = a.domain_id
+                WHERE da.domain_id = $1
+             ORDER BY email ASC`,
         values: [domain.id],
       })
       return json(c, 200, {
         object: "list",
-        data: rows.map((u) => adminObject(u, { grantedAt: u.granted_at })),
+        data: rows.map((r) => ({
+          object: "admin",
+          subject: r.subject,
+          user_id: r.user_id,
+          address_id: r.address_id,
+          email: r.email,
+          name: r.name,
+          granted_at: r.granted_at.toISOString(),
+        })),
       })
     },
   ),
@@ -213,6 +235,67 @@ export const adminRoutes: Route[] = [
     },
     async (c) => {
       const domain = await ownedDomain(principalOf(c).userId, c.params.domain_id)
+      const email = c.body.email.trim().toLowerCase()
+
+      /**
+       * A mailbox on this domain is preferred over a panel account of the same
+       * name, and it is the ordinary case: the person who runs a client's mail
+       * is `them@theirdomain`, and giving them a second identity to remember was
+       * the thing that made this unusable. A mailbox grant is managed from
+       * inside the webmail — see `routes/mailadmin` — so they never see `/app`.
+       *
+       * A panel account is still granted when the address is not a mailbox here,
+       * which covers a colleague who signs in with their own address elsewhere.
+       */
+      const at = email.lastIndexOf("@")
+      const mailbox =
+        at > 0 && email.slice(at + 1) === domain.name.toLowerCase()
+          ? await db().one<Address>(
+              from(addresses).where((q) => [
+                q("domain_id").equals(domain.id),
+                q("local_part").equals(email.slice(0, at)),
+              ]),
+            )
+          : null
+
+      if (mailbox) {
+        if (mailbox.type === "alias" || mailbox.type === "group") {
+          throw invalidParameter(
+            "A forwarding address cannot administer a domain — it has no mailbox to sign into.",
+          )
+        }
+        const already = await db().one<{ id: string }>(
+          from(domainAdmins)
+            .select("id")
+            .where((q) => [q("domain_id").equals(domain.id), q("address_id").equals(mailbox.id)]),
+        )
+        if (!already) {
+          await db().execute(
+            from(domainAdmins)
+              .insert({
+                domain_id: domain.id,
+                address_id: mailbox.id,
+                granted_by: principalOf(c).userId,
+              })
+              .returning(...allColumns(domainAdmins)),
+          )
+          void emit({
+            userId: principalOf(c).userId,
+            domainId: domain.id,
+            type: "admin.granted",
+            data: { address_id: mailbox.id, email, scope: "domain_mailbox" },
+          })
+        }
+        return json(c, 201, {
+          object: "admin",
+          address_id: mailbox.id,
+          email,
+          name: mailbox.name,
+          subject: "mailbox",
+          granted_at: new Date().toISOString(),
+        })
+      }
+
       const user = await userByEmail(c.body.email)
 
       if (user.id === domain.user_id) {
@@ -247,7 +330,7 @@ export const adminRoutes: Route[] = [
         })
       }
 
-      return json(c, 201, adminObject(user, { grantedAt: new Date() }))
+      return json(c, 201, { ...adminObject(user, { grantedAt: new Date() }), subject: "account" })
     },
   ),
 
@@ -260,11 +343,13 @@ export const adminRoutes: Route[] = [
     },
     async (c) => {
       const domain = await ownedDomain(principalOf(c).userId, c.params.domain_id)
-      await db().execute(
-        from(domainAdmins)
-          .where((q) => [q("domain_id").equals(domain.id), q("user_id").equals(c.params.user_id)])
-          .del(),
-      )
+      // The id names either subject; deleting by both columns covers a grant
+      // held by an account and one held by a mailbox without a second route.
+      await db().execute({
+        text: `DELETE FROM domain_admins
+                WHERE domain_id = $1 AND (user_id = $2 OR address_id = $2)`,
+        values: [domain.id, c.params.user_id],
+      })
       void emit({
         userId: principalOf(c).userId,
         domainId: domain.id,

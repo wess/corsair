@@ -1,6 +1,6 @@
 import { from } from "@atlas/db"
 import { hashPassword } from "../auth/index.ts"
-import { allColumns, db } from "../db/index.ts"
+import { allColumns, db, num } from "../db/index.ts"
 import { conflict, invalidParameter, notFound } from "../errors/index.ts"
 import { uidValidity } from "../ids/index.ts"
 import {
@@ -302,6 +302,33 @@ export const setPassword = async (addressId: string, password: string): Promise<
  * would mean two working passwords where the panel shows one, and revoking the
  * account password would not revoke mail access.
  */
+/**
+ * Removes a mailbox and gives its space back to the domain.
+ *
+ * The cascade takes the messages, but `domains.bytes_used` is a running total
+ * maintained by the delivery path — nothing recomputes it — so a delete that
+ * skips the second statement leaves the domain permanently billed for mail that
+ * no longer exists. It lives here rather than in a route because two surfaces
+ * delete mailboxes now, and the one that forgot would be silently wrong.
+ */
+export const deleteAddress = async (addressId: string): Promise<void> => {
+  const address = await db().one<Address>(from(addresses).where((q) => q("id").equals(addressId)))
+  if (!address) throw notFound("That address does not exist.")
+
+  const bytes = num(address.bytes_used)
+  await db().execute(
+    from(addresses)
+      .where((q) => q("id").equals(address.id))
+      .del(),
+  )
+  if (bytes) {
+    await db().execute({
+      text: "UPDATE domains SET bytes_used = GREATEST(0, bytes_used - $2) WHERE id = $1",
+      values: [address.domain_id, bytes],
+    })
+  }
+}
+
 export const linkToAccount = async (addressId: string, userId: string): Promise<void> => {
   const address = await db().one<Address>(from(addresses).where((q) => q("id").equals(addressId)))
   if (!address) throw notFound("That address does not exist.")

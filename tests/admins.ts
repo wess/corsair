@@ -10,6 +10,7 @@
  * mistake in wiring — not in the helper — is how that happens.
  */
 import { from } from "@atlas/db"
+import { createAddress } from "../src/addresses/index.ts"
 import { hashPassword } from "../src/auth/index.ts"
 import { closeDb, db } from "../src/db/index.ts"
 import { type Domain, users } from "../src/schema/index.ts"
@@ -63,14 +64,33 @@ const PW = "drive-password-9911"
 const suffix = Math.random().toString(36).slice(2, 8)
 const zone = `drive-${suffix}.invalid`
 
-const login = async (email: string): Promise<string> => {
-  const res = await fetch(`${BASE}/api/auth/login`, {
+/**
+ * Signs in, retrying a rate-limited attempt.
+ *
+ * `publicLimit` is a handful of auth calls per second per IP, and this file
+ * makes many. A 429 read as a failure would be bad enough on a positive
+ * assertion; on a negative one — "the panel must refuse this credential" — it
+ * would make the test pass without ever exercising the rule.
+ */
+const authPost = async (
+  path: string,
+  body: unknown,
+  attempt = 0,
+): Promise<{ status: number; cookie: string }> => {
+  const res = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ email, password: PW }),
+    body: JSON.stringify(body),
   })
-  return (res.headers.get("set-cookie") ?? "").split(";")[0] ?? ""
+  if (res.status === 429 && attempt < 8) {
+    await sleep(1000)
+    return authPost(path, body, attempt + 1)
+  }
+  return { status: res.status, cookie: (res.headers.get("set-cookie") ?? "").split(";")[0] ?? "" }
 }
+
+const login = async (email: string): Promise<string> =>
+  (await authPost("/api/auth/login", { email, password: PW })).cookie
 
 const mk = async (email: string) =>
   (await db().one<{ id: string }>({
@@ -207,6 +227,140 @@ const rotate = await call(
   delegateC,
 )
 check("cannot rotate a DKIM key", rotate.status === 404, rotate.status)
+
+console.log("\na mailbox as the delegate")
+// The case this exists for: the person running a client's mail is a mailbox on
+// that domain, with no panel account and no second password.
+const runner = `runner-${suffix}`
+const RUNNER_PW = "runner-mailbox-pw-4412"
+const runnerBox = await call("POST", `/api/domains/${domain.id}/addresses`, ownerC, {
+  local_part: runner,
+  type: "standard",
+  password: RUNNER_PW,
+})
+check("the owner creates their mailbox", runnerBox.status === 201, runnerBox.body)
+
+const grantBox = await call("POST", `/api/domains/${domain.id}/admins`, ownerC, {
+  email: `${runner}@${zone}`,
+})
+check(
+  "granting resolves the mailbox, not an account",
+  grantBox.body?.subject === "mailbox",
+  grantBox.body,
+)
+
+const mailLogin = await authPost("/api/mail/login", {
+  email: `${runner}@${zone}`,
+  password: RUNNER_PW,
+})
+const runnerC = mailLogin.cookie
+check(
+  "they sign into webmail with the one password they have",
+  mailLogin.status === 200,
+  mailLogin.status,
+)
+
+const runnerMe = await call("GET", "/api/mail/me", runnerC)
+check(
+  "the session reports the domain they administer",
+  (runnerMe.body?.administers ?? []).some((d: any) => d.id === domain.id),
+  runnerMe.body?.administers,
+)
+
+const runnerList = await call("GET", `/api/mail/admin/domains/${domain.id}/users`, runnerC)
+check("they can list the domain's mailboxes", runnerList.status === 200, runnerList.status)
+
+const runnerAdd = await call("POST", `/api/mail/admin/domains/${domain.id}/users`, runnerC, {
+  local_part: `added-by-${runner}`,
+  type: "standard",
+  password: "created-in-webmail-88",
+})
+check("and add one from inside webmail", runnerAdd.status === 201, runnerAdd.body)
+
+const runnerPw = await call(
+  "POST",
+  `/api/mail/admin/users/${runnerAdd.body?.id}/password`,
+  runnerC,
+  {
+    password: "reset-in-webmail-99",
+  },
+)
+check("and reset its password", runnerPw.status === 200, runnerPw.body)
+
+const runnerDisable = await call("PATCH", `/api/mail/admin/users/${runnerAdd.body?.id}`, runnerC, {
+  disabled: true,
+})
+check("and disable it", runnerDisable.status === 200, runnerDisable.status)
+
+console.log("\nwhat the mailbox delegate must never reach")
+const runnerPanel = await authPost("/api/auth/login", {
+  email: `${runner}@${zone}`,
+  password: RUNNER_PW,
+})
+check(
+  "the mailbox credential does not open the control panel",
+  runnerPanel.status === 401,
+  runnerPanel.status,
+)
+
+const runnerSelfDisable = await call(
+  "PATCH",
+  `/api/mail/admin/users/${runnerBox.body?.id}`,
+  runnerC,
+  {
+    disabled: true,
+  },
+)
+check(
+  "cannot disable their own mailbox",
+  runnerSelfDisable.status === 400,
+  runnerSelfDisable.status,
+)
+const runnerSelfDelete = await call(
+  "DELETE",
+  `/api/mail/admin/users/${runnerBox.body?.id}`,
+  runnerC,
+)
+check("cannot delete their own mailbox", runnerSelfDelete.status === 400, runnerSelfDelete.status)
+
+// A second domain they have nothing to do with.
+const otherDomain = (await db().one<Domain>({
+  text: `INSERT INTO domains (user_id, name, verification_token, status)
+         VALUES ($1,$2,'mail-host-verify=other','active') RETURNING *`,
+  values: [strangerId, `other-${suffix}.invalid`],
+}))!
+const runnerOther = await call("GET", `/api/mail/admin/domains/${otherDomain.id}/users`, runnerC)
+check(
+  "cannot reach a domain they do not administer",
+  runnerOther.status === 404,
+  runnerOther.status,
+)
+
+console.log("\nan ordinary mailbox sees none of it")
+const plain = `plain-${suffix}`
+// Created directly rather than through the route: by this point the owner is at
+// their plan's address limit — which the delegated route enforced correctly a
+// few lines above — and this mailbox is a fixture, not the thing under test.
+await createAddress({
+  domainId: domain.id,
+  localPart: plain,
+  type: "standard",
+  password: "plain-mailbox-pw-771",
+})
+const plainLogin = await authPost("/api/mail/login", {
+  email: `${plain}@${zone}`,
+  password: "plain-mailbox-pw-771",
+})
+check("an ordinary mailbox signs in", plainLogin.status === 200, plainLogin.status)
+const plainC = plainLogin.cookie
+const plainMe = await call("GET", "/api/mail/me", plainC)
+check(
+  "no domains to administer",
+  (plainMe.body?.administers ?? []).length === 0,
+  plainMe.body?.administers,
+)
+const plainReach = await call("GET", `/api/mail/admin/domains/${domain.id}/users`, plainC)
+check("and the management routes refuse them", plainReach.status === 404, plainReach.status)
 
 console.log("\nrevoking")
 const revoked = await call("DELETE", `/api/domains/${domain.id}/admins/${delegateId}`, ownerC)

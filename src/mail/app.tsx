@@ -12,7 +12,7 @@ import {
   Spinner,
   useLoad,
 } from "../web/components/index.tsx"
-import { formatBytes, get, post } from "../web/lib/api.ts"
+import { del, formatBytes, get, patch, post } from "../web/lib/api.ts"
 
 /**
  * Corsair Webmail.
@@ -29,6 +29,9 @@ type Mailbox = {
   quota_bytes: number
   recovery_address: string | null
   recovery_enabled: boolean
+  uses_account_password: boolean
+  /** Domains this mailbox may manage. Empty for almost everybody. */
+  administers: { id: string; name: string }[]
 }
 
 type Folder = {
@@ -212,7 +215,20 @@ const Settings = ({ mailbox, onClose }: { mailbox: Mailbox; onClose: () => void 
         <input value={mailbox.email} readOnly disabled />
       </Field>
 
-      {done ? (
+      {mailbox.uses_account_password ? (
+        /**
+         * One credential, so it is not changed from two places. `setPassword`
+         * refuses a linked mailbox outright, so offering the form here would be
+         * offering a button that always fails.
+         */
+        <Banner>
+          <Icon path={icons.account} size={15} />
+          <span>
+            This mailbox signs in with your account password. Change it at{" "}
+            <a href="/app/account">Account settings</a> and it changes here too.
+          </span>
+        </Banner>
+      ) : done ? (
         <Banner kind="good">
           Your password has been changed. Anywhere else you are already signed in — another browser,
           a mail client — keeps working until it next signs in.
@@ -358,6 +374,268 @@ const Recovery = ({ mailbox }: { mailbox: Mailbox }) => {
         </button>
       </form>
     </div>
+  )
+}
+
+// -------------------------------------------------------------------- users --
+
+type ManagedUser = {
+  id: string
+  email: string
+  local_part: string
+  name: string | null
+  type: string
+  disabled: boolean
+}
+
+/**
+ * Managing a domain's mailboxes without leaving the webmail.
+ *
+ * The person running a client's mail is a mailbox on that domain, and sending
+ * them to the control panel meant a second password and a screenful of billing,
+ * plans and DNS that are not theirs. This is the same job in the application
+ * they already have open, with the credential they already use.
+ *
+ * It shows only what this mailbox may actually change — the server decides that
+ * on every call, and a client that ignored the answer would get 404s.
+ */
+const Users = ({ mailbox, onClose }: { mailbox: Mailbox; onClose: () => void }) => {
+  const [domainId, setDomainId] = useState(mailbox.administers[0]?.id ?? "")
+  const [nonce, setNonce] = useState(0)
+  const [adding, setAdding] = useState(false)
+  const [localPart, setLocalPart] = useState("")
+  const [name, setName] = useState("")
+  const [password, setPassword] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+  const [resetting, setResetting] = useState<ManagedUser | null>(null)
+  const [newPassword, setNewPassword] = useState("")
+  // Two-step rather than a confirm() — a modal dialog blocks the page, and
+  // deleting a mailbox destroys its mail.
+  const [confirming, setConfirming] = useState<string | null>(null)
+
+  const { data, loading } = useLoad(
+    () => get<{ data: ManagedUser[] }>(`/api/mail/admin/domains/${domainId}/users`),
+    [domainId, nonce],
+  )
+
+  const domain = mailbox.administers.find((d) => d.id === domainId)
+  const rows = data?.data ?? []
+  const refresh = () => setNonce((n) => n + 1)
+
+  return (
+    <Dialog title={`Users on ${domain?.name ?? ""}`} onClose={onClose}>
+      {mailbox.administers.length > 1 && (
+        <Field label="Domain">
+          <select value={domainId} onChange={(e) => setDomainId(e.target.value)}>
+            {mailbox.administers.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
+
+      {loading ? (
+        <Loading />
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Address</th>
+              <th>Name</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id}>
+                <td>
+                  {row.email}
+                  {row.disabled && <span className="muted"> · disabled</span>}
+                </td>
+                <td className="muted">{row.name ?? "—"}</td>
+                <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                  {row.type === "standard" && (
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      onClick={() => {
+                        setResetting(row)
+                        setNewPassword("")
+                      }}
+                    >
+                      Password
+                    </button>
+                  )}{" "}
+                  {/* Your own mailbox is deliberately neither disableable nor
+                      deletable from here. The server refuses both; leaving the
+                      buttons would be offering an action that always fails. */}
+                  {row.email !== mailbox.email && (
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={async () => {
+                          await patch(`/api/mail/admin/users/${row.id}`, {
+                            disabled: !row.disabled,
+                          })
+                          refresh()
+                        }}
+                      >
+                        {row.disabled ? "Enable" : "Disable"}
+                      </button>{" "}
+                      {confirming === row.id ? (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-danger"
+                          onClick={async () => {
+                            await del(`/api/mail/admin/users/${row.id}`)
+                            setConfirming(null)
+                            refresh()
+                          }}
+                        >
+                          Delete for good
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => setConfirming(row.id)}
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {resetting && (
+        <form
+          style={{ marginTop: 16 }}
+          onSubmit={async (e) => {
+            e.preventDefault()
+            setBusy(true)
+            setError(null)
+            try {
+              await post(`/api/mail/admin/users/${resetting.id}/password`, {
+                password: newPassword,
+              })
+              setResetting(null)
+              setNewPassword("")
+              refresh()
+            } catch (err) {
+              setError(err)
+            } finally {
+              setBusy(false)
+            }
+          }}
+        >
+          <Field
+            label={`New password for ${resetting.email}`}
+            hint="At least 8 characters. Their mail client will need updating."
+          >
+            <input
+              type="text"
+              required
+              minLength={8}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="off"
+            />
+          </Field>
+          <ErrorText error={error} />
+          <div className="row" style={{ gap: 8 }}>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>
+              {busy ? <Spinner /> : "Set password"}
+            </button>
+            <button type="button" className="btn btn-sm" onClick={() => setResetting(null)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {adding ? (
+        <form
+          style={{ marginTop: 16 }}
+          onSubmit={async (e) => {
+            e.preventDefault()
+            setBusy(true)
+            setError(null)
+            try {
+              await post(`/api/mail/admin/domains/${domainId}/users`, {
+                local_part: localPart,
+                type: "standard",
+                name: name || null,
+                password,
+              })
+              setAdding(false)
+              setLocalPart("")
+              setName("")
+              setPassword("")
+              refresh()
+            } catch (err) {
+              setError(err)
+            } finally {
+              setBusy(false)
+            }
+          }}
+        >
+          <Field label="Address">
+            <div className="row" style={{ flexWrap: "nowrap", alignItems: "center", gap: 6 }}>
+              <input
+                required
+                value={localPart}
+                onChange={(e) => setLocalPart(e.target.value)}
+                placeholder="firstname"
+              />
+              <span className="muted">@{domain?.name}</span>
+            </div>
+          </Field>
+          <Field label="Name" hint="Optional — how it shows on their outgoing mail.">
+            <input value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
+          <Field label="Password" hint="At least 8 characters. Pass it on to them.">
+            <input
+              type="text"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="off"
+            />
+          </Field>
+          <ErrorText error={error} />
+          <div className="row" style={{ gap: 8 }}>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={busy}>
+              {busy ? <Spinner /> : "Create mailbox"}
+            </button>
+            <button type="button" className="btn btn-sm" onClick={() => setAdding(false)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button
+          type="button"
+          className="btn btn-primary"
+          style={{ marginTop: 16 }}
+          onClick={() => {
+            setAdding(true)
+            setError(null)
+          }}
+        >
+          Add a mailbox
+        </button>
+      )}
+    </Dialog>
   )
 }
 
@@ -629,6 +907,7 @@ const App = () => {
   const [nonce, setNonce] = useState(0)
   const [creating, setCreating] = useState(false)
   const [settings, setSettings] = useState(false)
+  const [users, setUsers] = useState(false)
 
   useEffect(() => {
     get<Mailbox>("/api/mail/me")
@@ -758,6 +1037,17 @@ const App = () => {
             <Icon path={icons.plus} />
             New folder
           </button>
+          {mailbox.administers.length > 0 && (
+            <button
+              type="button"
+              className="nav-item"
+              onClick={() => setUsers(true)}
+              title="Manage mailboxes"
+            >
+              <Icon path={icons.account} />
+              Users
+            </button>
+          )}
           <button
             type="button"
             className="nav-item"
@@ -944,6 +1234,8 @@ const App = () => {
       )}
 
       {settings && <Settings mailbox={mailbox} onClose={() => setSettings(false)} />}
+
+      {users && <Users mailbox={mailbox} onClose={() => setUsers(false)} />}
 
       {creating && (
         <Dialog title="New folder" onClose={() => setCreating(false)}>

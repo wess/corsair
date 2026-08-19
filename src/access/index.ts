@@ -106,6 +106,42 @@ export const administeredDomainIds = async (userId: string): Promise<string[] | 
   return rows.map((r) => r.domain_id)
 }
 
+/**
+ * The domains a *mailbox* administers.
+ *
+ * The webmail's management surface is built on this. It deliberately does not
+ * consult `users` at all: a mailbox is not an account, holds no plan, owns
+ * nothing, and reaches exactly the domains named against it here.
+ */
+export const domainsAdministeredByAddress = async (addressId: string): Promise<Domain[]> =>
+  db().all<Domain>({
+    text: `SELECT d.* FROM domain_admins da
+             JOIN domains d ON d.id = da.domain_id
+            WHERE da.address_id = $1
+         ORDER BY d.name ASC`,
+    values: [addressId],
+  })
+
+/**
+ * The domain, if this mailbox administers it.
+ *
+ * `notFound` on a miss, like every other check here, so a delegate cannot map
+ * the server by the shape of its refusals.
+ */
+export const addressAdministeredDomain = async (
+  addressId: string,
+  domainId: string,
+): Promise<Domain> => {
+  const row = await db().one<Domain>({
+    text: `SELECT d.* FROM domain_admins da
+             JOIN domains d ON d.id = da.domain_id
+            WHERE da.address_id = $1 AND da.domain_id = $2`,
+    values: [addressId, domainId],
+  })
+  if (!row) throw notFound("Domain not found.")
+  return row
+}
+
 export const requireSystemAdmin = async (userId: string): Promise<void> => {
   if (!(await isSystemAdmin(userId))) {
     throw forbidden("Only an administrator of this server can do that.")

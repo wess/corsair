@@ -1,7 +1,12 @@
-import { clientIp, createDbRateLimit, parseTrustedProxies } from "@atlas/security"
 import { from } from "@atlas/db"
+import { clientIp, createDbRateLimit, parseTrustedProxies } from "@atlas/security"
 import { assign, type Conn, isHttpError, json, type PipeFn, type Route } from "@atlas/server"
-import { type Principal, requirePrincipal } from "../../auth/index.ts"
+import {
+  type MailIdentity,
+  type Principal,
+  requireMailIdentity,
+  requirePrincipal,
+} from "../../auth/index.ts"
 import { config } from "../../config/index.ts"
 import { db } from "../../db/index.ts"
 import { applicationError, errorBody, forbidden, rateLimitExceeded } from "../../errors/index.ts"
@@ -132,6 +137,25 @@ export const owner: PipeFn = async (conn) => {
   if (!row?.is_owner) throw forbidden("Only the owner of this server can do that.")
   return conn
 }
+
+/**
+ * A *mailbox* session, not a panel one.
+ *
+ * Deliberately a different claim from `authed`: the two identities are separate
+ * everywhere in this codebase, and anything behind this has proved possession
+ * of a mailbox credential only. It lives here rather than in the webmail routes
+ * because the delegated management surface needs the same pipe and neither
+ * module should own the other's.
+ */
+const mailAuth: PipeFn = async (conn) => {
+  const identity = await requireMailIdentity(conn.headers.get("cookie"))
+  return assign(conn, { identity })
+}
+
+export const mailed: readonly PipeFn[] = [mailAuth]
+
+export const identityOf = (conn: { assigns: unknown }): MailIdentity =>
+  (conn.assigns as { identity: MailIdentity }).identity
 
 export const authed: readonly PipeFn[] = [auth, rateLimit]
 export const authedWithPlan: readonly PipeFn[] = [auth, rateLimit, withPlan]
