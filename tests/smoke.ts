@@ -495,6 +495,113 @@ const run = async () => {
   const removed = await call("DELETE", `/api/webhooks/${hook.body?.id}`)
   check("a hook can be deleted", removed.status === 200, removed.body)
 
+  section("sending api")
+  // Sent with the key alone and no cookie, so a check here cannot pass on the
+  // strength of the session this suite is signed in with.
+  const bearer = async (
+    method: string,
+    path: string,
+    token: string,
+    body?: unknown,
+    attempt = 0,
+  ): Promise<{ status: number; body: any }> => {
+    const res = await fetch(`${BASE}${path}`, {
+      method,
+      headers: {
+        authorization: `Bearer ${token}`,
+        ...(body !== undefined ? { "content-type": "application/json" } : {}),
+      },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    })
+    if (res.status === 429 && attempt < 8) {
+      await sleep(Math.max(250, Number(res.headers.get("retry-after") ?? "1") * 1000))
+      return bearer(method, path, token, body, attempt + 1)
+    }
+    return { status: res.status, body: await res.json().catch(() => null) }
+  }
+
+  const message = { from: `app@${domainName}`, to: "someone@far.invalid", subject: "s", text: "t" }
+
+  const sessionSend = await call("POST", "/api/emails", message)
+  check(
+    "sending refuses a session without a key",
+    sessionSend.status === 401 && sessionSend.body?.name === "missing_api_key",
+    sessionSend.body,
+  )
+
+  const key = await call("POST", "/api/api-keys", { name: "smoke", permission: "sending_access" })
+  const token = String(key.body?.token ?? "")
+  check("a key can be created", key.status === 201 && token.startsWith("cs_"), key.body)
+
+  const listedKeys = await call("GET", "/api/api-keys")
+  check(
+    "the token is never listed",
+    listedKeys.status === 200 && !JSON.stringify(listedKeys.body).includes(token),
+    listedKeys.body,
+  )
+
+  const unverified = await bearer("POST", "/api/emails", token, message)
+  check(
+    "a domain that has not finished DNS setup cannot send",
+    unverified.status === 403 && unverified.body?.name === "validation_error",
+    unverified.body,
+  )
+
+  const missingTo = await bearer("POST", "/api/emails", token, { ...message, to: undefined })
+  check(
+    "a missing field answers with Resend's error name",
+    missingTo.status === 422 && missingTo.body?.name === "missing_required_field",
+    missingTo.body,
+  )
+
+  const restricted = await bearer("GET", "/api/emails", token)
+  check(
+    "a sending-only key cannot read sends",
+    restricted.status === 401 && restricted.body?.name === "restricted_api_key",
+    restricted.body,
+  )
+
+  const keyForKeys = await bearer("GET", "/api/api-keys", token)
+  check("a key cannot reach key management", keyForKeys.status === 401, keyForKeys.body)
+
+  const unknownKey = await bearer("POST", "/api/emails", "cs_not-a-real-key", message)
+  check(
+    "an unknown key is refused",
+    unknownKey.status === 403 && unknownKey.body?.name === "invalid_api_key",
+    unknownKey.body,
+  )
+
+  const panelSends = await call("GET", "/api/emails")
+  check(
+    "the panel reads sends with its session",
+    panelSends.status === 200 && panelSends.body?.object === "list",
+    panelSends.body,
+  )
+
+  const scopedFull = await call("POST", "/api/api-keys", {
+    name: "bad",
+    permission: "full_access",
+    domain_id: domainId,
+  })
+  check("a domain-scoped key must be sending-only", scopedFull.status === 400, scopedFull.body)
+
+  const revoked = await call("DELETE", `/api/api-keys/${key.body?.id}`)
+  const afterRevoke = await bearer("POST", "/api/emails", token, message)
+  check(
+    "a revoked key stops working at once",
+    revoked.status === 200 && afterRevoke.status === 403,
+    afterRevoke.body,
+  )
+
+  const suppressed = await call("POST", "/api/suppressions", { email: "Someone@Far.invalid" })
+  check(
+    "an address can be suppressed by hand",
+    suppressed.status === 201 && suppressed.body?.email === "someone@far.invalid",
+    suppressed.body,
+  )
+  const unsuppressed = await call("DELETE", `/api/suppressions/${suppressed.body?.id}`)
+  check("and let through again", unsuppressed.status === 200, unsuppressed.body)
+
   section("public endpoints")
   const autoconfig = await fetch(`${BASE}/mail/config-v1.1.xml?emailaddress=me@${domainName}`)
   const autoconfigBody = await autoconfig.text()

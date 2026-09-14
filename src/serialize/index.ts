@@ -2,14 +2,17 @@ import { num } from "../db/index.ts"
 import type { Entitlement, Usage } from "../plans/index.ts"
 import type {
   Address,
+  ApiKey,
   DkimKey,
   Domain,
   DomainRecord,
+  Email,
   Filter,
   Message,
   PaymentMethod,
   Plan,
   Subscription,
+  Suppression,
   TaxId,
   Transaction,
   Transfer,
@@ -273,4 +276,51 @@ export const entitlementObject = (entitlement: Entitlement, usage: Usage) => ({
     daily_in: entitlement.dailyIn,
     daily_out: entitlement.dailyOut,
   },
+})
+
+// ----------------------------------------------------------------- sending --
+
+/**
+ * The email object, in Resend's shape. `full` adds the bodies and tags, which
+ * the single-email read returns and the list does not.
+ */
+export const emailObject = (email: Email, opts: { full?: boolean } = {}) => {
+  const base = {
+    object: "email" as const,
+    id: email.id,
+    to: email.to_addresses,
+    from: email.from_address,
+    created_at: email.created_at.toISOString(),
+    subject: email.subject,
+    bcc: email.bcc_addresses,
+    cc: email.cc_addresses,
+    reply_to: email.reply_to,
+    last_event: email.last_event,
+    scheduled_at: email.scheduled_at?.toISOString() ?? null,
+  }
+  if (!opts.full) return base
+  return { ...base, html: email.html, text: email.text, tags: email.tags }
+}
+
+/** The token is never part of this. It is returned once, by the create route. */
+export const apiKeyObject = (key: ApiKey, extra: { domain?: string | null } = {}) => ({
+  object: "api_key" as const,
+  id: key.id,
+  name: key.name,
+  permission: key.permission,
+  domain_id: key.domain_id,
+  domain: extra.domain ?? null,
+  token_prefix: key.token_prefix,
+  last_used_at: key.last_used_at?.toISOString() ?? null,
+  created_at: key.created_at.toISOString(),
+})
+
+export const suppressionObject = (row: Suppression) => ({
+  object: "suppression" as const,
+  id: row.id,
+  email: row.email,
+  reason: row.reason,
+  detail: row.detail,
+  email_id: row.email_id,
+  created_at: row.created_at.toISOString(),
 })

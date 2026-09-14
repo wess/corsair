@@ -2,7 +2,7 @@
 title: Plans and billing
 description: How entitlements work, why an unconfigured instance is unmetered, and what happens when billing is turned on.
 section: using
-order: 10
+order: 11
 short: Plans and billing
 eyebrow: Using Corsair
 ---

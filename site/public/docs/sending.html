@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Sending API · Corsair</title>
+<meta name="description" content="Send transactional mail as your domains over HTTP, with Resend's API." />
+<link rel="canonical" href="https://wess.io/corsair/docs/sending.html" />
+<meta property="og:title" content="Sending API" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="Send transactional mail as your domains over HTTP, with Resend's API." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.io/corsair/docs/sending.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html" class="active" aria-current="page">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Using Corsair</p></div><h1 id="sending-api">Sending API</h1>
+<p>Applications — a contact form, a password reset, a receipt — send as your domains over HTTP, with an API key rather than a mailbox and an SMTP password.</p>
+<p>The API is <a href="https://resend.com/docs/api-reference/introduction" class="external" rel="noopener">Resend</a>'s: the same paths, request bodies, response shapes, and error names. Point a Resend SDK at your server and it works unchanged.</p>
+<figure class="code"><span class="code-lang">js</span><pre><code>import { Resend } from &quot;resend&quot;
+
+const resend = new Resend(&quot;cs_...&quot;, { baseUrl: &quot;https://mail.example.com/api&quot; })
+
+await resend.emails.send({
+  from: &quot;Acme &lt;receipts@example.com&gt;&quot;,
+  to: [&quot;customer@example.net&quot;],
+  subject: &quot;Your receipt&quot;,
+  html: &quot;&lt;p&gt;Thanks for your order.&lt;/p&gt;&quot;,
+})</code></pre></figure>
+<p>Sends ride the same delivery queue as mail from a mailbox, are signed with the same DKIM key, and count toward the same daily outbound limit. A domain that already receives mail here needs <strong>no new DNS records</strong> to send through the API.</p>
+<h2 id="keys">Keys<a class="anchor" href="#keys" aria-label="Link to this section">#</a></h2>
+<p>Create a key under <strong>Sending API</strong> in the control panel. The token is shown once; a lost key is revoked and replaced.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Access</th>
+<th>What it can do</th>
+</tr></thead><tbody>
+<tr>
+<td>Sending only</td>
+<td><code>POST /api/emails</code> and <code>POST /api/emails/batch</code>. Can be limited to one domain.</td>
+</tr>
+<tr>
+<td>Full access</td>
+<td>Also list, read, reschedule, and cancel sends.</td>
+</tr>
+</tbody></table></div>
+<p>A key sends as any domain its account owns that has finished DNS setup. It cannot open the control panel, read a mailbox, or create other keys, and it stops working the moment it is revoked or its account is closed.</p>
+<aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span>Note</p><p>A <a href="domains.html">domain administrator</a> you delegated mailboxes to cannot create keys for the domain. Sending as a domain stays with whoever owns it.</p></aside>
+<h2 id="sending">Sending<a class="anchor" href="#sending" aria-label="Link to this section">#</a></h2>
+<figure class="code"><span class="code-lang">sh</span><pre><code>curl -X POST https://mail.example.com/api/emails \
+  -H 'Authorization: Bearer cs_...' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    &quot;from&quot;: &quot;Acme &lt;receipts@example.com&gt;&quot;,
+    &quot;to&quot;: [&quot;customer@example.net&quot;],
+    &quot;subject&quot;: &quot;Your receipt&quot;,
+    &quot;html&quot;: &quot;&lt;p&gt;Thanks for your order.&lt;/p&gt;&quot;
+  }'</code></pre></figure>
+<figure class="code"><span class="code-lang">json</span><pre><code>{ &quot;id&quot;: &quot;4ef9a417-02e9-4d39-ad75-9611e0fcc33c&quot; }</code></pre></figure>
+<div class='table-wrap'><table><thead><tr>
+<th>Field</th>
+<th></th>
+</tr></thead><tbody>
+<tr>
+<td><code>from</code></td>
+<td>Required. <code>email@example.com</code> or <code>Name &lt;email@example.com&gt;</code>, on a verified domain of the key's account</td>
+</tr>
+<tr>
+<td><code>to</code></td>
+<td>Required. One address or a list</td>
+</tr>
+<tr>
+<td><code>cc</code>, <code>bcc</code>, <code>reply_to</code></td>
+<td>One address or a list</td>
+</tr>
+<tr>
+<td><code>subject</code></td>
+<td>Required</td>
+</tr>
+<tr>
+<td><code>html</code>, <code>text</code></td>
+<td>At least one</td>
+</tr>
+<tr>
+<td><code>headers</code></td>
+<td>Custom headers. The ones this server writes — <code>From</code>, <code>To</code>, <code>Subject</code>, <code>Message-ID</code>, <code>Content-Type</code> and the like — are refused</td>
+</tr>
+<tr>
+<td><code>tags</code></td>
+<td><code>[{ &quot;name&quot;: &quot;...&quot;, &quot;value&quot;: &quot;...&quot; }]</code>, ASCII letters, numbers, <code>_</code> and <code>-</code>. Carried into events</td>
+</tr>
+<tr>
+<td><code>attachments</code></td>
+<td><code>[{ &quot;filename&quot;, &quot;content&quot;, &quot;content_type&quot;, &quot;content_id&quot; }]</code>. <code>content</code> is base64. A <code>content_id</code> makes the attachment inline, for <code>cid:</code> references in the HTML</td>
+</tr>
+<tr>
+<td><code>scheduled_at</code></td>
+<td>ISO 8601, or an offset like <code>in 1 hour</code>. Up to 30 days ahead</td>
+</tr>
+</tbody></table></div>
+<p>One email goes to at most 50 addresses across <code>to</code>, <code>cc</code>, and <code>bcc</code>.</p>
+<p><code>POST /api/emails/batch</code> takes up to 100 of these as an array and answers <code>{ &quot;data&quot;: [{ &quot;id&quot;: &quot;...&quot; }] }</code>. Every entry is validated before any is queued, so a batch with one bad email sends none of them. Attachments and <code>scheduled_at</code> are not accepted in a batch.</p>
+<h3 id="retrying-safely">Retrying safely<a class="anchor" href="#retrying-safely" aria-label="Link to this section">#</a></h3>
+<p>Send an <code>Idempotency-Key</code> header and a retry cannot send twice. For 24 hours a repeat of a finished request gets the original response back without sending again. A repeat while the first is still running, or with a different body, gets <code>409</code>.</p>
+<h3 id="what-is-not-supported">What is not supported<a class="anchor" href="#what-is-not-supported" aria-label="Link to this section">#</a></h3>
+<ul><li><strong>Attachments by <code>path</code>.</strong> The server would fetch a URL you name, from inside its own network, and mail the response back out. Send the bytes as <code>content</code>.</li><li><strong>Templates, topics, audiences, broadcasts, and open or click tracking.</strong> This is transactional sending. Bulk mail from the same address your mailboxes use puts every mailbox's deliverability at risk.</li><li><strong>Resend's <code>/domains</code> and <code>/api-keys</code> endpoints.</strong> Domains are managed in the control panel, and keys cannot create keys.</li></ul>
+<h2 id="managing-sends">Managing sends<a class="anchor" href="#managing-sends" aria-label="Link to this section">#</a></h2>
+<p>These take a full-access key.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th></th>
+</tr></thead><tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/emails</code></td>
+<td>Newest first. <code>limit</code> (1–100, default 20), and <code>after</code> or <code>before</code> an email id</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/emails/:id</code></td>
+<td>One email, with its bodies and tags</td>
+</tr>
+<tr>
+<td><code>PATCH</code></td>
+<td><code>/api/emails/:id</code></td>
+<td><code>{ &quot;scheduled_at&quot;: &quot;...&quot; }</code>. Scheduled sends only</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/emails/:id/cancel</code></td>
+<td>Scheduled sends only</td>
+</tr>
+</tbody></table></div>
+<p><code>last_event</code> is the most recent thing that happened to any of the email's recipients: <code>scheduled</code>, <code>sent</code>, <code>delivered</code>, <code>delivery_delayed</code>, <code>bounced</code>, <code>complained</code>, <code>failed</code>, <code>suppressed</code>, or <code>canceled</code>.</p>
+<p>Records of sends are kept for 30 days.</p>
+<h2 id="events">Events<a class="anchor" href="#events" aria-label="Link to this section">#</a></h2>
+<p>Outcomes arrive through <a href="webhooks.html">event hooks</a> as the <code>email.*</code> family.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Event</th>
+<th></th>
+</tr></thead><tbody>
+<tr>
+<td><code>email.scheduled</code></td>
+<td>Accepted for a later time</td>
+</tr>
+<tr>
+<td><code>email.sent</code></td>
+<td>Accepted, or its scheduled time came</td>
+</tr>
+<tr>
+<td><code>email.delivered</code></td>
+<td>The receiving server accepted it</td>
+</tr>
+<tr>
+<td><code>email.delivery_delayed</code></td>
+<td>Temporarily refused; Corsair will retry</td>
+</tr>
+<tr>
+<td><code>email.bounced</code></td>
+<td>Permanently failed, retries ran out, or a bounce report came back</td>
+</tr>
+<tr>
+<td><code>email.complained</code></td>
+<td>The recipient reported it as spam</td>
+</tr>
+<tr>
+<td><code>email.failed</code></td>
+<td>This server could not attempt it</td>
+</tr>
+<tr>
+<td><code>email.suppressed</code></td>
+<td>Not attempted, because the recipient is suppressed</td>
+</tr>
+</tbody></table></div>
+<figure class="code"><span class="code-lang">json</span><pre><code>{
+  &quot;type&quot;: &quot;email.bounced&quot;,
+  &quot;created_at&quot;: &quot;2026-09-14T15:02:11.407Z&quot;,
+  &quot;data&quot;: {
+    &quot;email_id&quot;: &quot;4ef9a417-02e9-4d39-ad75-9611e0fcc33c&quot;,
+    &quot;created_at&quot;: &quot;2026-09-14T15:02:09.112Z&quot;,
+    &quot;from&quot;: &quot;Acme &lt;receipts@example.com&gt;&quot;,
+    &quot;to&quot;: [&quot;customer@example.net&quot;],
+    &quot;subject&quot;: &quot;Your receipt&quot;,
+    &quot;recipient&quot;: &quot;customer@example.net&quot;,
+    &quot;bounce&quot;: { &quot;type&quot;: &quot;Permanent&quot;, &quot;message&quot;: &quot;5.1.1 User unknown&quot;, &quot;code&quot;: 550 },
+    &quot;suppressed&quot;: true
+  }
+}</code></pre></figure>
+<p><code>recipient</code> says which address the event is about, since one email can be delivered to one person and bounce for another.</p>
+<p>API sends emit <code>email.<em></code> </em>instead of* <code>message.sent</code>, <code>message.delivered</code>, <code>message.deferred</code>, and <code>message.bounced</code>. An application's receipts and a mailbox owner's mail never arrive in the same feed.</p>
+<h2 id="bounces-and-suppression">Bounces and suppression<a class="anchor" href="#bounces-and-suppression" aria-label="Link to this section">#</a></h2>
+<p>Each send leaves with the return path <code>bounces+&lt;email id&gt;@&lt;your domain&gt;</code>. This server is already your domain's MX, so a report sent back later — most &quot;user unknown&quot; bounces arrive after the receiving server said yes — comes here. It is checked before normal routing: a catch-all, or a mailbox you created called <code>bounces</code>, never receives one.</p>
+<p>An address is <strong>suppressed</strong>, and the API will not send to it again, when:</p>
+<ul><li>a server says it does not exist — a <code>5.1.x</code> status, <code>5.2.1</code> (mailbox disabled), or a 550, 551, or 553 whose reply says there is no such user</li><li>its recipient reports a message as spam</li></ul>
+<p>Every other permanent failure is reported as <code>email.bounced</code> and nothing more. A <code>5.7.1</code> policy refusal, a full mailbox, or a message that is too large says nothing about whether the person is still there.</p>
+<p>A report about an address the email was never sent to is ignored. The return path is visible to everyone who received the message, and without that rule any one of them could suppress arbitrary addresses on your account.</p>
+<p>Suppressions are per account and apply to the API only. Mail written from a mailbox is never suppressed. See, add, and remove them under <strong>Sending API</strong> in the control panel.</p><nav class="pager"><a class="pager-prev" href="./deliverability.html"><span>Previous</span><strong>Deliverability</strong></a><a class="pager-next" href="./webhooks.html"><span>Next</span><strong>Event hooks</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#keys">Keys</a></li><li class="toc-h2"><a href="#sending">Sending</a></li><li class="toc-h3"><a href="#retrying-safely">Retrying safely</a></li><li class="toc-h3"><a href="#what-is-not-supported">What is not supported</a></li><li class="toc-h2"><a href="#managing-sends">Managing sends</a></li><li class="toc-h2"><a href="#events">Events</a></li><li class="toc-h2"><a href="#bounces-and-suppression">Bounces and suppression</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy template</a></li><li><a href="../policies/acceptable-use.html">Acceptable use template</a></li></ul>
+    </div><div>
+      <p class="colophon-label">This service</p>
+      <ul><li><a href="../legal/terms.html">Terms of service</a></li><li><a href="../legal/privacy.html">Privacy policy</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

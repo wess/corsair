@@ -2,7 +2,7 @@
 title: Event hooks
 description: Signed JSON delivered to your endpoint when mail arrives, bounces, or is filed as spam.
 section: using
-order: 9
+order: 10
 short: Event hooks
 eyebrow: Using Corsair
 ---
@@ -65,10 +65,15 @@ re-serialising it changes the bytes and the signature will not match.
 | `message.delivered` | The receiving server accepted it |
 | `message.deferred` | Temporarily refused; Corsair will retry |
 | `message.bounced` | Permanently failed, or retries ran out |
+| `email.scheduled` · `email.sent` · `email.delivered` · `email.delivery_delayed` | A [sending API](sending.html) email on its way |
+| `email.bounced` · `email.complained` · `email.failed` · `email.suppressed` | A sending API email that did not arrive |
 | `address.created` · `address.deleted` · `address.password_changed` | Mailbox changes |
 | `domain.created` · `domain.verified` · `domain.verification_failed` · `domain.deleted` | Domain changes |
 | `quota.warning` · `quota.exceeded` | Storage |
 | `transfer.completed` · `transfer.failed` | Mailbox migration |
+
+Mail from a mailbox reports as `message.*`; mail sent over the sending API reports
+as `email.*` instead, never both.
 
 Subscribe to exact types, a family with `message.*`, or everything with `*`.
 A family wildcard is usually what you want — it picks up new event types in that

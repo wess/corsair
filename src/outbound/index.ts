@@ -21,6 +21,10 @@ export type EnqueueInput = {
   addressId?: string | null
   domainId?: string | null
   messageId?: string | null
+  /** The sending-API email this message belongs to, when it is one. */
+  emailId?: string | null
+  /** A first attempt later than now, for a scheduled send. */
+  runAt?: Date | null
 }
 
 /**
@@ -73,6 +77,8 @@ export const enqueue = async (input: EnqueueInput): Promise<Delivery[]> => {
           mail_from: input.mailFrom,
           rcpt_to: rcpt,
           size: input.raw.length,
+          email_id: input.emailId ?? null,
+          ...(input.runAt ? { run_at: input.runAt } : {}),
         })
         .returning(...allColumns(deliveries)),
     )

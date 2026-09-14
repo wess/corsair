@@ -197,8 +197,19 @@ const runJob = async (job: Job): Promise<void> => {
         values: [],
       })
       await db().execute({
-        text: `DELETE FROM deliveries WHERE status IN ('sent', 'failed')
+        text: `DELETE FROM deliveries WHERE status IN ('sent', 'failed', 'cancelled', 'suppressed')
                  AND updated_at < now() - interval '14 days'`,
+        values: [],
+      })
+      // Sending-API records, and the bodies stored with them, go after thirty
+      // days. A send still waiting for its scheduled time is kept.
+      await db().execute({
+        text: `DELETE FROM emails WHERE created_at < now() - interval '30 days'
+                 AND last_event <> 'scheduled'`,
+        values: [],
+      })
+      await db().execute({
+        text: "DELETE FROM idempotency_keys WHERE expires_at < now()",
         values: [],
       })
       if (tombstones.length || expunged.length || logs.length) {

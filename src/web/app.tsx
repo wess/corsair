@@ -17,6 +17,7 @@ import {
   ResetPasswordPage,
   VerifyEmailPage,
 } from "./pages/recover.tsx"
+import { SendingPage } from "./pages/sending.tsx"
 import { TransfersPage } from "./pages/transfers.tsx"
 
 export const BASE = "/app"
@@ -73,6 +74,7 @@ const NAV = [
   { label: "Filters", path: "/filters", icon: icons.filters },
   { label: "Transfers", path: "/transfers", icon: icons.transfers },
   { label: "Webhooks", path: "/webhooks", icon: icons.webhook },
+  { label: "Sending API", path: "/sending", icon: icons.send },
   { label: "Account", path: "/account", icon: icons.account },
   { label: "Plans", path: "/plans", icon: icons.plans },
   { label: "Billing", path: "/billing", icon: icons.billing },
@@ -99,6 +101,7 @@ const titleFor = (route: string): string => {
   if (route.startsWith("/filters")) return "Filters"
   if (route.startsWith("/transfers")) return "Transfers"
   if (route.startsWith("/webhooks")) return "Webhooks"
+  if (route.startsWith("/sending")) return "Sending API"
   if (route.startsWith("/account")) return "Account"
   if (route.startsWith("/plans")) return "Plans"
   if (route.startsWith("/billing")) return "Billing"
@@ -140,6 +143,7 @@ const Shell = ({
     if (hookDetail) return <HookDetailPage id={hookDetail[1]!} />
     if (route.startsWith("/webhooks")) return <HooksPage />
 
+    if (route.startsWith("/sending")) return <SendingPage />
     if (route.startsWith("/transfers")) return <TransfersPage />
     if (route.startsWith("/account"))
       return <AccountPage me={me} onUpdated={onUpdated} onSignOut={onSignOut} />

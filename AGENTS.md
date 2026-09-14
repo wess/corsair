@@ -279,6 +279,46 @@ render an upgrade prompt rather than an error. `requireFeature()` in
 `core/plans`. Validation runs before the quota check: a malformed input is
 invalid regardless of the plan.
 
+## Sending API
+
+`/api/emails` is Resend's API over the submission path, without a mailbox.
+`src/sending` owns it. The queue and the MX path each call into it, and those
+seams are where it bites.
+
+**An API send is a delivery row with an `email_id`.** Everything that treats it
+differently branches on that column: `beforeAttempt` settles canceled and
+suppressed rows without an attempt, a permanent failure records an event instead
+of generating a DSN, and every outcome emits `email.*` rather than `message.*`.
+A DSN would be addressed to our own VERP return path and come straight back in
+on port 25.
+
+**The bounce address is checked before routing, at RCPT and at DATA.**
+`bounces+<uuid>@<domain>` matches only when the uuid is an email sent from that
+domain; `bounces+newsletter@` and a customer's real `bounces@` route normally.
+Moving the check after `resolveRecipient` hands reports to a catch-all, which
+files them as mail and suppresses nothing.
+
+**A report may only speak about the email's own recipients.** The return path
+is in the headers every recipient receives, so `applyReport` drops any verdict
+naming someone else. Without that, one recipient can forge a DSN and suppress
+arbitrary addresses on the sending account. `tests/sending.test.ts` has the case.
+
+**Only a gone address is suppressed.** `isRecipientGone` in `src/reports` takes
+`5.1.x`, `5.2.1`, and a status-less 550/551/553 that says the user does not
+exist. Widening it to "any 5xx" suppresses people over a content-policy refusal
+or a full mailbox, and they silently stop getting their password resets.
+`tests/reports.test.ts` pins both directions.
+
+**No attachments by `path`.** Fetching a caller's URL and mailing the response
+back out is a full-read request forgery, and the hostname check the webhooks use
+does not stop a public name that resolves to a private address. Refused, not
+guarded.
+
+**Keys are hashes, cannot mint keys, and belong to the domain's owner.** A
+domain administrator manages mailboxes; sending as the domain is not delegated.
+`api_keys_scope_chk` keeps a domain-scoped key sending-only, the same rule
+Resend has.
+
 ## Adding an endpoint
 
 1. Schema in `src/schema/index.ts`, plus SQL in a new migration
@@ -349,6 +389,8 @@ a dependency to get more is the wrong trade for a mail server.
   database.
 - `bun run test:smoke` — API contract. Needs a running server; backs off on 429
   because the rate limiter is real.
+- `bun run test:resend` — the official `resend` package against a running server,
+  with only the base URL changed. The sending API's compatibility claim, checked.
 - `bun run site:check` — the docs site builds and every internal link resolves.
 - `bun run test:starttls` — the *outbound* client's STARTTLS, against a real
   handshake.

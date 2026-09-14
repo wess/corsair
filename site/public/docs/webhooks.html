@@ -53,7 +53,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">04</span>Using Corsair</p>
-<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html" class="active" aria-current="page">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./webhooks.html" class="active" aria-current="page">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">05</span>Reference</p>
@@ -136,6 +136,14 @@ const verify = (secret, headers, body) =&gt; {
 <td>Permanently failed, or retries ran out</td>
 </tr>
 <tr>
+<td><code>email.scheduled</code> · <code>email.sent</code> · <code>email.delivered</code> · <code>email.delivery_delayed</code></td>
+<td>A <a href="sending.html">sending API</a> email on its way</td>
+</tr>
+<tr>
+<td><code>email.bounced</code> · <code>email.complained</code> · <code>email.failed</code> · <code>email.suppressed</code></td>
+<td>A sending API email that did not arrive</td>
+</tr>
+<tr>
 <td><code>address.created</code> · <code>address.deleted</code> · <code>address.password_changed</code></td>
 <td>Mailbox changes</td>
 </tr>
@@ -152,6 +160,7 @@ const verify = (secret, headers, body) =&gt; {
 <td>Mailbox migration</td>
 </tr>
 </tbody></table></div>
+<p>Mail from a mailbox reports as <code>message.<em></code>; mail sent over the sending API reports as <code>email.</em></code> instead, never both.</p>
 <p>Subscribe to exact types, a family with <code>message.<em></code>, or everything with <code></em></code>. A family wildcard is usually what you want — it picks up new event types in that family without you changing anything.</p>
 <h2 id="payload">Payload<a class="anchor" href="#payload" aria-label="Link to this section">#</a></h2>
 <figure class="code"><span class="code-lang">json</span><pre><code>{
@@ -174,7 +183,7 @@ const verify = (secret, headers, body) =&gt; {
 <p>An endpoint that fails twenty times in a row is disabled automatically, and the panel says so. Re-enable it once it is fixed.</p>
 <h2 id="endpoint-requirements">Endpoint requirements<a class="anchor" href="#endpoint-requirements" aria-label="Link to this section">#</a></h2>
 <p>The URL has to be reachable from the public internet. Private, loopback, and link-local addresses are refused, because the URL is customer-supplied and this server is what fetches it — an open one is a server-side request forgery. A self-hoster whose consumers are on the same private network can set <code>WEBHOOK_ALLOW_PRIVATE=true</code>.</p>
-<p>Use the <strong>Send test</strong> button after adding an endpoint. It delivers a signed sample synchronously and shows you the exact status and body that came back.</p><nav class="pager"><a class="pager-prev" href="./deliverability.html"><span>Previous</span><strong>Deliverability</strong></a><a class="pager-next" href="./plans-billing.html"><span>Next</span><strong>Plans and billing</strong></a></nav></main>
+<p>Use the <strong>Send test</strong> button after adding an endpoint. It delivers a signed sample synchronously and shows you the exact status and body that came back.</p><nav class="pager"><a class="pager-prev" href="./sending.html"><span>Previous</span><strong>Sending API</strong></a><a class="pager-next" href="./plans-billing.html"><span>Next</span><strong>Plans and billing</strong></a></nav></main>
 <nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#verifying-a-delivery">Verifying a delivery</a></li><li class="toc-h2"><a href="#events">Events</a></li><li class="toc-h2"><a href="#payload">Payload</a></li><li class="toc-h2"><a href="#retries">Retries</a></li><li class="toc-h2"><a href="#endpoint-requirements">Endpoint requirements</a></li></ul></nav>
 </div>
 </div>

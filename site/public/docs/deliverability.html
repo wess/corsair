@@ -53,7 +53,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">04</span>Using Corsair</p>
-<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html" class="active" aria-current="page">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html" class="active" aria-current="page">Deliverability</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">05</span>Reference</p>
@@ -193,7 +193,7 @@ ORDER BY updated_at DESC LIMIT 20;</code></pre></figure>
        spf=pass ...
        dkim=pass header.i=@example.com header.s=corsair-1
        dmarc=pass (p=QUARANTINE ...)</code></pre></figure>
-<p>Three passes. Re-check this any time deliverability goes strange — it is the fastest way to tell a configuration problem from a reputation one.</p><nav class="pager"><a class="pager-prev" href="./transfers.html"><span>Previous</span><strong>Transfers</strong></a><a class="pager-next" href="./webhooks.html"><span>Next</span><strong>Event hooks</strong></a></nav></main>
+<p>Three passes. Re-check this any time deliverability goes strange — it is the fastest way to tell a configuration problem from a reputation one.</p><nav class="pager"><a class="pager-prev" href="./transfers.html"><span>Previous</span><strong>Transfers</strong></a><a class="pager-next" href="./sending.html"><span>Next</span><strong>Sending API</strong></a></nav></main>
 <nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#the-non-negotiables">The non-negotiables</a></li><li class="toc-h2"><a href="#warming-up">Warming up</a></li><li class="toc-h2"><a href="#reading-the-signals">Reading the signals</a></li><li class="toc-h2"><a href="#bounces">Bounces</a></li><li class="toc-h2"><a href="#dmarc-reports">DMARC reports</a></li><li class="toc-h2"><a href="#mta-sts">MTA-STS</a></li><li class="toc-h2"><a href="#forwarding">Forwarding</a></li><li class="toc-h2"><a href="#what-damages-reputation-fastest">What damages reputation fastest</a></li><li class="toc-h2"><a href="#what-barely-matters">What barely matters</a></li><li class="toc-h2"><a href="#if-you-cannot-get-good-deliverability">If you cannot get good deliverability</a></li><li class="toc-h2"><a href="#checking-your-own-work">Checking your own work</a></li></ul></nav>
 </div>
 </div>

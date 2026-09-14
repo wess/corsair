@@ -16,6 +16,17 @@ export type CorsairErrorName =
   | "unauthorized"
   | "forbidden"
   | "application_error"
+  // The sending API answers with Resend's names, so a client written against
+  // Resend can switch on them unchanged.
+  | "missing_api_key"
+  | "invalid_api_key"
+  | "restricted_api_key"
+  | "invalid_from_address"
+  | "invalid_attachment"
+  | "invalid_idempotency_key"
+  | "invalid_idempotent_request"
+  | "concurrent_idempotent_requests"
+  | "daily_quota_exceeded"
 
 const err = (
   status: number,
@@ -69,6 +80,58 @@ export const rateLimitExceeded = (retryAfterSeconds: number, limit: number) =>
 
 export const applicationError = (message = "Something went wrong.") =>
   err(500, "application_error", message)
+
+// ----------------------------------------------------------------- sending --
+
+export const missingApiKey = () =>
+  err(
+    401,
+    "missing_api_key",
+    "Missing API key in the authorization header. Send it as `Authorization: Bearer <key>`.",
+  )
+
+export const invalidApiKey = () => err(403, "invalid_api_key", "API key is invalid.")
+
+export const restrictedApiKey = () =>
+  err(
+    401,
+    "restricted_api_key",
+    "This API key is restricted to only send emails. Use a full access key for this operation.",
+  )
+
+export const invalidFromAddress = (message: string) => err(422, "invalid_from_address", message)
+
+/**
+ * A sender this account may not use. 403 with `validation_error`, which is what
+ * Resend answers for an unverified domain, so clients already handle it.
+ */
+export const senderNotAllowed = (message: string) => err(403, "validation_error", message)
+
+export const invalidAttachment = (message: string) => err(422, "invalid_attachment", message)
+
+export const invalidIdempotencyKey = (message: string) =>
+  err(400, "invalid_idempotency_key", message)
+
+export const invalidIdempotentRequest = () =>
+  err(
+    409,
+    "invalid_idempotent_request",
+    "Same idempotency key used with a different request payload.",
+  )
+
+export const concurrentIdempotentRequests = () =>
+  err(
+    409,
+    "concurrent_idempotent_requests",
+    "Same idempotency key used while the original request is still in progress.",
+  )
+
+export const dailyQuotaExceeded = (limit: number) =>
+  err(
+    429,
+    "daily_quota_exceeded",
+    `You have reached your daily sending quota of ${limit} messages. Try again tomorrow.`,
+  )
 
 export const errorBody = (e: HttpError): { statusCode: number; name: string; message: string } => ({
   statusCode: e.status,

@@ -9,17 +9,20 @@ import { wrapAll } from "./pipes/index.ts"
 import { accountRoutes } from "./routes/account/index.ts"
 import { addressRoutes } from "./routes/addresses/index.ts"
 import { adminRoutes } from "./routes/admins/index.ts"
+import { apiKeyRoutes } from "./routes/apikeys/index.ts"
 import { authRoutes } from "./routes/auth/index.ts"
 import { autoconfigRoutes } from "./routes/autoconfig/index.ts"
 import { billingRoutes } from "./routes/billing/index.ts"
 import { dashboardRoutes } from "./routes/dashboard/index.ts"
 import { domainRoutes } from "./routes/domains/index.ts"
+import { emailRoutes } from "./routes/emails/index.ts"
 import { filterRoutes } from "./routes/filters/index.ts"
 import { hookRoutes } from "./routes/hooks/index.ts"
 import { jmapRoutes } from "./routes/jmap/index.ts"
 import { logRoutes } from "./routes/logs/index.ts"
 import { mailAdminRoutes } from "./routes/mailadmin/index.ts"
 import { recoveryRoutes } from "./routes/recovery/index.ts"
+import { suppressionRoutes } from "./routes/suppressions/index.ts"
 import { transferRoutes } from "./routes/transfers/index.ts"
 import { webhookRoutes } from "./routes/webhooks/index.ts"
 import { webmailRoutes } from "./routes/webmail/index.ts"
@@ -50,6 +53,11 @@ export const allRoutes = (): Route[] => [
   ...wrapAll(transferRoutes),
   ...wrapAll(billingRoutes),
   ...wrapAll(webhookRoutes),
+  // The sending API. `/api/emails/batch` is registered ahead of the
+  // `/api/emails/:id` patterns inside its own module.
+  ...wrapAll(emailRoutes),
+  ...wrapAll(apiKeyRoutes),
+  ...wrapAll(suppressionRoutes),
   // Ahead of the webmail's own routes: `/api/mail/admin/...` must not be
   // shadowed by anything matching `/api/mail/:something`.
   ...wrapAll(mailAdminRoutes),

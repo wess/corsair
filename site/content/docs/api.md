@@ -12,9 +12,11 @@ eyebrow: Reference
 The API the control panel is built on. Everything under `/api`, JSON in and JSON
 out.
 
-There is no separate API-key mechanism: the panel API authenticates with the same
-session cookie a browser gets. If you are automating against it, sign in and keep
-the cookie.
+The panel API authenticates with the same session cookie a browser gets. If you
+are automating against it, sign in and keep the cookie.
+
+The one exception is the [sending API](sending.html) under `/api/emails`, which
+takes an API key, so an application can send without holding a panel login.
 
 ## Authentication
 
@@ -230,6 +232,31 @@ reaches a terminal state.
 
 Listing shows only a prefix of the signing secret — enough to tell two apart. An
 endpoint that has lost its secret should rotate rather than read it back.
+
+### Sending API
+
+`Authorization: Bearer <key>` rather than the session cookie. The reads, cancel,
+and reschedule also accept a session, which is how the control panel shows sends.
+Errors carry Resend's names. See [Sending API](sending.html).
+
+| Method | Path | Does |
+| --- | --- | --- |
+| POST | `/api/emails` | Send. Any key |
+| POST | `/api/emails/batch` | Send up to 100, all or nothing. Any key |
+| GET | `/api/emails` | List, newest first. `limit`, `after`, `before`. Full access |
+| GET | `/api/emails/:id` | Read, with bodies and tags. Full access |
+| PATCH | `/api/emails/:id` | Reschedule. Full access |
+| POST | `/api/emails/:id/cancel` | Cancel a scheduled send. Full access |
+| GET | `/api/api-keys` | List keys. Session only |
+| POST | `/api/api-keys` | Create a key. The token is returned **once**. Session only |
+| DELETE | `/api/api-keys/:api_key_id` | Revoke. Session only |
+| GET | `/api/suppressions` | The suppression list. Session only |
+| POST | `/api/suppressions` | Suppress an address by hand. Session only |
+| DELETE | `/api/suppressions/:suppression_id` | Let mail through to it again. Session only |
+
+`/api/emails/batch` is registered ahead of the `/api/emails/:id` patterns. A key
+cannot reach the key or suppression routes: a leaked key must not be able to mint
+its own replacements.
 
 ### Billing
 

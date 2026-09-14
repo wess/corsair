@@ -313,6 +313,9 @@ export const deliveries = defineSchema("deliveries", {
   last_error: column.text().nullable(),
   size: column.integer().default(0),
   sent_at: column.timestamp().nullable(),
+  // The API send this row belongs to. Null for submission, forwards, bounces,
+  // and notices — everything that is not an application sending over HTTP.
+  email_id: column.uuid().nullable(),
   created_at: now(),
   updated_at: now(),
 })
@@ -762,6 +765,85 @@ export type Webhook = RowOf<typeof webhooks>
 export type WebhookEvent = RowOf<typeof webhookEvents>
 export type WebhookAttempt = RowOf<typeof webhookAttempts>
 
+// ------------------------------------------------------------------ sending --
+
+/**
+ * A credential for the sending API. Only the SHA-256 of the token is stored;
+ * the prefix is what a list shows.
+ *
+ * permission: full_access | sending_access
+ */
+export const apiKeys = defineSchema("api_keys", {
+  id: id(),
+  user_id: column.uuid().ref("users", "id"),
+  domain_id: column.uuid().nullable(),
+  name: column.text(),
+  permission: column.text().default("full_access"),
+  token_hash: column.text().unique(),
+  token_prefix: column.text(),
+  last_used_at: column.timestamp().nullable(),
+  created_at: now(),
+})
+
+export type Tag = { name: string; value: string }
+
+/**
+ * One API send, shaped after the object Resend returns. The message itself is
+ * in the delivery queue; this is what the application asked for and where it
+ * got to.
+ *
+ * last_event: queued | scheduled | sent | delivered | delivery_delayed
+ *           | bounced | complained | failed | suppressed | canceled
+ */
+export const emails = defineSchema("emails", {
+  id: id(),
+  user_id: column.uuid().ref("users", "id"),
+  domain_id: column.uuid().nullable(),
+  api_key_id: column.uuid().nullable(),
+  message_id: column.text(),
+  from_address: column.text(),
+  to_addresses: column.json<string[]>().default([]),
+  cc_addresses: column.json<string[]>().default([]),
+  bcc_addresses: column.json<string[]>().default([]),
+  reply_to: column.json<string[]>().default([]),
+  subject: column.text(),
+  html: column.text().nullable(),
+  text: column.text().nullable(),
+  tags: column.json<Tag[]>().default([]),
+  last_event: column.text().default("queued"),
+  scheduled_at: column.timestamp().nullable(),
+  size: column.integer().default(0),
+  created_at: now(),
+  updated_at: now(),
+})
+
+/** reason: bounce | complaint | manual */
+export const suppressions = defineSchema("suppressions", {
+  id: id(),
+  user_id: column.uuid().ref("users", "id"),
+  email: column.text(),
+  reason: column.text(),
+  detail: column.text().nullable(),
+  email_id: column.uuid().nullable(),
+  created_at: now(),
+})
+
+export const idempotencyKeys = defineSchema("idempotency_keys", {
+  id: id(),
+  user_id: column.uuid().ref("users", "id"),
+  key: column.text(),
+  request_hash: column.text(),
+  response_status: column.integer().nullable(),
+  response_body: column.json<unknown>().nullable(),
+  expires_at: column.timestamp(),
+  created_at: now(),
+})
+
+export type ApiKey = RowOf<typeof apiKeys>
+export type Email = RowOf<typeof emails>
+export type Suppression = RowOf<typeof suppressions>
+export type IdempotencyKey = RowOf<typeof idempotencyKeys>
+
 // ------------------------------------------------------------------- all --
 
 /**
@@ -774,6 +856,7 @@ export type WebhookAttempt = RowOf<typeof webhookAttempts>
 export const allSchemas = [
   addressDestinations,
   addresses,
+  apiKeys,
   auditEvents,
   authFailures,
   bans,
@@ -783,8 +866,10 @@ export const allSchemas = [
   domainAdmins,
   domainRecords,
   domains,
+  emails,
   filters,
   folders,
+  idempotencyKeys,
   jobs,
   mailLog,
   messageBlobs,
@@ -797,6 +882,7 @@ export const allSchemas = [
   referrals,
   sessions,
   subscriptions,
+  suppressions,
   taxIds,
   tokens,
   transactions,

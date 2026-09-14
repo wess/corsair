@@ -1,17 +1,28 @@
 import { from } from "@atlas/db"
 import { clientIp, createDbRateLimit, parseTrustedProxies } from "@atlas/security"
 import { assign, type Conn, isHttpError, json, type PipeFn, type Route } from "@atlas/server"
+import { type Permission, resolveApiKey } from "../../apikeys/index.ts"
 import {
   type MailIdentity,
   type Principal,
   requireMailIdentity,
   requirePrincipal,
+  resolveSession,
 } from "../../auth/index.ts"
 import { config } from "../../config/index.ts"
 import { db } from "../../db/index.ts"
-import { applicationError, errorBody, forbidden, rateLimitExceeded } from "../../errors/index.ts"
+import {
+  applicationError,
+  errorBody,
+  forbidden,
+  invalidApiKey,
+  missingApiKey,
+  rateLimitExceeded,
+  restrictedApiKey,
+} from "../../errors/index.ts"
 import { type Entitlement, entitlementOf } from "../../plans/index.ts"
 import { users } from "../../schema/index.ts"
+import type { Sender } from "../../sending/index.ts"
 
 const trustedProxies = parseTrustedProxies(config.trustedProxies)
 
@@ -166,6 +177,76 @@ export const principalOf = (conn: { assigns: unknown }): Principal =>
 
 export const entitlementFrom = (conn: { assigns: unknown }): Entitlement =>
   (conn.assigns as { entitlement: Entitlement }).entitlement
+
+// ----------------------------------------------------------------- sending --
+
+/**
+ * The bearer token on a sending-API request, resolved to the account it sends
+ * for. A header that is present but wrong is refused outright — it never falls
+ * through to the session, so a revoked key cannot keep working in a browser
+ * that happens to be signed in.
+ */
+const bearer = async (conn: Conn): Promise<Sender | null> => {
+  const header = conn.headers.get("authorization")
+  if (!header) return null
+  const match = header.match(/^Bearer\s+(\S+)$/i)
+  const key = match ? await resolveApiKey(match[1]!) : null
+  if (!key) throw invalidApiKey()
+  return {
+    userId: key.user_id,
+    keyId: key.id,
+    permission: key.permission as Permission,
+    domainId: key.domain_id,
+  }
+}
+
+/** Sending itself takes a key. The panel has no business sending as an application. */
+const keyAuth: PipeFn = async (conn) => {
+  const sender = await bearer(conn)
+  if (!sender) throw missingApiKey()
+  return assign(conn, { sender })
+}
+
+/** Reading, canceling, and rescheduling also accept the panel's session. */
+const keyOrSession: PipeFn = async (conn) => {
+  const sender = await bearer(conn)
+  if (sender) return assign(conn, { sender })
+
+  const principal = await resolveSession(conn.headers.get("cookie"))
+  if (!principal) throw missingApiKey()
+  return assign(conn, {
+    sender: {
+      userId: principal.userId,
+      keyId: null,
+      permission: "full_access",
+      domainId: null,
+    } satisfies Sender,
+  })
+}
+
+const senderLimit: PipeFn = async (conn) => {
+  const { sender } = conn.assigns as { sender: Sender }
+  const { ok, retryAfterSeconds } = await limiter.check(
+    `api:user:${sender.userId}`,
+    config.rateLimitPerSecond,
+    1,
+  )
+  if (!ok) throw rateLimitExceeded(retryAfterSeconds ?? 1, config.rateLimitPerSecond)
+  return conn
+}
+
+const fullAccess: PipeFn = async (conn) => {
+  if ((conn.assigns as { sender: Sender }).sender.permission !== "full_access") {
+    throw restrictedApiKey()
+  }
+  return conn
+}
+
+export const sending: readonly PipeFn[] = [keyAuth, senderLimit]
+export const sendingFull: readonly PipeFn[] = [keyOrSession, senderLimit, fullAccess]
+
+export const senderOf = (conn: { assigns: unknown }): Sender =>
+  (conn.assigns as { sender: Sender }).sender
 
 // ---------------------------------------------------------------- wrapping --
 

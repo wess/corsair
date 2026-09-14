@@ -700,6 +700,7 @@ export type BuildInput = {
   from: MailAddress
   to: MailAddress[]
   cc?: MailAddress[]
+  replyTo?: MailAddress[]
   subject: string
   text?: string
   html?: string
@@ -708,7 +709,13 @@ export type BuildInput = {
   inReplyTo?: string | null
   references?: string[]
   headers?: Record<string, string>
-  attachments?: { filename: string; contentType: string; content: Buffer }[]
+  /** A `contentId` makes the part inline, for `cid:` references from the HTML. */
+  attachments?: {
+    filename: string
+    contentType: string
+    content: Buffer
+    contentId?: string | null
+  }[]
 }
 
 const boundary = (): string =>
@@ -728,6 +735,7 @@ export const buildMessage = (input: BuildInput): string => {
   header("From", formatAddress(input.from))
   header("To", input.to.map(formatAddress).join(", "))
   if (input.cc?.length) header("Cc", input.cc.map(formatAddress).join(", "))
+  if (input.replyTo?.length) header("Reply-To", input.replyTo.map(formatAddress).join(", "))
   header("Subject", encodeWord(input.subject))
   header("Message-ID", input.messageId)
   if (input.inReplyTo) header("In-Reply-To", input.inReplyTo)
@@ -775,10 +783,12 @@ export const buildMessage = (input: BuildInput): string => {
   } else {
     body.push(`Content-Type: multipart/mixed; boundary="${mixed}"`, "", `--${mixed}`, ...inner())
     for (const att of attachments) {
+      const cid = att.contentId ? stripControls(att.contentId).replace(/^<|>$/g, "") : null
       body.push(
         `--${mixed}`,
         `Content-Type: ${stripControls(att.contentType)}; name="${stripControls(att.filename)}"`,
-        `Content-Disposition: attachment; filename="${stripControls(att.filename)}"`,
+        `Content-Disposition: ${cid ? "inline" : "attachment"}; filename="${stripControls(att.filename)}"`,
+        ...(cid ? [`Content-ID: <${cid}>`] : []),
         "Content-Transfer-Encoding: base64",
         "",
         encodeBase64Lines(att.content),

@@ -53,7 +53,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">04</span>Using Corsair</p>
-<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">05</span>Reference</p>
@@ -61,7 +61,8 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </div></nav>
 <main class="prose"><div class="page-head"><p class="eyebrow">Reference</p></div><h1 id="http-api">HTTP API</h1>
 <p>The API the control panel is built on. Everything under <code>/api</code>, JSON in and JSON out.</p>
-<p>There is no separate API-key mechanism: the panel API authenticates with the same session cookie a browser gets. If you are automating against it, sign in and keep the cookie.</p>
+<p>The panel API authenticates with the same session cookie a browser gets. If you are automating against it, sign in and keep the cookie.</p>
+<p>The one exception is the <a href="sending.html">sending API</a> under <code>/api/emails</code>, which takes an API key, so an application can send without holding a panel login.</p>
 <h2 id="authentication">Authentication<a class="anchor" href="#authentication" aria-label="Link to this section">#</a></h2>
 <figure class="code"><span class="code-lang">sh</span><pre><code>curl -c jar -X POST https://mail.example.com/api/auth/login \
   -H 'content-type: application/json' \
@@ -542,6 +543,75 @@ ratelimit-reset: 1</code></pre></figure>
 </tr>
 </tbody></table></div>
 <p>Listing shows only a prefix of the signing secret — enough to tell two apart. An endpoint that has lost its secret should rotate rather than read it back.</p>
+<h3 id="sending-api">Sending API<a class="anchor" href="#sending-api" aria-label="Link to this section">#</a></h3>
+<p><code>Authorization: Bearer &lt;key&gt;</code> rather than the session cookie. The reads, cancel, and reschedule also accept a session, which is how the control panel shows sends. Errors carry Resend's names. See <a href="sending.html">Sending API</a>.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/emails</code></td>
+<td>Send. Any key</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/emails/batch</code></td>
+<td>Send up to 100, all or nothing. Any key</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/emails</code></td>
+<td>List, newest first. <code>limit</code>, <code>after</code>, <code>before</code>. Full access</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/emails/:id</code></td>
+<td>Read, with bodies and tags. Full access</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/emails/:id</code></td>
+<td>Reschedule. Full access</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/emails/:id/cancel</code></td>
+<td>Cancel a scheduled send. Full access</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/api-keys</code></td>
+<td>List keys. Session only</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/api-keys</code></td>
+<td>Create a key. The token is returned <strong>once</strong>. Session only</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/api-keys/:api_key_id</code></td>
+<td>Revoke. Session only</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/suppressions</code></td>
+<td>The suppression list. Session only</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/suppressions</code></td>
+<td>Suppress an address by hand. Session only</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/suppressions/:suppression_id</code></td>
+<td>Let mail through to it again. Session only</td>
+</tr>
+</tbody></table></div>
+<p><code>/api/emails/batch</code> is registered ahead of the <code>/api/emails/:id</code> patterns. A key cannot reach the key or suppression routes: a leaked key must not be able to mint its own replacements.</p>
 <h3 id="billing">Billing<a class="anchor" href="#billing" aria-label="Link to this section">#</a></h3>
 <div class='table-wrap'><table><thead><tr>
 <th>Method</th>
@@ -817,7 +887,7 @@ ratelimit-reset: 1</code></pre></figure>
 <h2 id="serialisation">Serialisation<a class="anchor" href="#serialisation" aria-label="Link to this section">#</a></h2>
 <p>Every response shape comes from <code>src/serialize</code>. Keeping it in one place is what stops a secret gaining a field: a password hash, a DKIM private key, or a stored provider reference has to be added deliberately to be exposed, rather than appearing because someone returned a row.</p>
 <p>Objects carry an <code>object</code> discriminator (<code>&quot;domain&quot;</code>, <code>&quot;address&quot;</code>, <code>&quot;webhook&quot;</code>, <code>&quot;list&quot;</code>) so a client can tell them apart without inspecting shape.</p><nav class="pager"><a class="pager-prev" href="./architecture.html"><span>Previous</span><strong>Architecture</strong></a><a class="pager-next" href="./smtp.html"><span>Next</span><strong>SMTP</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#authentication">Authentication</a></li><li class="toc-h2"><a href="#errors">Errors</a></li><li class="toc-h2"><a href="#rate-limits">Rate limits</a></li><li class="toc-h2"><a href="#pagination">Pagination</a></li><li class="toc-h2"><a href="#endpoints">Endpoints</a></li><li class="toc-h3"><a href="#authentication-2">Authentication</a></li><li class="toc-h3"><a href="#account">Account</a></li><li class="toc-h3"><a href="#domains">Domains</a></li><li class="toc-h3"><a href="#addresses">Addresses</a></li><li class="toc-h3"><a href="#filters">Filters</a></li><li class="toc-h3"><a href="#transfers">Transfers</a></li><li class="toc-h3"><a href="#webhooks">Webhooks</a></li><li class="toc-h3"><a href="#billing">Billing</a></li><li class="toc-h3"><a href="#recovery">Recovery</a></li><li class="toc-h3"><a href="#dashboard">Dashboard</a></li><li class="toc-h3"><a href="#webmail">Webmail</a></li><li class="toc-h3"><a href="#payment-provider-webhook">Payment provider webhook</a></li><li class="toc-h2"><a href="#outside-api">Outside /api</a></li><li class="toc-h2"><a href="#route-ordering">Route ordering</a></li><li class="toc-h2"><a href="#serialisation">Serialisation</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#authentication">Authentication</a></li><li class="toc-h2"><a href="#errors">Errors</a></li><li class="toc-h2"><a href="#rate-limits">Rate limits</a></li><li class="toc-h2"><a href="#pagination">Pagination</a></li><li class="toc-h2"><a href="#endpoints">Endpoints</a></li><li class="toc-h3"><a href="#authentication-2">Authentication</a></li><li class="toc-h3"><a href="#account">Account</a></li><li class="toc-h3"><a href="#domains">Domains</a></li><li class="toc-h3"><a href="#addresses">Addresses</a></li><li class="toc-h3"><a href="#filters">Filters</a></li><li class="toc-h3"><a href="#transfers">Transfers</a></li><li class="toc-h3"><a href="#webhooks">Webhooks</a></li><li class="toc-h3"><a href="#sending-api">Sending API</a></li><li class="toc-h3"><a href="#billing">Billing</a></li><li class="toc-h3"><a href="#recovery">Recovery</a></li><li class="toc-h3"><a href="#dashboard">Dashboard</a></li><li class="toc-h3"><a href="#webmail">Webmail</a></li><li class="toc-h3"><a href="#payment-provider-webhook">Payment provider webhook</a></li><li class="toc-h2"><a href="#outside-api">Outside /api</a></li><li class="toc-h2"><a href="#route-ordering">Route ordering</a></li><li class="toc-h2"><a href="#serialisation">Serialisation</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

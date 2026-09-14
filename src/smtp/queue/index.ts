@@ -6,6 +6,7 @@ import { db } from "../../db/index.ts"
 import { emit } from "../../events/index.ts"
 import { inlineBody, releaseInline } from "../../outbound/index.ts"
 import { type Delivery, deliveries } from "../../schema/index.ts"
+import { afterDeferred, afterDelivered, afterFailed, beforeAttempt } from "../../sending/index.ts"
 import { getRaw } from "../../storage/index.ts"
 import { headersOf, sendBounce } from "../bounce/index.ts"
 import { deliverToDomain } from "../client/index.ts"
@@ -63,17 +64,26 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
 
   await Promise.all(
     rows.map(async (row) => {
+      // A canceled or suppressed API send is settled without an attempt. It is
+      // neither sent nor failed, so it counts toward neither.
+      if (row.email_id && !(await beforeAttempt(row).catch(logged(true)))) return
+
       const raw = await bodyOf(row)
       if (!raw) {
-        await fail(row, 550, "The queued message body is no longer available.")
-        await sendBounce({
-          recipient: row.rcpt_to,
-          returnPath: row.mail_from,
-          code: 550,
-          status: "5.1.1",
-          reason: "The queued message body is no longer available.",
-          originalMessageId: row.message_id,
-        }).catch(() => {})
+        const reason = "The queued message body is no longer available."
+        await fail(row, 550, reason)
+        if (row.email_id) {
+          await afterFailed(row, 550, reason, { local: true }).catch(logged())
+        } else {
+          await sendBounce({
+            recipient: row.rcpt_to,
+            returnPath: row.mail_from,
+            code: 550,
+            status: "5.1.1",
+            reason,
+            originalMessageId: row.message_id,
+          }).catch(() => {})
+        }
         result.failed++
         return
       }
@@ -103,7 +113,11 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
             }),
         )
         await releaseInline(row.storage_key)
-        void notify(row, "message.delivered", { code: outcome.code, host: outcome.host })
+        if (row.email_id) {
+          await afterDelivered(row, { code: outcome.code, host: outcome.host }).catch(logged())
+        } else {
+          void notify(row, "message.delivered", { code: outcome.code, host: outcome.host })
+        }
         result.sent++
         return
       }
@@ -123,11 +137,13 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
               updated_at: new Date(),
             }),
         )
-        void notify(row, "message.deferred", {
+        const deferral = {
           code: outcome.code,
           reason: outcome.message.slice(0, 500),
           attempt: row.attempts,
-        })
+        }
+        if (row.email_id) await afterDeferred(row, deferral).catch(logged())
+        else void notify(row, "message.deferred", deferral)
         result.deferred++
         return
       }
@@ -144,23 +160,32 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
        * from. `sendBounce` refuses an empty return path, which is what stops a
        * bounce bouncing.
        */
-      await sendBounce({
-        recipient: row.rcpt_to,
-        returnPath: row.mail_from,
-        code: outcome.code,
-        status: outcome.code >= 500 ? "5.1.1" : "4.4.1",
-        reason: outcome.message,
-        originalHeaders: headersOf(raw),
-        originalMessageId: row.message_id,
-      }).catch((e) => {
-        console.error("[corsair] could not send a bounce:", (e as Error).message)
-      })
+      if (row.email_id) {
+        // An API send's return path is our own bounce address, so a DSN would
+        // only come straight back here. The application hears through its
+        // events instead; see `afterFailed`.
+        await afterFailed(row, outcome.code, outcome.message).catch(logged())
+      } else {
+        await sendBounce({
+          recipient: row.rcpt_to,
+          returnPath: row.mail_from,
+          code: outcome.code,
+          status: outcome.code >= 500 ? "5.1.1" : "4.4.1",
+          reason: outcome.message,
+          originalHeaders: headersOf(raw),
+          originalMessageId: row.message_id,
+        }).catch((e) => {
+          console.error("[corsair] could not send a bounce:", (e as Error).message)
+        })
+      }
 
       await releaseInline(row.storage_key)
-      void notify(row, "message.bounced", {
-        code: outcome.code,
-        reason: outcome.message.slice(0, 500),
-      })
+      if (!row.email_id) {
+        void notify(row, "message.bounced", {
+          code: outcome.code,
+          reason: outcome.message.slice(0, 500),
+        })
+      }
       result.failed++
     }),
   )
@@ -189,6 +214,19 @@ const notify = async (
     data: { recipient: row.rcpt_to, sender: row.mail_from, message_id: row.message_id, ...data },
   })
 }
+
+/**
+ * Logs a failure to record a sending-API outcome and carries on. The delivery
+ * already happened, or already failed; losing the event for it must not undo
+ * that or wedge the row. `fallback` is what a failed pre-attempt check answers,
+ * and it answers "attempt it": a message accepted for delivery is delivered.
+ */
+const logged =
+  <T = void>(fallback?: T) =>
+  (e: unknown): T => {
+    console.error("[corsair] sending event failed:", (e as Error).message)
+    return fallback as T
+  }
 
 const fail = async (row: Delivery, code: number, message: string): Promise<void> => {
   await db().execute(

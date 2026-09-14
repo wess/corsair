@@ -67,6 +67,12 @@ Signed with the Standard Webhooks scheme, so existing verification libraries
 work unchanged; retried on a widening schedule for about a day; and an endpoint
 that fails twenty times in a row is disabled rather than hammered forever.
 
+**Sending API.** Applications send as your domains over HTTP with an API key,
+using Resend's API — point a Resend SDK at `https://<server>/api` and it works
+unchanged. Sends ride the same queue and DKIM keys as mailbox mail. Bounces come
+back to a per-message return path, and an address that no longer exists is
+suppressed so the application stops mailing it.
+
 **Managing.** A control panel for domains, mailboxes (standard, alias,
 catch-all, group), Sieve filters, IMAP migration from a previous host,
 two-factor authentication, plans, and billing.

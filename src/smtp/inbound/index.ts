@@ -17,6 +17,7 @@ import * as mime from "../../mime/index.ts"
 import { enqueue } from "../../outbound/index.ts"
 import { assertStorageAvailable, withinDailyLimit } from "../../plans/index.ts"
 import { type Filter, type Folder, filters, folders, mailLog } from "../../schema/index.ts"
+import { applyReport, bounceTarget } from "../../sending/index.ts"
 import * as sieve from "../../sieve/index.ts"
 import { checkSpf, lookupDmarc, spfAligned } from "../../spf/index.ts"
 import { deliver } from "../../store/index.ts"
@@ -53,6 +54,10 @@ export const validateRecipient = async (
   _identity: unknown,
   _envelope: Envelope,
 ): Promise<Reply | null> => {
+  // A report for an API send, addressed to its bounce address. Accepted before
+  // routing, and whether or not any mailbox by that name exists.
+  if (await bounceTarget(address)) return null
+
   const route = await resolveRecipient(address)
 
   if (route.kind === "unknown") {
@@ -386,6 +391,41 @@ export const handleMessage = async (
   let lastFailure: DeliveryOutcome | null = null
 
   for (const recipient of envelope.rcptTo) {
+    // Checked ahead of routing, so a catch-all or a mailbox called `bounces`
+    // never files a report that belongs to the queue.
+    const target = await bounceTarget(recipient)
+    if (target) {
+      const result = await applyReport(target, normalized).catch((e: unknown) => {
+        console.error("[corsair] could not apply a delivery report:", (e as Error).message)
+        return { applied: 0, detail: "The report could not be processed." }
+      })
+      await db()
+        .execute(
+          from(mailLog).insert({
+            user_id: target.user_id,
+            domain_id: target.domain_id,
+            direction: "inbound",
+            status: "accepted",
+            mail_from: envelope.mailFrom,
+            rcpt_to: recipient,
+            subject,
+            message_id: messageId,
+            size: normalized.length,
+            remote_ip: ctx.remoteIp,
+            remote_host: results.reverseDns,
+            spf: results.spf,
+            dkim: results.dkim,
+            dmarc: results.dmarc,
+            spam_score: verdict.score,
+            code: 250,
+            detail: result.detail,
+          }),
+        )
+        .catch((e: unknown) => console.error("[corsair] mail_log insert failed:", e))
+      accepted++
+      continue
+    }
+
     const route = await resolveRecipient(recipient)
     let outcome: DeliveryOutcome
 
