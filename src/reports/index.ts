@@ -48,7 +48,7 @@ export type ComplaintReport = {
 
 export type Report = BounceReport | ComplaintReport
 
-// ---------------------------------------------------------------- fields --
+// fields
 
 /**
  * Header-shaped fields, as `message/delivery-status` and
@@ -120,7 +120,7 @@ const originalMessageId = (raw: string, parts: mime.Part[]): string | null => {
   return fieldsOf(raw.slice(headersOnly.bodyStart, headersOnly.end)).get("message-id") ?? null
 }
 
-// ----------------------------------------------------------------- parse --
+// parse
 
 const parseDsn = (raw: string, parts: mime.Part[]): BounceReport | null => {
   const status = find(parts, "message", "delivery-status")
@@ -202,7 +202,7 @@ export const parseReport = (input: string): Report | null => {
   return null
 }
 
-// ------------------------------------------------------------- verdicts --
+// verdicts
 
 export type Verdict = {
   severity: "hard" | "soft" | "complaint" | "delivered" | "unknown"
@@ -274,7 +274,7 @@ export const isRecipientGone = (input: {
   )
 }
 
-// ------------------------------------------------------------- addresses --
+// addresses
 
 const BOUNCE_LOCAL = /^bounces\+([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
 

@@ -81,7 +81,7 @@ export const detectProvider = async (domain: string): Promise<DetectedProvider> 
   return { id: "unknown", label: "your DNS provider", automatic: false, nameservers }
 }
 
-// ------------------------------------------------------------- publishing --
+// publishing
 
 export type PublishResult = {
   published: number
@@ -99,7 +99,7 @@ type PublishInput = {
 const hostFor = (record: DomainRecord, domain: string): string =>
   record.host === "@" || record.host === "" ? domain : `${record.host}.${domain}`
 
-// ------------------------------------------------------------- Cloudflare --
+// Cloudflare
 
 const cloudflare = async (input: PublishInput): Promise<PublishResult> => {
   const api = "https://api.cloudflare.com/client/v4"
@@ -189,7 +189,7 @@ const sameTxtPurpose = (a: string, b: string): boolean => {
   return kind(a) === kind(b)
 }
 
-// ----------------------------------------------------------- DigitalOcean --
+// DigitalOcean
 
 const digitalocean = async (input: PublishInput): Promise<PublishResult> => {
   const api = `https://api.digitalocean.com/v2/domains/${encodeURIComponent(input.domain)}/records`

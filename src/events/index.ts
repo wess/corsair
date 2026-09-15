@@ -30,7 +30,7 @@ export const eventId = (): string => `msg_${base62(26)}`
 
 export const signingSecret = (): string => `whsec_${randomBytes(24).toString("base64")}`
 
-// ------------------------------------------------------------------ types --
+// types
 
 export const EVENT_TYPES = [
   // Inbound
@@ -96,7 +96,7 @@ export const subscribes = (events: string[], type: EventType): boolean => {
   })
 }
 
-// ---------------------------------------------------------------- signing --
+// signing
 
 const secretKey = (secret: string): Buffer => Buffer.from(secret.replace(/^whsec_/, ""), "base64")
 
@@ -150,7 +150,7 @@ export const verifySignature = (input: {
   })
 }
 
-// ------------------------------------------------------------------- emit --
+// emit
 
 export type EmitInput = {
   userId: string | null
@@ -208,7 +208,7 @@ export const emit = async (input: EmitInput): Promise<number> => {
   }
 }
 
-// ------------------------------------------------------------------ hooks --
+// hooks
 
 export const createWebhook = async (input: {
   userId: string

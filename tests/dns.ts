@@ -36,7 +36,7 @@ const check = async (label: string, fn: () => Promise<string>) => {
   }
 }
 
-// ------------------------------------------------------------ chunked keys --
+// chunked keys
 
 /**
  * Every 2048-bit DKIM key is longer than the 255-byte cap on a single TXT
@@ -108,7 +108,7 @@ await check("both resolver shapes reassemble identically", async () => {
   return "one record with two chunks === two records with one chunk each"
 })
 
-// -------------------------------------------------------------- malformed --
+// malformed
 
 await check("a selector that does not exist is not a crash", async () => {
   // Some zones answer a wildcard, and an empty `p=` is a legitimate "revoked"
@@ -121,7 +121,7 @@ await check("a selector that does not exist is not a crash", async () => {
   return `returns a revoked record (empty p=), which verifies as permerror`
 })
 
-// -------------------------------------------------------------------- spf --
+// spf
 
 await check("SPF resolves and evaluates against a real record", async () => {
   const result = await checkSpf({
@@ -142,7 +142,7 @@ await check("SPF for a domain with no record is `none`, not an error", async () 
   return `example.invalid → ${result?.result ?? "null"}`
 })
 
-// ------------------------------------------------------- end-to-end verify --
+// end-to-end verify
 
 await check("a real signed message verifies through real DNS", async () => {
   // Signed by GitHub with a chunked key: the exact combination that crashed.
@@ -167,7 +167,7 @@ await check("a real signed message verifies through real DNS", async () => {
   return `forged signature → ${verdict.result} (no exception)`
 })
 
-// ----------------------------------------------------------------- report --
+// report
 
 console.log()
 for (const { label, ok, detail } of results) {

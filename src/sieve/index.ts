@@ -17,7 +17,7 @@
 
 import { decodeWords, headerValue, headerValues, type ParsedMessage } from "../mime/index.ts"
 
-// ------------------------------------------------------------------ lexer --
+// lexer
 
 type Token =
   | { kind: "identifier"; value: string }
@@ -151,7 +151,7 @@ const tokenize = (source: string): { tokens: Token[]; lines: number[] } => {
   return { tokens, lines }
 }
 
-// ----------------------------------------------------------------- parser --
+// parser
 
 export type Argument =
   | { kind: "tag"; value: string }
@@ -328,7 +328,7 @@ export const compile = (source: string): { ok: true } | { ok: false; error: stri
   }
 }
 
-// -------------------------------------------------------------- evaluate --
+// evaluate
 
 export type SieveContext = {
   message: ParsedMessage

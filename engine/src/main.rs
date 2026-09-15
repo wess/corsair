@@ -37,7 +37,7 @@ use tokio_rustls::{server::TlsStream, TlsAcceptor};
 /// of; past it, this is a probe rather than mail.
 const MAX_LINE: usize = 4096;
 
-// ------------------------------------------------------------------ stream --
+// stream
 
 /// The client connection, before and after the upgrade.
 ///
@@ -95,7 +95,7 @@ fn broken() -> std::io::Error {
     std::io::Error::new(std::io::ErrorKind::BrokenPipe, "stream taken mid-upgrade")
 }
 
-// ------------------------------------------------------------------- lines --
+// lines
 
 /// Takes one complete line from the buffer, terminator included.
 ///
@@ -143,7 +143,7 @@ fn reply_code(line: &[u8]) -> Option<u16> {
     std::str::from_utf8(&text[..3]).ok()?.parse().ok()
 }
 
-// ----------------------------------------------------------------- backend --
+// backend
 
 /// Reads one complete SMTP reply, following continuation lines.
 async fn read_reply(stream: &mut TcpStream, buf: &mut Vec<u8>) -> std::io::Result<Vec<u8>> {
@@ -199,7 +199,7 @@ async fn send_xclient(
     read_reply(backend, buf).await
 }
 
-// ------------------------------------------------------------------ relay --
+// relay
 
 struct Session {
     secure: bool,
@@ -357,7 +357,7 @@ async fn handle(
     Ok(())
 }
 
-// ------------------------------------------------------------------- setup --
+// setup
 
 fn load_tls(cert_path: &str, key_path: &str) -> std::io::Result<Arc<ServerConfig>> {
     let cert_file = std::fs::read(cert_path)?;

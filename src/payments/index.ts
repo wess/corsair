@@ -45,7 +45,7 @@ export type WebhookEvent = {
   periodEnd?: Date
 }
 
-// -------------------------------------------------------------- Stripe --
+// Stripe
 
 const STRIPE = "https://api.stripe.com/v1"
 
@@ -147,7 +147,7 @@ export const cancelSubscription = async (subscriptionRef: string): Promise<void>
   })
 }
 
-// ------------------------------------------------------------- webhooks --
+// webhooks
 
 /**
  * Verifies Stripe's `Stripe-Signature` header.

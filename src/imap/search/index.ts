@@ -176,7 +176,7 @@ export const needsHeaders = (criterion: Criterion): boolean => {
   }
 }
 
-// -------------------------------------------------------------- evaluate --
+// evaluate
 
 export type Candidate = {
   message: Message
@@ -286,7 +286,7 @@ export const matches = (
   }
 }
 
-// ------------------------------------------------------------------ sort --
+// sort
 
 export type SortKey = "ARRIVAL" | "CC" | "DATE" | "FROM" | "SIZE" | "SUBJECT" | "TO" | "REVERSE"
 

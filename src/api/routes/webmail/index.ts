@@ -82,7 +82,7 @@ const summary = (message: Message) => ({
 })
 
 export const webmailRoutes: Route[] = [
-  // ------------------------------------------------------------------ auth --
+  // auth
 
   postR(
     "/api/mail/login",
@@ -267,7 +267,7 @@ export const webmailRoutes: Route[] = [
     })
   }),
 
-  // --------------------------------------------------------------- folders --
+  // folders
 
   getR("/api/mail/folders", { before: mailed, assigns: {} as never }, async (c) => {
     const rows = await db().all<{
@@ -357,7 +357,7 @@ export const webmailRoutes: Route[] = [
     },
   ),
 
-  // -------------------------------------------------------------- messages --
+  // messages
 
   getR(
     "/api/mail/messages",
@@ -630,7 +630,7 @@ export const webmailRoutes: Route[] = [
     },
   ),
 
-  // ----------------------------------------------------------------- send --
+  // send
 
   postR(
     "/api/mail/send",

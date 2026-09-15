@@ -26,7 +26,7 @@ export type Notice = {
   action?: { label: string; target: string }
 }
 
-// ------------------------------------------------------------- a mailbox --
+// a mailbox
 
 /**
  * Notices for somebody signed in to the webmail.
@@ -57,7 +57,7 @@ export const mailboxNotices = (address: Address, domain: Domain): Notice[] => {
   return notices
 }
 
-// ------------------------------------------------------------- an account --
+// an account
 
 const countAddresses = async (domainId: string): Promise<number> => {
   const row = await db().one<{ count: string }>({

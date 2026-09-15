@@ -41,7 +41,7 @@ export const score = (raw: string, signals: SpamSignals): SpamVerdict => {
     reasons.push(`${points > 0 ? "+" : ""}${points} ${reason}`)
   }
 
-  // ------------------------------------------------------------- identity --
+  // identity
 
   if (signals.dmarc === "fail") add(4, "DMARC alignment failed")
   else if (signals.dmarc === "pass") add(-2, "DMARC passed")
@@ -62,7 +62,7 @@ export const score = (raw: string, signals: SpamSignals): SpamVerdict => {
     add(1.5, "HELO is not a hostname")
   }
 
-  // -------------------------------------------------------------- headers --
+  // headers
 
   const from = mime.headerValue(parsed.headers, "from")
   const subject = mime.decodeWords(mime.headerValue(parsed.headers, "subject") ?? "")
@@ -84,7 +84,7 @@ export const score = (raw: string, signals: SpamSignals): SpamVerdict => {
     add(0.5, "subject mixes scripts")
   }
 
-  // --------------------------------------------------------------- bodies --
+  // bodies
 
   const { text, html } = mime.bodyText(raw, parsed)
   const body = text || html

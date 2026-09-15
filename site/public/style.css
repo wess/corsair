@@ -11,7 +11,7 @@
  * markdown renderer in site/build.ts.
  */
 
-/* ------------------------------------------------------------------ tokens */
+/* tokens */
 
 :root {
   --bone: #fbf3e4;
@@ -91,7 +91,7 @@
   --burst: 0.14;
 }
 
-/* -------------------------------------------------------------------- base */
+/* base */
 
 *,
 *::before,
@@ -164,7 +164,7 @@ svg {
   max-width: 100%;
 }
 
-/* ------------------------------------------------------------- type ramp */
+/* type ramp */
 
 h1,
 h2,
@@ -259,7 +259,7 @@ strong {
   margin: 0 0 0.75rem;
 }
 
-/* ---------------------------------------------------------------- masthead */
+/* masthead */
 
 .masthead {
   position: sticky;
@@ -409,7 +409,7 @@ strong {
   background: var(--ink);
 }
 
-/* --------------------------------------------------------- plate primitive */
+/* plate primitive */
 
 .plate,
 .callout,
@@ -435,7 +435,7 @@ figure.code,
   margin: 0;
 }
 
-/* ------------------------------------------------------------------- prose */
+/* prose */
 
 .prose {
   max-width: var(--measure);
@@ -628,7 +628,7 @@ hr.rule::after {
   border: 2px solid var(--ink);
 }
 
-/* ---------------------------------------------------------------- callouts */
+/* callouts */
 
 .callout {
   margin: 1.75rem 0;
@@ -676,7 +676,7 @@ hr.rule::after {
   margin-bottom: 0.8rem;
 }
 
-/* ------------------------------------------------------------------ tables */
+/* tables */
 
 .table-wrap {
   margin: 1.75rem 0;
@@ -720,7 +720,7 @@ td code {
   white-space: nowrap;
 }
 
-/* -------------------------------------------------------------- docs shell */
+/* docs shell */
 
 .docs-shell {
   display: grid;
@@ -864,7 +864,7 @@ td code {
   font-size: 0.95em;
 }
 
-/* ------------------------------------------------------------------- pager */
+/* pager */
 
 .pager {
   display: grid;
@@ -913,7 +913,7 @@ td code {
   text-align: right;
 }
 
-/* -------------------------------------------------------------------- home */
+/* home */
 
 .home {
   padding-bottom: 4rem;
@@ -1196,7 +1196,7 @@ td code {
   font-style: normal;
 }
 
-/* --------------------------------------------------------------- colophon */
+/* colophon */
 
 .colophon {
   position: relative;
@@ -1278,7 +1278,7 @@ td code {
   text-decoration: underline;
 }
 
-/* ------------------------------------------------------------ smtp lookup */
+/* smtp lookup */
 
 .lookup {
   margin: 1.5rem 0 2rem;
@@ -1311,7 +1311,7 @@ tr[hidden] {
   display: none;
 }
 
-/* ------------------------------------------------------------- responsive */
+/* responsive */
 
 @media (max-width: 1180px) {
   .docs-shell {

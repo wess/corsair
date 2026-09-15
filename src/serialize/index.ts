@@ -278,7 +278,7 @@ export const entitlementObject = (entitlement: Entitlement, usage: Usage) => ({
   },
 })
 
-// ----------------------------------------------------------------- sending --
+// sending
 
 /**
  * The email object, in Resend's shape. `full` adds the bodies and tags, which

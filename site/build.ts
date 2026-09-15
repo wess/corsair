@@ -32,7 +32,7 @@ const MODE = process.env.SITE_MODE === "pages" ? "pages" : "app"
 const SITE_URL = (process.env.SITE_URL ?? "https://wess.io/corsair").replace(/\/+$/, "")
 const REPO = "https://github.com/wess/corsair"
 
-// ------------------------------------------------------------ front matter --
+// front matter
 
 type Meta = {
   title: string
@@ -77,7 +77,7 @@ const parseFrontMatter = (raw: string): { meta: Meta; body: string } => {
   }
 }
 
-// ---------------------------------------------------------------- markdown --
+// markdown
 
 const escapeHtml = (value: string): string =>
   value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
@@ -229,7 +229,7 @@ const render = (markdown: string, headings: Heading[] = []): string => {
       continue
     }
 
-    // --------------------------------------------------------- blockquote --
+    // blockquote
     if (line.startsWith("> ")) {
       const body: string[] = []
       while (i < lines.length && lines[i]!.startsWith(">")) {
@@ -240,7 +240,7 @@ const render = (markdown: string, headings: Heading[] = []): string => {
       continue
     }
 
-    // --------------------------------------------------------------- rule --
+    // rule
     if (line.trim() === "---") {
       out.push('<hr class="rule" />')
       i++
@@ -252,7 +252,7 @@ const render = (markdown: string, headings: Heading[] = []): string => {
       continue
     }
 
-    // --------------------------------------------------------------- list --
+    // list
     const marker = line.match(LIST_MARKER)
     if (marker) {
       const baseIndent = marker[1]!.length
@@ -360,7 +360,7 @@ const render = (markdown: string, headings: Heading[] = []): string => {
   return out.join("\n")
 }
 
-// -------------------------------------------------------------- navigation --
+// navigation
 
 /** Sidebar groups, in the order they appear. A page names one in `section`. */
 const SECTIONS = [
@@ -473,7 +473,7 @@ const STARBURST = (): string => {
   return `<svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="${points.join(" ")}" /></svg>`
 }
 
-// ------------------------------------------------------------------ layout --
+// layout
 
 const tocHtml = (headings: Heading[]): string => {
   if (headings.length < 2) return ""
@@ -632,7 +632,7 @@ ${footer}
 `
 }
 
-// ------------------------------------------------------------------- build --
+// build
 
 const walk = async (dir: string, base = dir): Promise<string[]> => {
   const entries = await readdir(dir, { withFileTypes: true })

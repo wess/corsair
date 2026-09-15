@@ -81,7 +81,7 @@ const TYPE_LABEL: Record<string, string> = {
   group: "Group",
 }
 
-// ------------------------------------------------------------------- list --
+// list
 
 export const DomainsPage = () => {
   const [query, setQuery] = useState({
@@ -202,7 +202,7 @@ const AddDomainDialog = ({
   )
 }
 
-// ----------------------------------------------------------------- detail --
+// detail
 
 /**
  * `owner: true` means the tab is only for someone who owns this domain.
@@ -263,7 +263,7 @@ export const DomainDetailPage = ({ id }: { id: string }) => {
   )
 }
 
-// -------------------------------------------------------------- mailboxes --
+// mailboxes
 
 const MailboxesTab = ({ domain }: { domain: Domain }) => {
   const [query, setQuery] = useState({
@@ -560,7 +560,7 @@ const CreateAddressDialog = ({
   )
 }
 
-// --------------------------------------------------------------- fallback --
+// fallback
 
 const FallbackTab = ({ domain, onSaved }: { domain: Domain; onSaved: () => void }) => {
   const [value, setValue] = useState(domain.fallback_domain?.name ?? "")
@@ -628,7 +628,7 @@ const FallbackTab = ({ domain, onSaved }: { domain: Domain; onSaved: () => void 
   )
 }
 
-// -------------------------------------------------------------------- DNS --
+// DNS
 
 const PURPOSE_LABEL: Record<string, string> = {
   verification: "Verification",
@@ -905,7 +905,7 @@ const AutomaticSetup = ({ domain, onPublished }: { domain: Domain; onPublished: 
   )
 }
 
-// ----------------------------------------------------------- client config --
+// client config
 
 const ClientConfigTab = () => {
   const { data, loading, error } = useLoad(() =>
@@ -958,7 +958,7 @@ const ClientConfigTab = () => {
   )
 }
 
-// ----------------------------------------------------------- self service --
+// self service
 
 const SelfServiceTab = ({ domain, onSaved }: { domain: Domain; onSaved: () => void }) => {
   const [enabled, setEnabled] = useState(Boolean(domain.self_service_enabled))
@@ -1020,7 +1020,7 @@ const SelfServiceTab = ({ domain, onSaved }: { domain: Domain; onSaved: () => vo
   )
 }
 
-// -------------------------------------------------------- address detail --
+// address detail
 
 export const AddressDetailPage = ({ id }: { id: string }) => {
   const [tab, setTab] = useState<"general" | "password">("general")

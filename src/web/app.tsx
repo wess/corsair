@@ -44,7 +44,7 @@ type Notice = {
   action?: { label: string; target: string }
 }
 
-// ------------------------------------------------------------------ router --
+// router
 
 export const navigate = (path: string) => {
   window.history.pushState({}, "", `${BASE}${path}`)

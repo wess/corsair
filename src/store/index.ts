@@ -141,7 +141,7 @@ const threadIdOf = (parsed: ParsedMessage, messageId: string | null): string | n
   return headerValue(parsed.headers, "in-reply-to") ?? messageId
 }
 
-// ---------------------------------------------------------------- mutate --
+// mutate
 
 export const setFlags = async (
   messageId: string,
@@ -316,7 +316,7 @@ export const copyTo = async (input: {
   return { sourceUids, targetUids }
 }
 
-// ------------------------------------------------------------------ read --
+// read
 
 export const folderOf = (addressId: string, name: string): Promise<Folder | null> =>
   db().one<Folder>(

@@ -18,7 +18,7 @@ import {
 
 export const hashToken = (value: string): string => createHash("sha256").update(value).digest("hex")
 
-// -------------------------------------------------------------- panel auth --
+// panel auth
 
 export const SESSION_COOKIE = "corsair_session"
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14
@@ -148,7 +148,7 @@ export const requireOwner = (principal: Principal): Principal => {
   return principal
 }
 
-// --------------------------------------------------------------- mail auth --
+// mail auth
 
 export type MailIdentity = {
   address: Address
@@ -309,7 +309,7 @@ export const authenticateAddress = async (
   return authenticateResolved(address, password)
 }
 
-// ------------------------------------------------------- webmail sessions --
+// webmail sessions
 
 export const MAIL_COOKIE = "corsair_webmail"
 export const MAIL_SESSION_TTL_SECONDS = 60 * 60 * 12
@@ -379,7 +379,7 @@ export const requireMailIdentity = async (cookieHeader: string | null): Promise<
   return identity
 }
 
-// ------------------------------------------------------------------- bans --
+// bans
 
 const FAILURE_WINDOW_MS = 15 * 60 * 1000
 const FAILURE_THRESHOLD = 10
@@ -427,7 +427,7 @@ export const clearAuthFailures = async (ip: string): Promise<void> => {
   )
 }
 
-// ---------------------------------------------------------------- helpers --
+// helpers
 
 export const hashPassword = (plain: string): Promise<string> => hash(plain)
 export const verifyPassword = (plain: string, hashed: string): Promise<boolean> =>

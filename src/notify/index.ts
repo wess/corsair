@@ -53,7 +53,7 @@ export const sendNotification = async (input: {
   await enqueue({ raw, mailFrom: postmaster(), recipients: [input.to] })
 }
 
-// ------------------------------------------------------------------ tokens --
+// tokens
 
 const TTL_SECONDS: Record<string, number> = {
   email_verify: 60 * 60 * 24 * 3,
@@ -112,7 +112,7 @@ export const consumeToken = async (
   return row ?? null
 }
 
-// ----------------------------------------------------------------- notices --
+// notices
 
 /** Where account notices go — deliberately separate from the sign-in address. */
 export const noticeAddress = (user: Pick<User, "email" | "notifications_email">): string =>

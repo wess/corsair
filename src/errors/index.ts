@@ -81,7 +81,7 @@ export const rateLimitExceeded = (retryAfterSeconds: number, limit: number) =>
 export const applicationError = (message = "Something went wrong.") =>
   err(500, "application_error", message)
 
-// ----------------------------------------------------------------- sending --
+// sending
 
 export const missingApiKey = () =>
   err(

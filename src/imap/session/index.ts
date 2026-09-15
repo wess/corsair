@@ -105,7 +105,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
     `${tag} NO ${code ? `[${code}] ` : ""}${message}${CRLF}`
   const bad = (tag: string, message: string) => `${tag} BAD ${message}${CRLF}`
 
-  // ------------------------------------------------------------- snapshot --
+  // snapshot
 
   /**
    * Reconciles the session's view with the database and returns the untagged
@@ -160,7 +160,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
   const reload = async (folder: Folder): Promise<Folder> =>
     (await db().one<Folder>(from(folders).where((q) => q("id").equals(folder.id)))) ?? folder
 
-  // -------------------------------------------------------------- folders --
+  // folders
 
   const folderByName = async (name: string): Promise<Folder | null> => {
     if (!identity) return null
@@ -231,7 +231,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
 
   const quote = (value: string): string => `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
 
-  // ----------------------------------------------------------------- auth --
+  // auth
 
   const finishLogin = async (tag: string, username: string, password: string): Promise<string> => {
     authState = null
@@ -245,7 +245,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
     return `${capabilityLine()}${ok(tag, "Logged in.")}`
   }
 
-  // ------------------------------------------------------------- messages --
+  // messages
 
   const resolveSet = (set: string, uid: boolean): Message[] => {
     if (!selected) return []
@@ -260,7 +260,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
   const sequenceOf = (message: Message): number =>
     (selected?.snapshot.findIndex((m) => m.id === message.id) ?? -1) + 1
 
-  // ------------------------------------------------------------- commands --
+  // commands
 
   const doSelect = async (tag: string, name: string, readOnly: boolean): Promise<string> => {
     const folder = await folderByName(name)
@@ -645,7 +645,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
     return ok(tag, `${subscribed ? "SUBSCRIBE" : "UNSUBSCRIBE"} completed.`)
   }
 
-  // ------------------------------------------------------------ dispatch --
+  // dispatch
 
   const dispatch = async (line: string): Promise<string> => {
     const reader = createReader(line)
@@ -654,7 +654,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
     const name = reader.word()
     const args = reader.rest()
 
-    // ---- any state ----
+    // any state
     switch (name) {
       case "CAPABILITY":
         return capabilityLine() + ok(tag, "CAPABILITY completed.")
@@ -671,7 +671,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
         return ok(tag, "ENABLE completed.")
     }
 
-    // ---- not authenticated ----
+    // not authenticated
     if (!identity) {
       switch (name) {
         case "STARTTLS":
@@ -719,7 +719,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
       }
     }
 
-    // ---- authenticated ----
+    // authenticated
     switch (name) {
       case "SELECT":
         return doSelect(tag, createReader(args).astring(), false)
@@ -826,7 +826,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
     }
   }
 
-  // ---------------------------------------------------------------- feed --
+  // feed
 
   const handleAuthContinuation = async (line: string): Promise<string> => {
     const state = authState!

@@ -239,7 +239,7 @@ export const authRoutes: Route[] = [
     json(c, 200, userObject(await userById(principalOf(c).userId))),
   ),
 
-  // ------------------------------------------------------------------ 2FA --
+  // 2FA
 
   postR("/api/auth/totp/setup", { before: authed, assigns: {} as never }, async (c) => {
     const user = await userById(principalOf(c).userId)
@@ -295,7 +295,7 @@ export const authRoutes: Route[] = [
     },
   ),
 
-  // ------------------------------------------------------- verification --
+  // verification
 
   postR("/api/auth/verify/send", { before: authed, assigns: {} as never }, async (c) => {
     const user = await userById(principalOf(c).userId)
@@ -325,7 +325,7 @@ export const authRoutes: Route[] = [
     },
   ),
 
-  // ------------------------------------------------------ password reset --
+  // password reset
 
   postR(
     "/api/auth/password/forgot",

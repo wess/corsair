@@ -202,7 +202,7 @@ export const createSession = (hooks: SessionHooks): Session => {
     return format(reply)
   }
 
-  // ------------------------------------------------------------------ auth --
+  // auth
 
   const finishAuth = async (username: string, password: string): Promise<string> => {
     authState = null
@@ -297,7 +297,7 @@ export const createSession = (hooks: SessionHooks): Session => {
     })
   }
 
-  // ------------------------------------------------------------- commands --
+  // commands
 
   const handleCommand = async (line: string): Promise<string> => {
     const space = line.indexOf(" ")
@@ -525,7 +525,7 @@ export const createSession = (hooks: SessionHooks): Session => {
     }
   }
 
-  // ------------------------------------------------------------ data phase --
+  // data phase
 
   const handleDataLine = async (line: string): Promise<string | null> => {
     if (line === ".") {
@@ -560,7 +560,7 @@ export const createSession = (hooks: SessionHooks): Session => {
     return null
   }
 
-  // ---------------------------------------------------------------- feed --
+  // feed
 
   return {
     greeting: () =>

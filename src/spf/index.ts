@@ -36,7 +36,7 @@ const spfRecordOf = async (domain: string): Promise<string | null> => {
   }
 }
 
-// -------------------------------------------------------------- addresses --
+// addresses
 
 const ip4ToInt = (ip: string): number | null => {
   const parts = ip.split(".")
@@ -114,7 +114,7 @@ const matchesIp = (ip: string, candidate: string, bits?: number): boolean =>
     ? isIp6(candidate) && ip6InCidr(ip, candidate, bits ?? 128)
     : !isIp6(candidate) && ip4InCidr(ip, candidate, bits ?? 32)
 
-// --------------------------------------------------------------- macros --
+// macros
 
 /**
  * Only the macros that appear in real records are expanded: %{s} %{l} %{o} %{d}
@@ -169,7 +169,7 @@ const expandMacros = (
   })
 }
 
-// -------------------------------------------------------------- evaluate --
+// evaluate
 
 type Qualifier = "+" | "-" | "~" | "?"
 
@@ -354,7 +354,7 @@ export const checkSpf = async (input: {
   }
 }
 
-// ---------------------------------------------------------------- DMARC --
+// DMARC
 
 export type DmarcPolicy = {
   policy: "none" | "quarantine" | "reject"

@@ -33,7 +33,7 @@ export const dkimRecord = (publicKeyPem: string): string => {
   return `v=DKIM1; k=rsa; p=${body}`
 }
 
-// ------------------------------------------------------- canonicalisation --
+// canonicalisation
 
 /**
  * relaxed header canonicalisation (RFC 6376 §3.4.2): lower-case the name,
@@ -82,7 +82,7 @@ const bodyHash = (body: string): string =>
     .update(Buffer.from(canonBody(body), "latin1"))
     .digest("base64")
 
-// -------------------------------------------------------------------- sign --
+// sign
 
 export type SignInput = {
   raw: string
@@ -179,7 +179,7 @@ const foldSignature = (line: string): string => {
   return out.join(CRLF)
 }
 
-// ------------------------------------------------------------------ verify --
+// verify
 
 export type DkimResult = {
   result: "pass" | "fail" | "none" | "temperror" | "permerror"

@@ -159,7 +159,7 @@ export const requireFeature = (
   if (!entitlement.features[feature]) throw planRequired(label)
 }
 
-// ------------------------------------------------------------------ usage --
+// usage
 
 export type Usage = {
   bytesUsed: number

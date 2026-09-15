@@ -6,7 +6,7 @@
 ;(function () {
   "use strict"
 
-  // ------------------------------------------------------------------ menu --
+  // menu
   var toggle = document.querySelector(".menu")
   var nav = document.getElementById("site-nav")
   if (toggle && nav) {
@@ -16,7 +16,7 @@
     })
   }
 
-  // ----------------------------------------------------------------- theme --
+  // theme
   // Three states: no stored value means follow the system. Clicking stores the
   // opposite of whatever is currently on screen, so the first click always
   // visibly changes something.
@@ -38,7 +38,7 @@
     })
   }
 
-  // ------------------------------------------------------------------ copy --
+  // copy
   var blocks = document.querySelectorAll("figure.code")
   Array.prototype.forEach.call(blocks, function (figure) {
     if (!navigator.clipboard) return
@@ -58,7 +58,7 @@
     figure.appendChild(button)
   })
 
-  // ------------------------------------------------------------------- toc --
+  // toc
   var links = document.querySelectorAll(".toc a")
   if (!links.length || !("IntersectionObserver" in window)) return
 

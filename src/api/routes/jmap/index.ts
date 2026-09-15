@@ -66,7 +66,7 @@ const flagsOf = (keywords: Record<string, unknown>): string[] =>
  */
 const roleOf = (folder: Folder): string | null => folder.special_use ?? null
 
-// ---------------------------------------------------------------- session --
+// session
 
 const authenticate = async (conn: { headers: Headers }): Promise<MailIdentity | null> => {
   // A browser client carries the webmail cookie; a native client sends Basic
@@ -116,7 +116,7 @@ const accountState = async (addressId: string): Promise<string> => {
   return row?.state ?? "0"
 }
 
-// ------------------------------------------------------------- references --
+// references
 
 type MethodCall = [string, Record<string, any>, string]
 
@@ -167,7 +167,7 @@ const resolveReferences = (
   return out
 }
 
-// ------------------------------------------------------------- Mailbox --
+// Mailbox
 
 const mailboxObject = async (folder: Folder) => {
   const counts = await db().one<{ total: string; unread: string }>({
@@ -205,7 +205,7 @@ const mailboxObject = async (folder: Folder) => {
   }
 }
 
-// --------------------------------------------------------------- Email --
+// Email
 
 const addressList = (value: string | null) =>
   value ? mime.parseAddressList(value).map((a) => ({ name: a.name, email: a.address })) : null
@@ -312,7 +312,7 @@ const emailObject = async (
   return base
 }
 
-// ------------------------------------------------------------ dispatch --
+// dispatch
 
 type Ctx = { identity: MailIdentity; accountId: string }
 
@@ -350,7 +350,7 @@ const invoke = async (
     case "Core/echo":
       return ["Core/echo", args]
 
-    // ---------------------------------------------------------- Mailbox --
+    // Mailbox
 
     case "Mailbox/get": {
       const all = await db().all<Folder>(
@@ -481,7 +481,7 @@ const invoke = async (
       ]
     }
 
-    // ------------------------------------------------------------ Email --
+    // Email
 
     case "Email/query": {
       const filter = (args.filter ?? {}) as Record<string, any>
@@ -666,7 +666,7 @@ const invoke = async (
       ]
     }
 
-    // ----------------------------------------------------------- Thread --
+    // Thread
 
     case "Thread/get": {
       const ids: string[] = Array.isArray(args.ids) ? args.ids.flat().filter(Boolean) : []
@@ -693,7 +693,7 @@ const invoke = async (
       ]
     }
 
-    // --------------------------------------------------------- Identity --
+    // Identity
 
     case "Identity/get":
       return [
@@ -717,7 +717,7 @@ const invoke = async (
         },
       ]
 
-    // -------------------------------------------------- EmailSubmission --
+    // EmailSubmission
 
     case "EmailSubmission/set": {
       const created: Record<string, unknown> = {}
@@ -812,7 +812,7 @@ const invoke = async (
   }
 }
 
-// ------------------------------------------------------------------ routes --
+// routes
 
 export const jmapRoutes: Route[] = [
   /**

@@ -52,7 +52,7 @@ const userByEmail = async (email: string): Promise<User> => {
 }
 
 export const adminRoutes: Route[] = [
-  // ---------------------------------------------------- delegate accounts --
+  // delegate accounts
 
   /**
    * Creates a panel account for somebody the owner wants to delegate to.
@@ -109,7 +109,7 @@ export const adminRoutes: Route[] = [
     },
   ),
 
-  // ------------------------------------------------------- system admins --
+  // system admins
 
   getR("/api/admins", { before: ownerOnly, assigns: {} as never }, async (c) => {
     const rows = await db().all<User>(
@@ -181,7 +181,7 @@ export const adminRoutes: Route[] = [
     },
   ),
 
-  // ------------------------------------------------------- domain admins --
+  // domain admins
 
   getR(
     "/api/domains/:domain_id/admins",

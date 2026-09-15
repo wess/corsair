@@ -151,7 +151,7 @@ export const setsSeen = (items: FetchItem[]): boolean =>
     (i) => (i.kind === "section" && !i.peek) || i.kind === "rfc822" || i.kind === "rfc822.text",
   )
 
-// -------------------------------------------------------------- envelope --
+// envelope
 
 const addressStruct = (value: string | null): string => {
   const parsed = mime.parseAddressList(value)
@@ -187,7 +187,7 @@ export const renderEnvelope = (headers: readonly mime.Header[]): string => {
   ].join(" ")
 }
 
-// --------------------------------------------------------- bodystructure --
+// bodystructure
 
 const paramList = (params: Record<string, string>): string => {
   const entries = Object.entries(params).filter(([, v]) => v !== undefined)
@@ -240,7 +240,7 @@ export const renderBodyStructure = (part: mime.Part, extensible: boolean): strin
   return `(${base.join(" ")})`
 }
 
-// --------------------------------------------------------------- sections --
+// sections
 
 const headerSubset = (message: mime.ParsedMessage, names: string[], exclude: boolean): string => {
   const wanted = new Set(names.map((n) => n.toLowerCase()))
@@ -308,7 +308,7 @@ export const sectionBytes = (
   return null
 }
 
-// ---------------------------------------------------------------- render --
+// render
 
 export type RenderContext = {
   sequence: number

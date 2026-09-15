@@ -47,7 +47,7 @@ export type InboundContext = {
   helo: string
 }
 
-// ------------------------------------------------------------ recipients --
+// recipients
 
 export const validateRecipient = async (
   address: string,
@@ -87,7 +87,7 @@ export const validateRecipient = async (
   return null
 }
 
-// -------------------------------------------------------- authentication --
+// authentication
 
 type AuthResults = {
   spf: string
@@ -191,7 +191,7 @@ const receivedHeader = (ctx: InboundContext, recipient: string): string => {
   ].join("\r\n")
 }
 
-// -------------------------------------------------------------- filtering --
+// filtering
 
 const filterFor = async (filterId: string | null): Promise<Filter | null> =>
   filterId ? db().one<Filter>(from(filters).where((q) => q("id").equals(filterId))) : null
@@ -223,7 +223,7 @@ const folderNamed = async (
   )
 }
 
-// --------------------------------------------------------------- deliver --
+// deliver
 
 type DeliveryOutcome = { code: number; status: string; detail: string }
 
@@ -363,7 +363,7 @@ const deliverToForward = async (
   }
 }
 
-// ------------------------------------------------------------- entrypoint --
+// entrypoint
 
 export const handleMessage = async (
   envelope: Envelope,

@@ -9,7 +9,7 @@
 
 const CRLF = "\r\n"
 
-// ------------------------------------------------------- modified UTF-7 --
+// modified UTF-7
 
 const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+,"
 
@@ -99,7 +99,7 @@ export const encodeMailbox = (input: string): string => {
   return out
 }
 
-// ------------------------------------------------------------- tokenizer --
+// tokenizer
 
 export type Token =
   | { kind: "atom"; value: string }
@@ -238,7 +238,7 @@ export const createReader = (source: string): Reader => {
   }
 }
 
-// ---------------------------------------------------------- sequence sets --
+// sequence sets
 
 export type SequenceSet = { start: number; end: number }[]
 
@@ -293,7 +293,7 @@ export const formatSequenceSet = (values: number[]): string => {
   return parts.join(",")
 }
 
-// ---------------------------------------------------------------- encode --
+// encode
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: deciding quoted-vs-literal is exactly a control-character test
 const NEEDS_LITERAL = /[\r\n\x00-\x1f\x7f-\xff]/

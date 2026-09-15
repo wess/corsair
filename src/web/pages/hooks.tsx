@@ -51,7 +51,7 @@ type Attempt = {
   sent_at: string
 }
 
-// ------------------------------------------------------------------- list --
+// list
 
 export const HooksPage = () => {
   const [query, setQuery] = useState({
@@ -268,7 +268,7 @@ const CreateHook = ({ onClose, onCreated }: { onClose: () => void; onCreated: ()
   )
 }
 
-// ----------------------------------------------------------------- detail --
+// detail
 
 export const HookDetailPage = ({ id }: { id: string }) => {
   const [tested, setTested] = useState<{

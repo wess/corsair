@@ -122,7 +122,7 @@ const bareAddress = (address: string | null): string => {
   return (angle?.[1] ?? address).trim()
 }
 
-// ------------------------------------------------------------------- login --
+// login
 
 const LoginPage = ({ onSignedIn }: { onSignedIn: (mailbox: Mailbox) => void }) => {
   const [email, setEmail] = useState("")
@@ -197,7 +197,7 @@ const LoginPage = ({ onSignedIn }: { onSignedIn: (mailbox: Mailbox) => void }) =
   )
 }
 
-// ---------------------------------------------------------------- notices --
+// notices
 
 /**
  * What this mailbox should do something about, shown where mail is read.
@@ -242,7 +242,7 @@ const MailNotices = ({
   )
 }
 
-// --------------------------------------------------------------- settings --
+// settings
 
 /**
  * Mailbox settings.
@@ -452,7 +452,7 @@ const Recovery = ({ mailbox }: { mailbox: Mailbox }) => {
   )
 }
 
-// -------------------------------------------------------------------- users --
+// users
 
 type ManagedUser = {
   id: string
@@ -714,7 +714,7 @@ const Users = ({ mailbox, onClose }: { mailbox: Mailbox; onClose: () => void }) 
   )
 }
 
-// ----------------------------------------------------------------- reader --
+// reader
 
 const Reader = ({
   id,
@@ -844,7 +844,7 @@ const Reader = ({
   )
 }
 
-// ---------------------------------------------------------------- compose --
+// compose
 
 type Draft = {
   to: string
@@ -969,7 +969,7 @@ const Compose = ({
   )
 }
 
-// ------------------------------------------------------------------ shell --
+// shell
 
 const App = () => {
   const [mailbox, setMailbox] = useState<Mailbox | null>(null)

@@ -44,7 +44,7 @@ export type ParsedMessage = {
 
 const CRLF = "\r\n"
 
-// ------------------------------------------------------------------ bytes --
+// bytes
 
 export const toLatin1 = (input: Uint8Array | string): string =>
   typeof input === "string" ? input : Buffer.from(input).toString("latin1")
@@ -63,7 +63,7 @@ export const stripControls = (value: string): string =>
 /** Messages arriving over SMTP are already CRLF; anything hand-built may not be. */
 export const normalizeEol = (raw: string): string => raw.replace(/\r\n|\r|\n/g, CRLF)
 
-// ---------------------------------------------------------------- headers --
+// headers
 
 /**
  * Splits the header block from the body and unfolds continuation lines.
@@ -133,7 +133,7 @@ export const headerValues = (headers: readonly Header[], name: string): string[]
   return headers.filter((h) => h.name.toLowerCase() === lower).map((h) => h.value.trim())
 }
 
-// ------------------------------------------------------- encoded words --
+// encoded words
 
 const decodeCharset = (bytes: Buffer, charset: string): string => {
   const cs = charset.toLowerCase().replace(/[^a-z0-9-]/g, "")
@@ -225,7 +225,7 @@ export const encodeWord = (input: string): string => {
   return `=?UTF-8?B?${Buffer.from(clean, "utf8").toString("base64")}?=`
 }
 
-// -------------------------------------------------- parameterised headers --
+// parameterised headers
 
 /**
  * Parses `text/plain; charset="utf-8"; name=x`, including the RFC 2231
@@ -310,7 +310,7 @@ const decode2231 = (input: string): string => {
   return decodeCharset(Buffer.from(bytes), charset)
 }
 
-// --------------------------------------------------------------- addresses --
+// addresses
 
 export type MailAddress = { name: string | null; address: string }
 
@@ -398,7 +398,7 @@ export const formatAddress = (input: MailAddress): string =>
     ? `${encodeWord(input.name)} <${stripControls(input.address)}>`
     : stripControls(input.address)
 
-// ------------------------------------------------------------------ bodies --
+// bodies
 
 export const decodeBody = (raw: string, encoding: string, charset = "utf-8"): string => {
   const bytes = decodeTransfer(raw, encoding)
@@ -471,7 +471,7 @@ export const encodeBase64Lines = (input: Buffer | string, width = 76): string =>
   return lines.join(CRLF)
 }
 
-// ------------------------------------------------------------------ parse --
+// parse
 
 const countLines = (raw: string, start: number, end: number): number => {
   let count = 0
@@ -579,7 +579,7 @@ const parseMessageRange = (
 export const parseMessage = (raw: string): ParsedMessage =>
   parseMessageRange(raw, 0, raw.length, "")
 
-// ------------------------------------------------------------- extraction --
+// extraction
 
 export const walk = (part: Part, visit: (p: Part) => void): void => {
   visit(part)
@@ -656,7 +656,7 @@ export const searchTextOf = (raw: string, message: ParsedMessage, limit = 100_00
   return chunks.join(" ").replace(/\s+/g, " ").trim().slice(0, limit)
 }
 
-// ---------------------------------------------------------------- envelope --
+// envelope
 
 export type Envelope = {
   date: string | null
@@ -694,7 +694,7 @@ export const envelopeOf = (message: ParsedMessage): Envelope => {
   }
 }
 
-// ------------------------------------------------------------------ build --
+// build
 
 export type BuildInput = {
   from: MailAddress

@@ -28,7 +28,7 @@ const trustedProxies = parseTrustedProxies(config.trustedProxies)
 
 export const ipOf = (conn: Conn): string => clientIp(conn.request, { trustedProxies }) ?? "unknown"
 
-// ------------------------------------------------------------------ errors --
+// errors
 
 /**
  * Constraint violations are caller errors, not server faults. Without this they
@@ -96,7 +96,7 @@ export const renderError = (conn: Conn, err: unknown): Conn => {
   return json(conn, 500, errorBody(applicationError()))
 }
 
-// ------------------------------------------------------------------- pipes --
+// pipes
 
 export const auth: PipeFn = async (conn) => {
   const principal = await requirePrincipal(conn.headers.get("cookie"))
@@ -178,7 +178,7 @@ export const principalOf = (conn: { assigns: unknown }): Principal =>
 export const entitlementFrom = (conn: { assigns: unknown }): Entitlement =>
   (conn.assigns as { entitlement: Entitlement }).entitlement
 
-// ----------------------------------------------------------------- sending --
+// sending
 
 /**
  * The bearer token on a sending-API request, resolved to the account it sends
@@ -248,7 +248,7 @@ export const sendingFull: readonly PipeFn[] = [keyOrSession, senderLimit, fullAc
 export const senderOf = (conn: { assigns: unknown }): Sender =>
   (conn.assigns as { sender: Sender }).sender
 
-// ---------------------------------------------------------------- wrapping --
+// wrapping
 
 /**
  * Renders thrown errors into the API envelope. The router's own catch never

@@ -39,7 +39,7 @@ type Plan = {
   is_trial: boolean
 }
 
-// ------------------------------------------------------------------ plans --
+// plans
 
 export const PlansPage = () => {
   const [interval, setInterval] = useState<"monthly" | "yearly">("yearly")
@@ -178,7 +178,7 @@ export const PlansPage = () => {
   )
 }
 
-// ---------------------------------------------------------------- billing --
+// billing
 
 const TABS = [
   { key: "history", label: "History" },

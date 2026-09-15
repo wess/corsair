@@ -115,8 +115,6 @@ const run = async () => {
   const email = `inbox@${domainName}`
   const subject = `Round trip ${suffix}`
 
-  // ------------------------------------------------------------------ SMTP --
-
   section("SMTP — receiving on the MX port")
   const mx = await client(config.smtp.mxPort, false)
   const greeting = await mx.greeting()
@@ -172,8 +170,6 @@ const run = async () => {
   await mx.send("RSET")
   await mx.send("QUIT")
   mx.close()
-
-  // ------------------------------------------------------------------ IMAP --
 
   section("IMAP — reading it back")
   const imap = await client(config.imap.tlsPort, true)
@@ -250,8 +246,6 @@ const run = async () => {
   await imap.send("a12 LOGOUT")
   imap.close()
 
-  // ------------------------------------------------------------------ POP3 --
-
   section("POP3 — the same mailbox")
   const pop = await client(config.pop3.tlsPort, true)
   const popGreeting = await pop.greeting()
@@ -280,8 +274,6 @@ const run = async () => {
 
   await pop.send("QUIT")
   pop.close()
-
-  // --------------------------------------------------------------- cleanup --
 
   section("cleanup")
   await db().execute(

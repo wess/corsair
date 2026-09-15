@@ -30,7 +30,7 @@ export const normalizeDomain = (input: string): string => {
   return trimmed
 }
 
-// -------------------------------------------------------------- provision --
+// provision
 
 export type RecordSpec = {
   purpose: string
@@ -298,7 +298,7 @@ export const syncRecords = async (domain: Domain, keys?: DkimKey[]): Promise<Dom
   return out.sort((a, b) => a.position - b.position)
 }
 
-// ------------------------------------------------------------------ check --
+// check
 
 const fqdn = (host: string, domain: string): string =>
   host === "@" || host === "" ? domain : `${host}.${domain}`

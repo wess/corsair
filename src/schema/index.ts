@@ -12,7 +12,7 @@ import { column, defineSchema, type RowOf } from "@atlas/db"
 const id = () => column.uuid().primaryKey().defaultRaw("gen_random_uuid()")
 const now = () => column.timestamp().defaultRaw("now()")
 
-// ------------------------------------------------------------------ accounts --
+// accounts
 
 export type NotificationPrefs = {
   referrals?: boolean
@@ -99,7 +99,7 @@ export type Session = RowOf<typeof sessions>
 export type Referral = RowOf<typeof referrals>
 export type Token = RowOf<typeof tokens>
 
-// ----------------------------------------------------------------- addresses --
+// addresses
 
 /**
  * Everything addressable at a hosted domain.
@@ -155,7 +155,7 @@ export const addressDestinations = defineSchema("address_destinations", {
 export type Address = RowOf<typeof addresses>
 export type AddressDestination = RowOf<typeof addressDestinations>
 
-// ------------------------------------------------------------------- billing --
+// billing
 
 export type PlanFeatures = {
   fallback_domains?: boolean
@@ -282,7 +282,7 @@ export type Transaction = RowOf<typeof transactions>
 export type PaymentMethod = RowOf<typeof paymentMethods>
 export type TaxId = RowOf<typeof taxIds>
 
-// ------------------------------------------------------------------ delivery --
+// delivery
 
 /**
  * The outbound queue. One row per recipient rather than per message, because
@@ -368,7 +368,7 @@ export type Delivery = RowOf<typeof deliveries>
 export type MailLogEntry = RowOf<typeof mailLog>
 export type Bounce = RowOf<typeof bounces>
 
-// ------------------------------------------------------------------- domains --
+// domains
 
 /**
  * status: pending | active | failed
@@ -464,7 +464,7 @@ export type DomainAdmin = RowOf<typeof domainAdmins>
 export type DomainRecord = RowOf<typeof domainRecords>
 export type DkimKey = RowOf<typeof dkimKeys>
 
-// ------------------------------------------------------------------- filters --
+// filters
 
 /**
  * A Sieve script (RFC 5228). Filters belong to the account, not to an address,
@@ -489,7 +489,7 @@ export const filters = defineSchema("filters", {
 
 export type Filter = RowOf<typeof filters>
 
-// ---------------------------------------------------------------------- mail --
+// mail
 
 /**
  * An IMAP folder.
@@ -595,7 +595,7 @@ export type Message = RowOf<typeof messages>
 export type MessageBlob = RowOf<typeof messageBlobs>
 export type MessageTombstone = RowOf<typeof messageTombstones>
 
-// ----------------------------------------------------------------------- ops --
+// ops
 
 /**
  * The work queue every worker polls.
@@ -662,7 +662,7 @@ export type Job = RowOf<typeof jobs>
 export type AuthFailure = RowOf<typeof authFailures>
 export type Ban = RowOf<typeof bans>
 
-// ----------------------------------------------------------------- transfers --
+// transfers
 
 /**
  * An IMAP-to-IMAP migration from a customer's previous host.
@@ -701,7 +701,7 @@ export const transfers = defineSchema("transfers", {
 
 export type Transfer = RowOf<typeof transfers>
 
-// ------------------------------------------------------------- webhooks --
+// webhooks
 
 /**
  * An outbound event hook.
@@ -765,7 +765,7 @@ export type Webhook = RowOf<typeof webhooks>
 export type WebhookEvent = RowOf<typeof webhookEvents>
 export type WebhookAttempt = RowOf<typeof webhookAttempts>
 
-// ------------------------------------------------------------------ sending --
+// sending
 
 /**
  * A credential for the sending API. Only the SHA-256 of the token is stored;
@@ -844,7 +844,7 @@ export type Email = RowOf<typeof emails>
 export type Suppression = RowOf<typeof suppressions>
 export type IdempotencyKey = RowOf<typeof idempotencyKeys>
 
-// ------------------------------------------------------------------- all --
+// all
 
 /**
  * Every table above, for `migrate diff` and introspection.

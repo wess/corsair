@@ -53,7 +53,7 @@ export const normalizeLocalPart = (input: string): string => {
 export const emailOf = (address: Address, domain: Domain): string =>
   `${address.local_part}@${domain.name}`
 
-// ------------------------------------------------------------- provision --
+// provision
 
 /**
  * The folders every new mailbox gets. IMAP clients will create these themselves
@@ -121,7 +121,7 @@ export const folderBySpecialUse = async (
     ]),
   )
 
-// ---------------------------------------------------------------- create --
+// create
 
 export type CreateAddressInput = {
   domainId: string
@@ -373,7 +373,7 @@ export const unlinkFromAccount = async (addressId: string, password: string): Pr
   )
 }
 
-// ----------------------------------------------------------------- route --
+// route
 
 export type Route =
   | { kind: "mailbox"; address: Address; domain: Domain }
