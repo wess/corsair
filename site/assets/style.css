@@ -1248,6 +1248,9 @@ td code {
   padding: 0.35rem 0.6rem;
   border: 2px solid var(--ink);
   background: var(--plate);
+  /* The footer column is narrower than the phrase, and a plaque that breaks
+     after "No" reads as two thoughts. */
+  white-space: nowrap;
 }
 
 .colophon-label {

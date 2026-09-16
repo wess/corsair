@@ -91,3 +91,21 @@ objects nothing references.
 The control panel talks to the same JSON API you can. It authenticates with a
 session cookie, so anything the panel does is scriptable with `curl` after a
 `POST /api/auth/login`.
+
+Applications that only need to send mail use the [sending API](docs/sending.html)
+and a key instead, which is a separate credential with a much smaller reach.
+
+## Can an application send mail without a mailbox?
+
+Yes. Create a key in the control panel and POST to `/api/emails`. The API is
+[Resend](https://resend.com)'s — the same paths, request bodies, and error names
+— so a Resend SDK works against your server with only the base URL changed.
+
+A key sends as any domain its account owns that has finished DNS setup. It
+cannot open the panel, read a mailbox, or create other keys. Sends are signed
+with the same DKIM key as mailbox mail and ride the same queue, so a domain that
+already receives mail here needs no new DNS records to send through it.
+
+Deliberately absent: templates, audiences, broadcasts, and open or click
+tracking. This is transactional sending — bulk mail from the address your
+mailboxes use puts their deliverability at risk.

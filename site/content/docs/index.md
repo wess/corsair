@@ -21,6 +21,7 @@ actually flow, keeping it healthy, and every protocol and endpoint it exposes.
 | Understand what it is before installing anything | [Introduction](introduction.html) |
 | Take a blank VPS to delivered mail | [Your first production server](tutorials/first-server.html) |
 | Move a domain off an existing provider | [Migrating from Google Workspace](tutorials/migrate-from-google.html) |
+| Send mail from an application, without a mailbox | [Sending API](sending.html) |
 | Know what the host needs first | [Prerequisites](prerequisites.html) |
 | Look up an environment variable | [Configuration](configuration.html) |
 | Fix something that is broken | [Troubleshooting](troubleshooting.html) |
@@ -41,7 +42,7 @@ methods, every setting, TLS, backups, monitoring, upgrades, and what to do at
 three in the morning.
 
 **Using Corsair** covers the product surface — domains, addresses, clients,
-filters, webmail, migrations, deliverability, and event hooks.
+filters, webmail, migrations, deliverability, the sending API, and event hooks.
 
 **Reference** is exhaustive rather than narrative: the architecture, the HTTP
 API, each mail protocol's supported command set, the database schema, and the

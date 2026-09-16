@@ -19,7 +19,9 @@ at your server and it works unchanged.
 ```js
 import { Resend } from "resend"
 
-const resend = new Resend("cs_...", { baseUrl: "https://mail.example.com/api" })
+const resend = new Resend("cs_...", {
+  baseUrl: "https://mail.example.com/api",
+})
 
 await resend.emails.send({
   from: "Acme <receipts@example.com>",

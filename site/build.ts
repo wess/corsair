@@ -411,6 +411,7 @@ const FOOTER = [
       { href: "docs/tutorials/index.html", label: "Tutorials" },
       { href: "docs/configuration.html", label: "Configuration" },
       { href: "docs/api.html", label: "HTTP API" },
+      { href: "docs/sending.html", label: "Sending API" },
       { href: "docs/troubleshooting.html", label: "Troubleshooting" },
     ],
   },

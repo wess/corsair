@@ -156,6 +156,40 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </section>
 
 <section class="band">
+  <div class="band-inner split">
+    <div>
+      <p class="eyebrow">Sending API</p>
+      <h2>Applications send as your domain, over HTTP</h2>
+      <p>
+        A password reset, a receipt, a contact form — sent with an API key instead of a
+        mailbox and an SMTP password. The API is Resend's, so their SDK works against your
+        server with the base URL changed and nothing else.
+      </p>
+      <p>
+        Sends ride the same queue and the same DKIM key as mail from a mailbox, so a domain
+        that already receives here needs no new DNS records. Bounces come back to a
+        per-message return path, and an address that no longer exists is suppressed.
+      </p>
+      <p><a href="docs/sending.html">The sending API →</a></p>
+    </div>
+    <div>
+<figure class="code"><span class="code-lang">js</span><pre><code>import { Resend } from &quot;resend&quot;
+
+const resend = new Resend(&quot;cs_...&quot;, {
+  baseUrl: &quot;https://mail.example.com/api&quot;,
+})
+
+await resend.emails.send({
+  from: &quot;Acme &lt;receipts@example.com&gt;&quot;,
+  to: [&quot;customer@example.net&quot;],
+  subject: &quot;Your receipt&quot;,
+  html: &quot;&lt;p&gt;Thanks for your order.&lt;/p&gt;&quot;,
+})</code></pre></figure>
+    </div>
+  </div>
+</section>
+
+<section class="band band-tint">
   <div class="band-inner">
     <div class="band-head">
       <p class="eyebrow">By the numbers</p>
@@ -171,7 +205,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
   </div>
 </section>
 
-<section class="band band-tint">
+<section class="band">
   <div class="band-inner split">
     <div>
       <p class="eyebrow">Read this part first</p>
@@ -205,7 +239,7 @@ bun run dev</code></pre></figure>
   </div>
 </section>
 
-<section class="band">
+<section class="band band-tint">
   <div class="band-inner">
     <div class="band-head">
       <p class="eyebrow">Documentation</p>
@@ -258,7 +292,7 @@ bun run dev</code></pre></figure>
       <ul><li><a href="./index.html">Overview</a></li><li><a href="./docs/introduction.html">What it is</a></li><li><a href="./docs/architecture.html">Architecture</a></li><li><a href="./faq.html">Questions</a></li><li><a href="./contact.html">Contact</a></li></ul>
     </div><div>
       <p class="colophon-label">Documentation</p>
-      <ul><li><a href="./docs/index.html">All documentation</a></li><li><a href="./docs/quickstart.html">Quickstart</a></li><li><a href="./docs/tutorials/index.html">Tutorials</a></li><li><a href="./docs/configuration.html">Configuration</a></li><li><a href="./docs/api.html">HTTP API</a></li><li><a href="./docs/troubleshooting.html">Troubleshooting</a></li></ul>
+      <ul><li><a href="./docs/index.html">All documentation</a></li><li><a href="./docs/quickstart.html">Quickstart</a></li><li><a href="./docs/tutorials/index.html">Tutorials</a></li><li><a href="./docs/configuration.html">Configuration</a></li><li><a href="./docs/api.html">HTTP API</a></li><li><a href="./docs/sending.html">Sending API</a></li><li><a href="./docs/troubleshooting.html">Troubleshooting</a></li></ul>
     </div><div>
       <p class="colophon-label">Project</p>
       <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="./policies/privacy.html">Privacy template</a></li><li><a href="./policies/acceptable-use.html">Acceptable use template</a></li></ul>

@@ -123,6 +123,46 @@ layout: home
 </section>
 
 <section class="band">
+  <div class="band-inner split">
+    <div>
+      <p class="eyebrow">Sending API</p>
+      <h2>Applications send as your domain, over HTTP</h2>
+      <p>
+        A password reset, a receipt, a contact form — sent with an API key instead of a
+        mailbox and an SMTP password. The API is Resend's, so their SDK works against your
+        server with the base URL changed and nothing else.
+      </p>
+      <p>
+        Sends ride the same queue and the same DKIM key as mail from a mailbox, so a domain
+        that already receives here needs no new DNS records. Bounces come back to a
+        per-message return path, and an address that no longer exists is suppressed.
+      </p>
+      <p><a href="docs/sending.html">The sending API →</a></p>
+    </div>
+    <div>
+```
+
+```js
+import { Resend } from "resend"
+
+const resend = new Resend("cs_...", {
+  baseUrl: "https://mail.example.com/api",
+})
+
+await resend.emails.send({
+  from: "Acme <receipts@example.com>",
+  to: ["customer@example.net"],
+  subject: "Your receipt",
+  html: "<p>Thanks for your order.</p>",
+})
+```
+
+```raw
+    </div>
+  </div>
+</section>
+
+<section class="band band-tint">
   <div class="band-inner">
     <div class="band-head">
       <p class="eyebrow">By the numbers</p>
@@ -138,7 +178,7 @@ layout: home
   </div>
 </section>
 
-<section class="band band-tint">
+<section class="band">
   <div class="band-inner split">
     <div>
       <p class="eyebrow">Read this part first</p>
@@ -178,7 +218,7 @@ bun run dev
   </div>
 </section>
 
-<section class="band">
+<section class="band band-tint">
   <div class="band-inner">
     <div class="band-head">
       <p class="eyebrow">Documentation</p>

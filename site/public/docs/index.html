@@ -83,6 +83,10 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td><a href="tutorials/migrate-from-google.html">Migrating from Google Workspace</a></td>
 </tr>
 <tr>
+<td>Send mail from an application, without a mailbox</td>
+<td><a href="sending.html">Sending API</a></td>
+</tr>
+<tr>
 <td>Know what the host needs first</td>
 <td><a href="prerequisites.html">Prerequisites</a></td>
 </tr>
@@ -99,7 +103,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p><strong>Start here</strong> is the shortest path from nothing to a working install, plus the vocabulary the rest of the manual assumes. If you read three pages, read <a href="introduction.html">Introduction</a>, <a href="quickstart.html">Quickstart</a>, and <a href="concepts.html">Core concepts</a>.</p>
 <p><strong>Tutorials</strong> are start-to-finish builds. They tell you what to type and what you should see, and they end with something that works. Every one of them has been written against a real install, not sketched.</p>
 <p><strong>Install and operate</strong> is the reference an operator lives in: installation methods, every setting, TLS, backups, monitoring, upgrades, and what to do at three in the morning.</p>
-<p><strong>Using Corsair</strong> covers the product surface — domains, addresses, clients, filters, webmail, migrations, deliverability, and event hooks.</p>
+<p><strong>Using Corsair</strong> covers the product surface — domains, addresses, clients, filters, webmail, migrations, deliverability, the sending API, and event hooks.</p>
 <p><strong>Reference</strong> is exhaustive rather than narrative: the architecture, the HTTP API, each mail protocol's supported command set, the database schema, and the SMTP reply-code lookup.</p>
 <h2 id="what-corsair-will-not-do-for-you">What Corsair will not do for you<a class="anchor" href="#what-corsair-will-not-do-for-you" aria-label="Link to this section">#</a></h2>
 <p>Running a mail server is four things that are not software: a static IP with a matching PTR record, port 25 unblocked outbound, a real TLS certificate, and the ability to bind privileged ports. No amount of good code substitutes for any of them, and <a href="prerequisites.html">Prerequisites</a> says so at length before you spend an afternoon finding out.</p>
@@ -128,7 +132,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
       <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
     </div><div>
       <p class="colophon-label">Documentation</p>
-      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
     </div><div>
       <p class="colophon-label">Project</p>
       <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy template</a></li><li><a href="../policies/acceptable-use.html">Acceptable use template</a></li></ul>
