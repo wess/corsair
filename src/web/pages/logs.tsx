@@ -19,7 +19,7 @@ import { get } from "../lib/api.ts"
  * Owner-only, and the nav entry is absent for everyone else.
  */
 
-type Entry = { at: string; unit: string; priority: number; message: string }
+type Entry = { id: string; at: string; unit: string; priority: number; message: string }
 type Source = { key: string; label: string; unit: string }
 
 // syslog severities. Anything at error or worse is worth colouring; the rest is
@@ -238,13 +238,13 @@ export const LogsPage = () => {
             </p>
           )}
           <div className="log-view">
-            {entries.map((e, i) => {
+            {entries.map((e) => {
               const d = day(e.at)
               const newDay = d !== lastDay
               lastDay = d
               const sev = SEVERITY[e.priority] ?? { label: String(e.priority), tone: "" }
               return (
-                <div key={`${e.at}-${i}`}>
+                <div key={e.id}>
                   {newDay && <div className="log-day">{d}</div>}
                   <div className={`log-line${sev.tone ? ` log-${sev.tone}` : ""}`}>
                     <span className="log-time">{time(e.at)}</span>

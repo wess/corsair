@@ -1,5 +1,5 @@
-import { createVerify } from "node:crypto"
 import { describe, expect, test } from "bun:test"
+import { createVerify } from "node:crypto"
 import { dkimRecord, generateKeyPair, sign, verifySignature } from "../src/dkim/index.ts"
 
 /**

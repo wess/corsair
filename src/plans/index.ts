@@ -214,10 +214,17 @@ export const usageOf = async (userId: string): Promise<Usage> => {
 }
 
 export const assertStorageAvailable = async (userId: string, incoming: number): Promise<void> => {
-  const usage = await usageOf(userId)
-  if (usage.bytesUsed + incoming <= usage.storageBytes) return
+  const entitlement = await entitlementOf(userId)
+  const row = await db().one<{ bytes_used: string }>({
+    text: `SELECT coalesce(sum(a.bytes_used), 0)::text AS bytes_used
+             FROM addresses a JOIN domains d ON d.id = a.domain_id
+            WHERE d.user_id = $1`,
+    values: [userId],
+  })
+  const bytesUsed = Number(row?.bytes_used ?? 0)
+  if (bytesUsed + incoming <= entitlement.storageBytes) return
   throw quotaExceeded(
-    `This account has used ${formatBytes(usage.bytesUsed)} of its ${formatBytes(usage.storageBytes)} of storage.`,
+    `This account has used ${formatBytes(bytesUsed)} of its ${formatBytes(entitlement.storageBytes)} of storage.`,
   )
 }
 

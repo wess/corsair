@@ -1,5 +1,5 @@
-import type { TlsMaterial } from "../tls/index.ts"
 import { config } from "../config/index.ts"
+import type { TlsMaterial } from "../tls/index.ts"
 
 /**
  * Whether this runtime can upgrade an *accepted* socket to TLS in place.

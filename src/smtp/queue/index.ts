@@ -62,7 +62,7 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
   const result: DrainResult = { attempted: rows.length, sent: 0, deferred: 0, failed: 0 }
   if (!rows.length) return result
 
-  await Promise.all(
+  const outcomes = await Promise.allSettled(
     rows.map(async (row) => {
       // A canceled or suppressed API send is settled without an attempt. It is
       // neither sent nor failed, so it counts toward neither.
@@ -190,6 +190,9 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
     }),
   )
 
+  for (const outcome of outcomes) {
+    if (outcome.status === "rejected") throw outcome.reason
+  }
   return result
 }
 

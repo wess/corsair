@@ -7,6 +7,7 @@ import { emit } from "../events/index.ts"
 import { type Domain, domains, type Job, jobs, type Transfer, transfers } from "../schema/index.ts"
 import { drain, releaseStale } from "../smtp/index.ts"
 import { recomputeUsage } from "../store/index.ts"
+import { poll } from "./poll/index.ts"
 import { runTransfer } from "./transfer/index.ts"
 import { drainWebhooks, releaseStaleWebhooks } from "./webhook/index.ts"
 
@@ -230,7 +231,7 @@ let timers: ReturnType<typeof setInterval>[] = []
 
 export const tick = async (): Promise<void> => {
   const claimed = await claimJobs(config.worker.concurrency)
-  await Promise.all(
+  const outcomes = await Promise.allSettled(
     claimed.map(async (job) => {
       try {
         await runJob(job)
@@ -241,26 +242,32 @@ export const tick = async (): Promise<void> => {
       }
     }),
   )
+  for (const outcome of outcomes) {
+    if (outcome.status === "rejected") throw outcome.reason
+  }
 }
 
 /**
  * Schedules the periodic work that nobody enqueues.
  *
- * Guarded by a Postgres advisory lock so that several workers can run without
- * all of them starting the same sweep — the lock is released when the
- * connection drops, which is exactly the behaviour a crashed worker needs.
+ * The transaction pins the advisory lock to one pooled connection. Checking
+ * for outstanding work also keeps a slow sweep from accumulating more sweeps.
  */
 const periodic = async (kind: JobKind, lockKey: number): Promise<void> => {
-  const row = await db().one<{ locked: boolean }>({
-    text: "SELECT pg_try_advisory_lock($1) AS locked",
-    values: [lockKey],
+  await db().transaction(async (conn) => {
+    const row = await conn.one<{ locked: boolean }>({
+      text: "SELECT pg_try_advisory_xact_lock($1) AS locked",
+      values: [lockKey],
+    })
+    if (!row?.locked) return
+    await conn.execute({
+      text: `INSERT INTO jobs (kind, payload)
+             SELECT $1, '{}'::jsonb WHERE NOT EXISTS (
+               SELECT 1 FROM jobs WHERE kind = $1 AND status IN ('pending', 'running')
+             )`,
+      values: [kind],
+    })
   })
-  if (!row?.locked) return
-  try {
-    await enqueueJob({ kind, payload: {} })
-  } finally {
-    await db().execute({ text: "SELECT pg_advisory_unlock($1)", values: [lockKey] })
-  }
 }
 
 export const startWorker = async (): Promise<void> => {
@@ -269,23 +276,11 @@ export const startWorker = async (): Promise<void> => {
 
   console.log(`[corsair] worker      ${WORKER_ID}`)
 
-  timers.push(
-    setInterval(() => {
-      void tick().catch((e) => console.error("[corsair] worker tick failed:", e))
-    }, config.worker.pollMs),
-  )
+  timers.push(setInterval(poll("worker tick", tick), config.worker.pollMs))
 
-  timers.push(
-    setInterval(() => {
-      void drain().catch((e) => console.error("[corsair] delivery drain failed:", e))
-    }, config.worker.pollMs),
-  )
+  timers.push(setInterval(poll("delivery drain", drain), config.worker.pollMs))
 
-  timers.push(
-    setInterval(() => {
-      void drainWebhooks().catch((e) => console.error("[corsair] webhook drain failed:", e))
-    }, config.worker.pollMs),
-  )
+  timers.push(setInterval(poll("webhook drain", drainWebhooks), config.worker.pollMs))
 
   timers.push(
     setInterval(() => {

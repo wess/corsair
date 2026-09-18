@@ -12,6 +12,7 @@ import {
   expunge,
   folderStatus,
   messagesIn,
+  moveTo,
   setFlags,
 } from "../../store/index.ts"
 import { loadRaw, needsBody, parseFetchItems, renderFetch, setsSeen } from "../fetch/index.ts"
@@ -374,16 +375,18 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
     move: boolean,
   ): Promise<string> => {
     if (!selected) return bad(tag, "No mailbox selected.")
+    if (move && selected.readOnly) return no(tag, "Mailbox is read-only.")
 
     const reader = createReader(args)
     const set = reader.astring()
     const target = await folderByName(reader.astring())
     if (!target) return no(tag, "No such mailbox.", "TRYCREATE")
+    if (move && target.id === selected.folder.id) return ok(tag, "MOVE completed.")
 
     const sources = resolveSet(set, uid)
     if (!sources.length) return ok(tag, `${move ? "MOVE" : "COPY"} completed.`)
 
-    const result = await copyTo({
+    const result = await (move ? moveTo : copyTo)({
       messageIds: sources.map((m) => m.id),
       targetFolderId: target.id,
     })
@@ -394,15 +397,9 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
 
     if (!move) return ok(tag, "COPY completed.", copyUid)
 
-    // MOVE is a copy plus an expunge that must be reported even though the
-    // client did not ask for one.
-    const removal = await expunge({
-      folderId: selected.folder.id,
-      messageIds: sources.map((m) => m.id),
-    })
     let out = `* OK [${copyUid}] Moved.${CRLF}`
     out += await sync()
-    return out + ok(tag, `MOVE completed. ${removal.uids.length} message(s) moved.`)
+    return out + ok(tag, `MOVE completed. ${result.sourceUids.length} message(s) moved.`)
   }
 
   const doSearch = async (

@@ -1,7 +1,7 @@
 import { from } from "@atlas/db"
 import { createStore, download, remove, type Store, upload } from "@atlas/storage"
 import { config } from "../config/index.ts"
-import { db } from "../db/index.ts"
+import { type Connection, db } from "../db/index.ts"
 import { messageBlobs } from "../schema/index.ts"
 
 /**
@@ -56,12 +56,16 @@ export const queueKey = (id: string): string => `${config.storage.prefix}/queue/
 export const putRaw = async (key: string, raw: string): Promise<string | null> => {
   const s = objectStore()
   if (!s) return null
-  await upload(s, { key, body: raw, contentType: "message/rfc822" })
+  await upload(s, { key, body: Buffer.from(raw, "latin1"), contentType: "message/rfc822" })
   return key
 }
 
-export const putInline = async (messageId: string, raw: string): Promise<void> => {
-  await db().execute(from(messageBlobs).insert({ message_id: messageId, data: raw }))
+export const putInline = async (
+  messageId: string,
+  raw: string,
+  conn: Connection = db(),
+): Promise<void> => {
+  await conn.execute(from(messageBlobs).insert({ message_id: messageId, data: raw }))
 }
 
 export const getRaw = async (input: {
@@ -95,13 +99,19 @@ export const getRaw = async (input: {
  * Deleting the body is best-effort on purpose. A message row is gone from the
  * user's mailbox the moment it is expunged; failing the whole expunge because
  * the bucket was briefly unreachable would leave the mailbox in a worse state
- * than an orphaned object does. The retention sweep collects the strays.
+ * than an orphaned object does. A failed delete is logged for the operator.
  */
 export const deleteRaw = async (storageKey: string | null): Promise<void> => {
   if (!storageKey) return
   const s = objectStore()
   if (!s) return
   try {
+    // IMAP copies share an object. Only the last live reference may remove it.
+    const live = await db().one({
+      text: "SELECT 1 FROM messages WHERE storage_key = $1 AND expunged_at IS NULL LIMIT 1",
+      values: [storageKey],
+    })
+    if (live) return
     await remove(s, storageKey)
   } catch (e) {
     console.error("[corsair] failed to delete object", storageKey, e)

@@ -16,6 +16,8 @@ import { createAddress } from "../src/addresses/index.ts"
 import { config } from "../src/config/index.ts"
 import { closeDb, db } from "../src/db/index.ts"
 import { type Domain, users } from "../src/schema/index.ts"
+import { canUpgradeServerSocketToTls, probeServerStartTls } from "../src/starttls/index.ts"
+import { tlsOptions } from "../src/tls/index.ts"
 
 const suffix = Math.random().toString(36).slice(2, 8)
 const domainName = `flow-${suffix}.invalid`
@@ -78,6 +80,7 @@ const run = async () => {
   const { startImap } = await import("../src/imap/index.ts")
   const { startPop3 } = await import("../src/pop3/index.ts")
 
+  await probeServerStartTls(await tlsOptions())
   await startSmtp()
   await startImap()
   await startPop3()
@@ -122,7 +125,11 @@ const run = async () => {
 
   const ehlo = await mx.send("EHLO tester.invalid")
   check("advertises SIZE", ehlo.includes("250-SIZE"), ehlo)
-  check("advertises STARTTLS", ehlo.includes("STARTTLS"), ehlo)
+  check(
+    "STARTTLS advertisement matches the runtime probe",
+    ehlo.includes("STARTTLS") === canUpgradeServerSocketToTls(),
+    ehlo,
+  )
   check("does not advertise AUTH before TLS", !ehlo.includes("AUTH"), ehlo)
 
   const relay = await mx.send("MAIL FROM:<sender@far.invalid>")

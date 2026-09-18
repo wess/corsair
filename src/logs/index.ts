@@ -34,6 +34,7 @@ export const UNITS = [
 export type UnitKey = (typeof UNITS)[number]["key"]
 
 export type LogEntry = {
+  id: string
   at: string
   unit: string
   priority: number
@@ -81,7 +82,10 @@ export const literal = (term: string): string => term.replace(/[.*+?^${}()|[\]\\
 export const redact = (line: string): string =>
   line
     .replace(/(postgres(?:ql)?:\/\/[^:\s]+:)[^@\s]+@/gi, "$1<redacted>@")
-    .replace(/\b(password|passwd|secret|token|api[-_]?key|authorization|bearer)\b(\s*[:=]\s*|\s+)(\S+)/gi, "$1$2<redacted>")
+    .replace(
+      /\b(password|passwd|secret|token|api[-_]?key|authorization|bearer)\b(\s*[:=]\s*|\s+)(\S+)/gi,
+      "$1$2<redacted>",
+    )
     .replace(/\b(whsec_|sk_live_|sk_test_)[A-Za-z0-9]+/g, "$1<redacted>")
 
 export const unitFor = (key: string): string => {
@@ -179,6 +183,7 @@ export const read = async (input: ReadInput): Promise<ReadResult> => {
         ? Buffer.from(row.MESSAGE as number[]).toString("utf8")
         : String(row.MESSAGE ?? "")
       entries.push({
+        id: String(row.__CURSOR ?? Bun.hash(line).toString(16)),
         at: new Date(micros / 1000).toISOString(),
         unit: String(row._SYSTEMD_UNIT ?? row.SYSLOG_IDENTIFIER ?? unit),
         priority: Number(row.PRIORITY ?? 6),

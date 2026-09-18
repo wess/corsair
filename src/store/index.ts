@@ -1,5 +1,6 @@
+import { randomUUID } from "node:crypto"
 import { from } from "@atlas/db"
-import { allColumns, db, num } from "../db/index.ts"
+import { allColumns, type Connection, db, num } from "../db/index.ts"
 import {
   attachmentParts,
   envelopeOf,
@@ -31,8 +32,11 @@ export type DeliverInput = {
  * recover from — it caches by UID forever. `UPDATE ... RETURNING` takes a row
  * lock and serialises the pair, so the second delivery waits.
  */
-const claimUid = async (folderId: string): Promise<{ uid: bigint; modseq: bigint }> => {
-  const row = await db().one<{ uid: string; modseq: string }>({
+const claimUid = async (
+  folderId: string,
+  conn: Connection,
+): Promise<{ uid: bigint; modseq: bigint }> => {
+  const row = await conn.one<{ uid: string; modseq: string }>({
     text: `UPDATE folders
               SET uid_next = uid_next + 1,
                   highest_modseq = highest_modseq + 1,
@@ -46,8 +50,8 @@ const claimUid = async (folderId: string): Promise<{ uid: bigint; modseq: bigint
 }
 
 /** Bumps a folder's modseq without allocating a UID, for flag and expunge changes. */
-export const bumpModseq = async (folderId: string): Promise<bigint> => {
-  const row = await db().one<{ modseq: string }>({
+export const bumpModseq = async (folderId: string, conn: Connection = db()): Promise<bigint> => {
+  const row = await conn.one<{ modseq: string }>({
     text: `UPDATE folders SET highest_modseq = highest_modseq + 1, updated_at = now()
             WHERE id = $1 RETURNING highest_modseq::text AS modseq`,
     values: [folderId],
@@ -55,15 +59,15 @@ export const bumpModseq = async (folderId: string): Promise<bigint> => {
   return BigInt(row?.modseq ?? "1")
 }
 
-const addBytes = async (addressId: string, delta: number): Promise<void> => {
+const addBytes = async (addressId: string, delta: number, conn: Connection): Promise<void> => {
   // Clamped at zero: a recount that drifts negative would render as a nonsense
   // usage figure forever, and the periodic recompute will correct it anyway.
-  await db().execute({
+  await conn.execute({
     text: `UPDATE addresses SET bytes_used = GREATEST(0, bytes_used + $2), updated_at = now()
             WHERE id = $1`,
     values: [addressId, delta],
   })
-  await db().execute({
+  await conn.execute({
     text: `UPDATE domains SET bytes_used = GREATEST(0, bytes_used + $2), updated_at = now()
             WHERE id = (SELECT domain_id FROM addresses WHERE id = $1)`,
     values: [addressId, delta],
@@ -80,53 +84,51 @@ export const deliver = async (input: DeliverInput): Promise<Message> => {
   const parsed = parseMessage(raw)
   const size = raw.length
 
-  const { uid, modseq } = await claimUid(input.folderId)
   const envelope = envelopeOf(parsed)
+  const id = randomUUID()
+  const internalDate = input.internalDate ?? new Date()
+  const key = storageEnabled() ? messageKey(input.addressId, id, internalDate) : null
+  if (key) await putRaw(key, raw)
 
-  const row = (await db().one<Message>(
-    from(messages)
-      .insert({
-        folder_id: input.folderId,
-        address_id: input.addressId,
-        uid,
-        modseq,
-        flags: input.flags ?? [],
-        internal_date: input.internalDate ?? new Date(),
-        size,
-        message_id: envelope.message_id,
-        in_reply_to: envelope.in_reply_to,
-        thread_id: threadIdOf(parsed, envelope.message_id),
-        subject: envelope.subject,
-        from_address: envelope.from[0] ?? null,
-        to_addresses: envelope.to,
-        cc_addresses: envelope.cc,
-        envelope,
-        snippet: snippetOf(raw, parsed),
-        search_text: searchTextOf(raw, parsed),
-        has_attachments: attachmentParts(parsed).length > 0,
-        spam_score: input.spamScore ?? null,
-      })
-      .returning(...allColumns(messages)),
-  ))!
+  try {
+    return await db().transaction(async (conn) => {
+      const { uid, modseq } = await claimUid(input.folderId, conn)
+      const row = (await conn.one<Message>(
+        from(messages)
+          .insert({
+            id,
+            storage_key: key,
+            folder_id: input.folderId,
+            address_id: input.addressId,
+            uid,
+            modseq,
+            flags: input.flags ?? [],
+            internal_date: internalDate,
+            size,
+            message_id: envelope.message_id,
+            in_reply_to: envelope.in_reply_to,
+            thread_id: threadIdOf(parsed, envelope.message_id),
+            subject: envelope.subject,
+            from_address: envelope.from[0] ?? null,
+            to_addresses: envelope.to,
+            cc_addresses: envelope.cc,
+            envelope,
+            snippet: snippetOf(raw, parsed),
+            search_text: searchTextOf(raw, parsed),
+            has_attachments: attachmentParts(parsed).length > 0,
+            spam_score: input.spamScore ?? null,
+          })
+          .returning(...allColumns(messages)),
+      ))!
 
-  // The body is written after the row so a failure here leaves a message with
-  // no body rather than a body with no message — the former is visible and
-  // repairable, the latter is an invisible leak.
-  if (storageEnabled()) {
-    const key = messageKey(input.addressId, row.id, row.internal_date)
-    await putRaw(key, raw)
-    await db().execute(
-      from(messages)
-        .where((q) => q("id").equals(row.id))
-        .update({ storage_key: key }),
-    )
-    row.storage_key = key
-  } else {
-    await putInline(row.id, raw)
+      if (!key) await putInline(row.id, raw, conn)
+      await addBytes(input.addressId, size, conn)
+      return row
+    })
+  } catch (error) {
+    await deleteRaw(key)
+    throw error
   }
-
-  await addBytes(input.addressId, size)
-  return row
 }
 
 /**
@@ -169,41 +171,53 @@ export const expunge = async (input: {
 }): Promise<{ uids: number[]; modseq: bigint }> => {
   if (!input.messageIds.length) return { uids: [], modseq: 0n }
 
-  const modseq = await bumpModseq(input.folderId)
-  const rows = await db().all<{
-    id: string
-    uid: string
-    size: number
-    address_id: string
-    storage_key: string | null
-  }>({
-    text: `UPDATE messages
-              SET expunged_at = now(), modseq = $2
-            WHERE folder_id = $1
-              AND expunged_at IS NULL
-              AND id = ANY(SELECT jsonb_array_elements_text($3::jsonb)::uuid)
-        RETURNING id, uid::text AS uid, size, address_id, storage_key`,
-    // Bun's Postgres driver does not bind a JS array to a Postgres array, so
-    // the list is expanded server-side from jsonb. The array goes in as-is —
-    // pre-stringifying it produces a jsonb *scalar*, which Postgres refuses to
-    // expand ("cannot extract elements from a scalar").
-    values: [input.folderId, modseq, input.messageIds],
+  const result = await db().transaction(async (conn) => {
+    await conn.all({
+      text: `SELECT id FROM messages
+              WHERE folder_id = $1 AND expunged_at IS NULL
+                AND id = ANY(SELECT jsonb_array_elements_text($2::jsonb)::uuid)
+              ORDER BY id FOR UPDATE`,
+      values: [input.folderId, input.messageIds],
+    })
+    const modseq = await bumpModseq(input.folderId, conn)
+    const rows = await conn.all<{
+      uid: string
+      size: number
+      address_id: string
+      storage_key: string | null
+    }>({
+      text: `WITH removed AS (
+               UPDATE messages SET expunged_at = now(), modseq = $2
+                WHERE folder_id = $1 AND expunged_at IS NULL
+                  AND id = ANY(SELECT jsonb_array_elements_text($3::jsonb)::uuid)
+            RETURNING uid, size, address_id, storage_key
+             ), tombstones AS (
+               INSERT INTO message_tombstones (folder_id, uid, modseq)
+               SELECT $1, uid, $2 FROM removed
+             )
+             SELECT uid::text AS uid, size, address_id, storage_key FROM removed`,
+      values: [input.folderId, modseq, input.messageIds],
+    })
+    const bytes = rows.reduce((sum, r) => sum + (r.size ?? 0), 0)
+    if (bytes && rows[0]) await addBytes(rows[0].address_id, -bytes, conn)
+    return { rows, modseq }
   })
 
-  for (const row of rows) {
-    await db().execute({
-      text: "INSERT INTO message_tombstones (folder_id, uid, modseq) VALUES ($1, $2, $3)",
-      values: [input.folderId, row.uid, modseq],
-    })
-  }
+  // Bodies go last and best-effort; copies may still reference them.
+  for (const key of new Set(result.rows.map((row) => row.storage_key))) await deleteRaw(key)
+  return { uids: result.rows.map((row) => Number(row.uid)), modseq: result.modseq }
+}
 
-  const bytes = rows.reduce((sum, r) => sum + (r.size ?? 0), 0)
-  if (bytes && rows[0]) await addBytes(rows[0].address_id, -bytes)
-
-  // Bodies go last and best-effort; see the note in storage.
-  for (const row of rows) await deleteRaw(row.storage_key)
-
-  return { uids: rows.map((r) => Number(r.uid)), modseq }
+// A copy must commit before an expunge can decide its body is unreferenced.
+const lockMessages = async (conn: Connection, ids: string[]): Promise<Message[]> => {
+  const rows = await conn.all<Message>({
+    text: `SELECT * FROM messages
+            WHERE expunged_at IS NULL
+              AND id = ANY(SELECT jsonb_array_elements_text($1::jsonb)::uuid)
+            ORDER BY id FOR UPDATE`,
+    values: [ids],
+  })
+  return rows.sort((a, b) => num(a.uid) - num(b.uid))
 }
 
 /**
@@ -219,101 +233,102 @@ export const expunge = async (input: {
 export const moveTo = async (input: {
   messageIds: string[]
   targetFolderId: string
-}): Promise<{ moved: number }> => {
-  if (!input.messageIds.length) return { moved: 0 }
+}): Promise<{ moved: number; sourceUids: number[]; targetUids: number[] }> => {
+  if (!input.messageIds.length) return { moved: 0, sourceUids: [], targetUids: [] }
 
-  const rows = await db().all<Message>(
-    from(messages).where((q) => [q("expunged_at").isNull(), q("id").inList(input.messageIds)]),
-  )
-
-  let moved = 0
-  for (const row of rows) {
-    if (row.folder_id === input.targetFolderId) continue
-
-    const { uid, modseq } = await claimUid(input.targetFolderId)
-    const sourceModseq = await bumpModseq(row.folder_id)
-
-    // The tombstone goes in first: a client resyncing the source folder between
-    // these two statements should be told the message left, not that it never
-    // existed.
-    await db().execute({
-      text: "INSERT INTO message_tombstones (folder_id, uid, modseq) VALUES ($1, $2, $3)",
-      values: [row.folder_id, row.uid, sourceModseq],
+  return db().transaction(async (conn) => {
+    const rows = await lockMessages(conn, input.messageIds)
+    // Opposite-direction moves must lock their folders in the same order.
+    await conn.all({
+      text: `SELECT id FROM folders
+              WHERE id = ANY(SELECT jsonb_array_elements_text($1::jsonb)::uuid)
+              ORDER BY id FOR UPDATE`,
+      values: [[input.targetFolderId, ...new Set(rows.map((row) => row.folder_id))]],
     })
-
-    await db().execute(
-      from(messages)
-        .where((q) => q("id").equals(row.id))
-        .update({ folder_id: input.targetFolderId, uid, modseq }),
-    )
-    moved++
-  }
-
-  return { moved }
+    const sourceUids: number[] = []
+    const targetUids: number[] = []
+    for (const row of rows) {
+      if (row.folder_id === input.targetFolderId) continue
+      const { uid, modseq } = await claimUid(input.targetFolderId, conn)
+      const sourceModseq = await bumpModseq(row.folder_id, conn)
+      await conn.execute({
+        text: "INSERT INTO message_tombstones (folder_id, uid, modseq) VALUES ($1, $2, $3)",
+        values: [row.folder_id, row.uid, sourceModseq],
+      })
+      await conn.execute(
+        from(messages)
+          .where((q) => q("id").equals(row.id))
+          .update({ folder_id: input.targetFolderId, uid, modseq }),
+      )
+      sourceUids.push(num(row.uid))
+      targetUids.push(num(uid))
+    }
+    return { moved: sourceUids.length, sourceUids, targetUids }
+  })
 }
 
 export const copyTo = async (input: {
   messageIds: string[]
   targetFolderId: string
 }): Promise<{ sourceUids: number[]; targetUids: number[] }> => {
-  const source = await db().all<Message>(
-    from(messages).where((q) => [q("expunged_at").isNull(), q("id").inList(input.messageIds)]),
-  )
+  if (!input.messageIds.length) return { sourceUids: [], targetUids: [] }
+  return db().transaction(async (conn) => {
+    const source = await lockMessages(conn, input.messageIds)
 
-  const sourceUids: number[] = []
-  const targetUids: number[] = []
+    const sourceUids: number[] = []
+    const targetUids: number[] = []
 
-  for (const row of source) {
-    const { uid, modseq } = await claimUid(input.targetFolderId)
-    // The body is shared, not duplicated: a copy points at the same object. The
-    // retention sweep only deletes an object once no row references its key.
-    const copy = await db().one<{ id: string }>(
-      from(messages)
-        .insert({
-          folder_id: input.targetFolderId,
-          address_id: row.address_id,
-          uid,
-          modseq,
-          flags: row.flags,
-          internal_date: row.internal_date,
-          size: row.size,
-          storage_key: row.storage_key,
-          message_id: row.message_id,
-          in_reply_to: row.in_reply_to,
-          thread_id: row.thread_id,
-          subject: row.subject,
-          from_address: row.from_address,
-          to_addresses: row.to_addresses,
-          cc_addresses: row.cc_addresses,
-          envelope: row.envelope,
-          body_structure: row.body_structure,
-          snippet: row.snippet,
-          search_text: row.search_text,
-          has_attachments: row.has_attachments,
-          spam_score: row.spam_score,
-        })
-        .returning("id"),
-    )
+    for (const row of source) {
+      const { uid, modseq } = await claimUid(input.targetFolderId, conn)
+      // Copies share an object; expunge keeps it until the last live copy goes.
+      const copy = await conn.one<{ id: string }>(
+        from(messages)
+          .insert({
+            folder_id: input.targetFolderId,
+            address_id: row.address_id,
+            uid,
+            modseq,
+            flags: row.flags,
+            internal_date: row.internal_date,
+            size: row.size,
+            storage_key: row.storage_key,
+            message_id: row.message_id,
+            in_reply_to: row.in_reply_to,
+            thread_id: row.thread_id,
+            subject: row.subject,
+            from_address: row.from_address,
+            to_addresses: row.to_addresses,
+            cc_addresses: row.cc_addresses,
+            envelope: row.envelope,
+            body_structure: row.body_structure,
+            snippet: row.snippet,
+            search_text: row.search_text,
+            has_attachments: row.has_attachments,
+            spam_score: row.spam_score,
+          })
+          .returning("id"),
+      )
 
-    // An inline body has no key to share, so it is duplicated instead.
-    if (!storageEnabled() && copy) {
-      await db().execute({
-        text: `INSERT INTO message_blobs (message_id, data)
+      // An inline body has no key to share, so it is duplicated instead.
+      if (!row.storage_key && copy) {
+        await conn.execute({
+          text: `INSERT INTO message_blobs (message_id, data)
                SELECT $1, data FROM message_blobs WHERE message_id = $2
                ON CONFLICT (message_id) DO NOTHING`,
-        values: [copy.id, row.id],
-      })
+          values: [copy.id, row.id],
+        })
+      }
+
+      sourceUids.push(num(row.uid))
+      targetUids.push(num(uid))
     }
 
-    sourceUids.push(num(row.uid))
-    targetUids.push(num(uid))
-  }
+    // A copy occupies quota of its own, whether or not it shares an object.
+    const bytes = source.reduce((sum, r) => sum + (r.size ?? 0), 0)
+    if (bytes && source[0]) await addBytes(source[0].address_id, bytes, conn)
 
-  // A copy occupies quota of its own, whether or not it shares an object.
-  const bytes = source.reduce((sum, r) => sum + (r.size ?? 0), 0)
-  if (bytes && source[0]) await addBytes(source[0].address_id, bytes)
-
-  return { sourceUids, targetUids }
+    return { sourceUids, targetUids }
+  })
 }
 
 // read

@@ -4,7 +4,7 @@ import { createAddress, inboxOf } from "../src/addresses/index.ts"
 import { db, num } from "../src/db/index.ts"
 import { createImapSession, type ImapSession } from "../src/imap/session/index.ts"
 import { type Domain, users } from "../src/schema/index.ts"
-import { deliver, messagesIn } from "../src/store/index.ts"
+import { deliver, folderOf, messagesIn } from "../src/store/index.ts"
 
 /**
  * Drives a real IMAP session against a real mailbox. The protocol's sharp edges
@@ -455,6 +455,15 @@ describe("APPEND", () => {
 })
 
 describe("COPY, MOVE, and EXPUNGE", () => {
+  test("MOVE refuses to delete from an EXAMINE mailbox", async () => {
+    const client = await login()
+    await client.send("a2 EXAMINE INBOX")
+    const inbox = await inboxOf(addressId)
+    const before = await messagesIn(inbox.id)
+    expect(await client.send('a3 MOVE 1 "Archive"')).toContain("a3 NO")
+    expect(await messagesIn(inbox.id)).toEqual(before)
+  })
+
   test("COPY reports COPYUID and leaves the source", async () => {
     const client = await login()
     await client.send("a2 SELECT INBOX")
@@ -491,7 +500,7 @@ describe("COPY, MOVE, and EXPUNGE", () => {
     expect(remaining[0]!.subject).toBe("three")
   })
 
-  test("MOVE copies then expunges in one step", async () => {
+  test("MOVE preserves the message id across protocols", async () => {
     const { address } = await createAddress({
       domainId: domain.id,
       localPart: `move-${suffix}`,
@@ -499,7 +508,11 @@ describe("COPY, MOVE, and EXPUNGE", () => {
       password,
     })
     const inbox = await inboxOf(address.id)
-    await deliver({ addressId: address.id, folderId: inbox.id, raw: sample("movable", "x") })
+    const original = await deliver({
+      addressId: address.id,
+      folderId: inbox.id,
+      raw: sample("movable", "x"),
+    })
 
     const client = open()
     await client.send(`a1 LOGIN "move-${suffix}@${domainName}" "${password}"`)
@@ -509,6 +522,16 @@ describe("COPY, MOVE, and EXPUNGE", () => {
     expect(out).toContain("COPYUID")
     expect(out).toContain("* 1 EXPUNGE")
     expect(await messagesIn(inbox.id)).toHaveLength(0)
+    const archive = await folderOf(address.id, "Archive")
+    const moved = await messagesIn(archive!.id)
+    expect(moved).toHaveLength(1)
+    expect(moved[0]!.id).toBe(original.id)
+    expect(moved[0]!.size).toBe(original.size)
+    const usage = await db().one<{ bytes_used: bigint }>({
+      text: "SELECT bytes_used FROM addresses WHERE id = $1",
+      values: [address.id],
+    })
+    expect(num(usage!.bytes_used)).toBe(original.size)
   })
 
   test("CLOSE expunges without untagged responses", async () => {
