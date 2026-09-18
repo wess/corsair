@@ -5,7 +5,7 @@
     "": {
       "name": "corsair",
       "dependencies": {
-        "atlas": "github:wess/atlas#main",
+        "atlas": "github:wess/atlas#v0.3.0",
         "react": "^19.2.8",
         "react-dom": "^19.2.8",
         "zod": "^3.23.0",
@@ -49,7 +49,7 @@
 
     "@types/react-dom": ["@types/react-dom@19.2.4", "", { "peerDependencies": { "@types/react": "^19.2.0" } }, "sha512-Bsc+QHgp+P/F02XDzNCY9jnZNCUuLki36KT7VKrTXXLdHf+vHMNZnW1rVu5DNW/rCK+fya3DATySbLM4yhtKUw=="],
 
-    "atlas": ["@wess/atlas@github:wess/atlas#2d092c0", { "dependencies": { "zod": "^3.23.0" }, "peerDependencies": { "@mantine/core": "^7.0.0", "@mantine/form": "^7.0.0", "@mantine/hooks": "^7.0.0", "@tanstack/react-table": "^8.0.0", "lucide-react": ">=0.468.0 <2", "react": "^19.0.0", "react-dom": "^19.0.0", "typescript": ">=5" }, "optionalPeers": ["@mantine/core", "@mantine/form", "@mantine/hooks", "@tanstack/react-table", "lucide-react", "react", "react-dom"] }, "wess-atlas-2d092c0", "sha512-UnRq3gTAFuRpO04T54YnnzvL1ZwXBJGjETjfXUOAGlijtIbU6Gn8SICRp/N3loXtqrh/nezGrVmnI04mW1DMjg=="],
+    "atlas": ["@wess/atlas@github:wess/atlas#1aab6b5", { "dependencies": { "zod": "^4.6.5" }, "peerDependencies": { "@mantine/core": "^9.6.1", "@mantine/form": "^9.6.1", "@mantine/hooks": "^9.6.1", "@tanstack/react-table": "^9.2.4", "lucide-react": "^1.47.0", "react": "^19.3.0", "react-dom": "^19.3.0", "typescript": ">=5.9" }, "optionalPeers": ["@mantine/core", "@mantine/form", "@mantine/hooks", "@tanstack/react-table", "lucide-react", "react", "react-dom"] }, "wess-atlas-1aab6b5", "sha512-33qE9ojuLvDmHhMzFiwSh3UFdGOy/sTEx7Gajf0fvsSyW+Q2kKbJbOq7UjuinTqaK064oGiVsfnJp9hVK1meGw=="],
 
     "bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
@@ -74,5 +74,7 @@
     "undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
 
     "zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
+
+    "atlas/zod": ["zod@4.6.5", "", {}, "sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q=="],
   }
 }
