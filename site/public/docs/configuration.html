@@ -111,6 +111,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tbody></table></div>
 <aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>JWT_SECRET</p><p>Anyone who knows it can mint a session for any account. Generate 48 random bytes and treat it as a credential:</p>
 <p><code>openssl rand -base64 48</code></p>
+<p>Corsair <strong>refuses to start</strong> with the default, with any value copied from the repository, or with fewer than 32 characters. It also keys the SRS signature that stops a forwarding address being an open relay, and encrypts stored transfer credentials, so one leaked value opens all three. (<code>bun run dev</code> is exempt.)</p>
 <p>Changing it invalidates every existing session, which is also how you revoke everything at once.</p></aside>
 <p><code>TRUSTED_PROXIES</code> matters more than it looks. Behind a reverse proxy with it unset, every request appears to come from <code>127.0.0.1</code>: the rate limiter sees one client, and the ban list bans your own proxy.</p>
 <p><code>HOST</code> defaults to <code>0.0.0.0</code> because a container that binds loopback is a container nothing can reach. If your reverse proxy runs on the same box, set it to <code>127.0.0.1</code>. A firewall rule that closes port 3000 is a promise you have to keep on every rebuild; never listening on the public interface in the first place is not.</p>
@@ -396,8 +397,8 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tr>
 <tr>
 <td><code>MAX_MESSAGE_BYTES</code></td>
-<td><code>52428800</code></td>
-<td>50 MB. Advertised in the SMTP <code>SIZE</code> extension</td>
+<td><code>26214400</code></td>
+<td>25 MB. Advertised in the SMTP <code>SIZE</code> extension. Raising it costs memory: the pipeline holds several copies of a message at once</td>
 </tr>
 </tbody></table></div>
 <p>Authenticated requests are limited per user; unauthenticated ones per IP. Sign-in and sign-up have their own tighter limit of <strong>5 per second per IP</strong>, since there is no principal yet.</p>

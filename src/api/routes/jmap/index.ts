@@ -1,6 +1,14 @@
 import { from } from "@atlas/db"
 import { get, json, post, type Route, text } from "@atlas/server"
-import { authenticateAddress, type MailIdentity, resolveMailSession } from "../../../auth/index.ts"
+import { ownerOfDomain } from "../../../addresses/index.ts"
+import { reserveSends } from "../../../agents/index.ts"
+import {
+  authenticateAddress,
+  isBanned,
+  type MailIdentity,
+  recordAuthFailure,
+  resolveMailSession,
+} from "../../../auth/index.ts"
 import { config } from "../../../config/index.ts"
 import { db } from "../../../db/index.ts"
 import { sign } from "../../../dkim/index.ts"
@@ -8,9 +16,13 @@ import { activeDkimKey } from "../../../domains/index.ts"
 import { rfcMessageId, uidValidity } from "../../../ids/index.ts"
 import * as mime from "../../../mime/index.ts"
 import { enqueue } from "../../../outbound/index.ts"
+import { responseConn } from "../../../parts/index.ts"
+import { withinDailyLimit } from "../../../plans/index.ts"
 import { type Folder, folders, type Message, messages } from "../../../schema/index.ts"
+import { mayUseSender } from "../../../smtp/submission/index.ts"
 import { getRaw } from "../../../storage/index.ts"
 import { deliver, expunge, moveTo, setFlags } from "../../../store/index.ts"
+import { ipOf } from "../../pipes/index.ts"
 
 /**
  * JMAP — RFC 8620 (core) and RFC 8621 (mail).
@@ -86,7 +98,20 @@ const authenticate = async (conn: { headers: Headers }): Promise<MailIdentity | 
   }
   const colon = decoded.indexOf(":")
   if (colon === -1) return null
-  return authenticateAddress(decoded.slice(0, colon), decoded.slice(colon + 1))
+
+  // Basic credentials are a password guess like any other, and this was the one
+  // front door without the failure ban the mail listeners and the webmail have:
+  // unlimited tries against a known address, each one an Argon2 verify.
+  const ip = ipOf(conn as never)
+  if (await isBanned(ip)) return null
+
+  const username = decoded.slice(0, colon)
+  const identity = await authenticateAddress(username, decoded.slice(colon + 1))
+  if (!identity) {
+    await recordAuthFailure(ip, "jmap", username).catch(() => {})
+    return null
+  }
+  return identity
 }
 
 const unauthorized = (conn: never) => {
@@ -755,6 +780,39 @@ const invoke = async (
           continue
         }
 
+        // The same two rules SMTP submission applies, because a JMAP client names
+        // the envelope sender itself and this was the one way in that did not
+        // check it: any mailbox could send as any address, on any domain, signed
+        // with its own domain's key. `mayUseSender` is the function submission
+        // uses, so the two cannot drift. An agent is further held to its own
+        // address by it, and to its allowance by `reserveSends`.
+        const mailFrom = String(spec.envelope?.mailFrom?.email ?? ctx.identity.email)
+        if (!(await mayUseSender(ctx.identity, mailFrom))) {
+          notCreated[key] = { type: "forbiddenFrom" }
+          continue
+        }
+
+        const owner = await ownerOfDomain(ctx.identity.domain.id)
+        if (owner) {
+          const limit = await withinDailyLimit(
+            owner,
+            "outbound",
+            ctx.identity.address.daily_out_limit,
+          )
+          if (!limit.ok) {
+            notCreated[key] = {
+              type: "forbiddenToSend",
+              description: "Daily sending limit reached.",
+            }
+            continue
+          }
+        }
+
+        if (!(await reserveSends(ctx.identity.address, recipients.length)).ok) {
+          notCreated[key] = { type: "forbiddenToSend" }
+          continue
+        }
+
         const dkim = await activeDkimKey(ctx.identity.domain.id)
         const signed = dkim
           ? sign({
@@ -767,7 +825,7 @@ const invoke = async (
 
         await enqueue({
           raw: signed,
-          mailFrom: spec.envelope?.mailFrom?.email ?? ctx.identity.email,
+          mailFrom,
           recipients,
           addressId: ctx.identity.address.id,
           domainId: ctx.identity.domain.id,
@@ -943,16 +1001,19 @@ export const jmapRoutes: Route[] = [
     if (!part) return json(c, 404, { type: "urn:ietf:params:jmap:error:notFound" })
 
     const bytes = mime.decodeTransfer(raw.slice(part.bodyStart, part.end), part.encoding)
-    return new Response(new Uint8Array(bytes), {
-      headers: {
-        // Never the declared type: serving an attacker-supplied text/html blob
-        // inline on this origin would hand it the session.
-        "content-type": "application/octet-stream",
-        "content-disposition": `attachment; filename="${mime.stripControls(String(c.params.name)).replace(/"/g, "")}"`,
-        "x-content-type-options": "nosniff",
-        "content-security-policy": "default-src 'none'; sandbox",
-      },
-    }) as never
+    return responseConn(
+      c as never,
+      new Response(new Uint8Array(bytes), {
+        headers: {
+          // Never the declared type: serving an attacker-supplied text/html blob
+          // inline on this origin would hand it the session.
+          "content-type": "application/octet-stream",
+          "content-disposition": `attachment; filename="${mime.stripControls(String(c.params.name)).replace(/"/g, "")}"`,
+          "x-content-type-options": "nosniff",
+          "content-security-policy": "default-src 'none'; sandbox",
+        },
+      }),
+    ) as never
   }),
 
   /** Blob upload, which is how a client composes a message with attachments. */

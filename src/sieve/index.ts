@@ -15,7 +15,13 @@
  * address parts.
  */
 
-import { decodeWords, headerValue, headerValues, type ParsedMessage } from "../mime/index.ts"
+import {
+  decodeWords,
+  headerValue,
+  headerValues,
+  isSafeAddress,
+  type ParsedMessage,
+} from "../mime/index.ts"
 
 // lexer
 
@@ -572,7 +578,7 @@ export const run = (source: string, ctx: SieveContext): SieveResult => {
 
         case "redirect": {
           const [targets = []] = stringListsOf(command.args)
-          for (const target of targets) if (target.includes("@")) result.redirect.push(target)
+          for (const target of targets) if (isSafeAddress(target)) result.redirect.push(target)
           break
         }
 

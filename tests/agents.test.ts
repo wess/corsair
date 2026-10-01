@@ -1,13 +1,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import { createAddress } from "../src/addresses/index.ts"
-import { createAgent, resolveAgent, rotateAgentToken } from "../src/agents/index.ts"
+import { createAgent, reserveSends, resolveAgent, rotateAgentToken } from "../src/agents/index.ts"
 import { buildFetch } from "../src/api/index.ts"
 import { createApiKey } from "../src/apikeys/index.ts"
 import { authenticateAddress, hashToken } from "../src/auth/index.ts"
 import { db } from "../src/db/index.ts"
-import type { Agent, Domain } from "../src/schema/index.ts"
+import type { Address, Agent, Domain } from "../src/schema/index.ts"
 import { handleMessage } from "../src/smtp/inbound/index.ts"
 import type { Envelope } from "../src/smtp/session/index.ts"
+import { authenticate, validateRecipient, validateSender } from "../src/smtp/submission/index.ts"
 
 /**
  * Agent email against a real database.
@@ -109,11 +110,25 @@ describe("the mailbox", () => {
     expect(row?.user_id).toBeNull()
   })
 
-  test("is not a login for IMAP, POP3, SMTP, or the webmail", async () => {
-    // Every one of them goes through this. Whatever is tried, it is refused.
-    expect(await authenticateAddress(one.email, one.token)).toBeNull()
+  test("its API key is its password on every protocol, and nothing else is", async () => {
+    // Every protocol listener and the webmail go through this one function.
+    const identity = await authenticateAddress(one.email, one.token)
+    expect(identity?.address.id).toBe(one.id)
+
     expect(await authenticateAddress(one.email, "")).toBeNull()
     expect(await authenticateAddress(one.email, "password")).toBeNull()
+    // Another agent's key is not this agent's password.
+    expect(await authenticateAddress(one.email, two.token)).toBeNull()
+    // Nor is a key with one character changed.
+    expect(await authenticateAddress(one.email, `${one.token.slice(0, -1)}x`)).toBeNull()
+  })
+
+  test("a deleted or rotated key stops being a password at once", async () => {
+    const third = await make("password rotation")
+    expect(await authenticateAddress(third.email, third.token)).not.toBeNull()
+    const { token } = await rotateAgentToken(third.agent)
+    expect(await authenticateAddress(third.email, third.token)).toBeNull()
+    expect(await authenticateAddress(third.email, token)).not.toBeNull()
   })
 
   test("cannot be created through the ordinary address route's enum", async () => {
@@ -335,17 +350,107 @@ describe("sending", () => {
     expect((await post(one.token, { to: ["x@far.invalid"], text: "t" })).status).toBe(400)
   })
 
-  test("is capped per mailbox per day", async () => {
+  test("is capped per mailbox per UTC day", async () => {
     await enable(one.agent, true)
     await db().execute({
-      text: `INSERT INTO mail_log (user_id, domain_id, address_id, direction, status, mail_from, rcpt_to, code)
-             SELECT $1, $2, $3, 'outbound', 'accepted', 'a@b.invalid', 'r@far.invalid', 250
-               FROM generate_series(1, 50)`,
-      values: [userId, domain.id, one.id],
+      text: "UPDATE agents SET sent_on = $2, sent_count = 50 WHERE id = $1",
+      values: [one.agent.id, new Date().toISOString().slice(0, 10)],
     })
     const res = await post(one.token, { to: ["x@far.invalid"], subject: "s", text: "t" })
     expect(res.status).toBe(429)
     expect((await res.json()).name).toBe("daily_quota_exceeded")
+
+    // Yesterday's count is not today's.
+    await db().execute({
+      text: "UPDATE agents SET sent_on = '2000-01-01' WHERE id = $1",
+      values: [one.agent.id],
+    })
+    expect((await post(one.token, { to: ["x@far.invalid"], subject: "s", text: "t" })).status).toBe(
+      202,
+    )
+  })
+
+  test("concurrent sends cannot overshoot the cap", async () => {
+    const racer = await make("racer")
+    await enable(racer.agent, true)
+    const address = (await db().one<Address>({
+      text: "SELECT * FROM addresses WHERE id = $1",
+      values: [racer.id],
+    }))!
+
+    // Twenty at once, ten recipients each, against a cap of fifty: exactly five
+    // can win. A count-then-send check lets many more through.
+    const results = await Promise.all(Array.from({ length: 20 }, () => reserveSends(address, 10)))
+    expect(results.filter((r) => r.ok)).toHaveLength(5)
+
+    const row = await db().one<{ sent_count: number }>({
+      text: "SELECT sent_count FROM agents WHERE id = $1",
+      values: [racer.agent.id],
+    })
+    expect(row?.sent_count).toBe(50)
+  })
+
+  test("a read-only agent reserves nothing, and an ordinary mailbox is untouched", async () => {
+    const quiet = await make("quiet")
+    const address = (await db().one<Address>({
+      text: "SELECT * FROM addresses WHERE id = $1",
+      values: [quiet.id],
+    }))!
+    expect(await reserveSends(address, 1)).toEqual({ ok: false, reason: "disabled" })
+
+    const plain = await createAddress({
+      domainId: domain.id,
+      localPart: `plain-${suffix}`,
+      type: "standard",
+      password: "correct horse battery",
+    })
+    expect(await reserveSends(plain.address, 1_000)).toEqual({ ok: true })
+  })
+})
+
+describe("SMTP submission", () => {
+  test("an agent can send as itself and as nobody else on its domain", async () => {
+    await db().execute({
+      text: "UPDATE agents SET can_send = true, sent_on = NULL, sent_count = 0 WHERE id = $1",
+      values: [two.agent.id],
+    })
+    const session = await authenticate(two.email, two.token)
+    expect(session).not.toBeNull()
+
+    expect(await validateSender(two.email, session)).toBeNull()
+    // The owner's other addresses are the owner's, not the agent's.
+    const other = await validateSender(`billing@${zone}`, session)
+    expect(other?.code).toBe(550)
+  })
+
+  test("a read-only agent is refused at RCPT", async () => {
+    const readonly = await make("readonly submit")
+    const session = await authenticate(readonly.email, readonly.token)
+    expect(session).not.toBeNull()
+    const refusal = await validateRecipient("someone@far.invalid", session)
+    expect(refusal?.code).toBe(550)
+  })
+})
+
+describe("basic auth", () => {
+  const basic = (user: string, password: string) =>
+    `Basic ${Buffer.from(`${user}:${password}`).toString("base64")}`
+
+  test("the address and the key open the agent API", async () => {
+    const res = await call("/api/agent", null, {
+      headers: { authorization: basic(one.email, one.token) },
+    })
+    expect(res.status).toBe(200)
+    expect((await res.json()).email).toBe(one.email)
+  })
+
+  test("the right key under the wrong address is refused", async () => {
+    const res = await call("/api/agent", null, {
+      headers: { authorization: basic(two.email, one.token) },
+    })
+    expect(res.status).toBe(403)
+    const garbled = await call("/api/agent", null, { headers: { authorization: "Basic !!!" } })
+    expect(garbled.status).toBe(403)
   })
 })
 

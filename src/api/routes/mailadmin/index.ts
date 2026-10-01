@@ -42,7 +42,9 @@ const managed = async (
   addressId: string,
 ): Promise<{ address: Address; domain: Domain }> => {
   const address = await db().one<Address>(from(addresses).where((q) => q("id").equals(addressId)))
-  if (!address) throw notFound("Mailbox not found.")
+  // Agent mailboxes are managed by the domain's owner under Agent email, never
+  // by a mailbox that merely administers the domain.
+  if (!address || address.type === "agent") throw notFound("Mailbox not found.")
   const domain = await addressAdministeredDomain(actingAddressId, address.domain_id).catch(
     () => null,
   )

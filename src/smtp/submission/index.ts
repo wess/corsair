@@ -1,5 +1,6 @@
 import { from } from "@atlas/db"
 import { folderBySpecialUse, ownerOfDomain } from "../../addresses/index.ts"
+import { reserveSends } from "../../agents/index.ts"
 import { authenticateAddress, type MailIdentity } from "../../auth/index.ts"
 import { config } from "../../config/index.ts"
 import { db } from "../../db/index.ts"
@@ -47,9 +48,14 @@ const identityOf = (token: Identity | null): MailIdentity | null =>
  * without wanting a second password. Nothing outside that: an authenticated
  * customer must not be able to send as another customer's domain.
  */
-const mayUseSender = async (identity: MailIdentity, address: string): Promise<boolean> => {
+export const mayUseSender = async (identity: MailIdentity, address: string): Promise<boolean> => {
   const wanted = address.toLowerCase()
   if (wanted === identity.email.toLowerCase()) return true
+
+  // An agent sends as itself and nobody else. The rule below is for a person who
+  // owns the domain and sends as their own other addresses; an agent has been
+  // handed a token, not the domain, and "billing@" or "ceo@" are not its names.
+  if (identity.address.type === "agent") return false
 
   const at = wanted.lastIndexOf("@")
   if (at <= 0) return false
@@ -129,6 +135,24 @@ export const validateRecipient = async (
   if (!address.includes("@")) {
     return { code: 501, enhanced: "5.1.3", message: "Recipient address is not valid." }
   }
+
+  // An agent's allowance is spent a recipient at a time, here, so it cannot be
+  // used up by one session that never reaches DATA only to be reset.
+  const identity = identityOf(token)!
+  const reserved = await reserveSends(identity.address, 1)
+  if (!reserved.ok) {
+    return reserved.reason === "disabled"
+      ? {
+          code: 550,
+          enhanced: "5.7.1",
+          message: "This agent mailbox can only read. Sending is turned off for it.",
+        }
+      : {
+          code: 451,
+          enhanced: "4.7.1",
+          message: "This agent's daily sending limit is reached. Try again tomorrow.",
+        }
+  }
   return null
 }
 
@@ -175,6 +199,25 @@ export const handleMessage = async (
   if (!identity) return { code: 530, enhanced: "5.7.0", message: "Authentication required." }
 
   const normalized = mime.normalizeEol(raw)
+
+  // The visible From has to be one the caller may send as, same as the envelope.
+  // Only MAIL FROM used to be checked, so any mailbox could put another
+  // customer's address — or a bank's — in From, have it signed with its own
+  // domain's key, and send it from this server's good IP. RFC 6409 §6.1 lets a
+  // submission server enforce exactly this.
+  const visible = mime.parseAddressList(
+    mime.headerValue(mime.parseMessage(normalized).headers, "from"),
+  )
+  for (const sender of visible) {
+    if (!(await mayUseSender(identity, sender.address))) {
+      return {
+        code: 550,
+        enhanced: "5.7.1",
+        message: `You are not allowed to send as ${mime.stripControls(sender.address)}.`,
+      }
+    }
+  }
+
   const complete = completeHeaders(normalized, envelope, identity)
 
   // Signed after the headers are complete and before anything is stored, so the

@@ -2580,6 +2580,11 @@ and treat it as a credential:
 
 `openssl rand -base64 48`
 
+Corsair **refuses to start** with the default, with any value copied from the
+repository, or with fewer than 32 characters. It also keys the SRS signature that
+stops a forwarding address being an open relay, and encrypts stored transfer
+credentials, so one leaked value opens all three. (`bun run dev` is exempt.)
+
 Changing it invalidates every existing session, which is also how you revoke
 everything at once.
 
@@ -2770,7 +2775,7 @@ Turn it on only when your consumers are genuinely on the same private network.
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `RATE_LIMIT_PER_SECOND` | `10` | API requests per second, per principal |
-| `MAX_MESSAGE_BYTES` | `52428800` | 50 MB. Advertised in the SMTP `SIZE` extension |
+| `MAX_MESSAGE_BYTES` | `26214400` | 25 MB. Advertised in the SMTP `SIZE` extension. Raising it costs memory: the pipeline holds several copies of a message at once |
 
 Authenticated requests are limited per user; unauthenticated ones per IP. Sign-in
 and sign-up have their own tighter limit of **5 per second per IP**, since there
@@ -6559,13 +6564,22 @@ Source: https://wess.io/corsair/docs/agents.html
 An agent signing up for a service on someone's behalf needs an address the
 service can mail, and a way to read what comes back — the confirmation link, the
 one-time code. An **agent email** is that: a mailbox on one of your domains,
-opened with a token instead of a password.
+opened with an **API key** instead of a password.
 
-The token reads that one mailbox and nothing else. It cannot reach another
-address, cannot create or see other tokens, and — unless you turn it on — cannot
-send. IMAP, POP3, SMTP
-submission, and the webmail all refuse the address, because there is no password
-to give them.
+You get the address and the key together when you create it. They work as a
+username and a password anywhere one is asked for:
+
+| Where | Username | Password |
+| --- | --- | --- |
+| HTTP API, bearer | — | `Authorization: Bearer <key>` |
+| HTTP API, Basic | the address | the key |
+| IMAP, POP3, SMTP submission, webmail | the address | the key |
+
+The key reads that one mailbox and nothing else. It cannot reach another address,
+cannot create or see other keys, cannot manage domains, API keys, or anything
+else on the account, and — unless you turn it on — cannot send. When sending *is*
+on it sends as the agent's own address only, never as another address on the
+domain, over every one of those routes and with the same daily cap.
 
 ## Create one
 
@@ -6672,9 +6686,12 @@ sender), the subject (`Re: …`), and the threading headers. Without it, send `t
 Plain text only, DKIM-signed like every other message from the domain, and the
 domain must have finished DNS setup.
 
-An agent mailbox may send to **50 recipients in any rolling day**. The cap is on
+An agent mailbox may send to **50 recipients in a UTC day**, counted however the
+mail is sent — the agent API, SMTP submission, the webmail, or JMAP. The cap is on
 the mailbox, not the account, so one agent stuck in a loop cannot spend the
-allowance of every other mailbox. Past it, `429 daily_quota_exceeded`.
+allowance of every other mailbox, and it is taken atomically, so concurrent
+requests cannot overshoot it. Past it, the API answers `429 daily_quota_exceeded`
+and SMTP answers `451`. A send that fails after being accepted still counts.
 
 ## Treat the mail as untrusted
 
@@ -6715,7 +6732,7 @@ Everything here needs two values from the control panel's **Agent email** page:
 | Variable | Value |
 | --- | --- |
 | `CORSAIR_URL` | Your server, e.g. `https://mail.example.com` |
-| `CORSAIR_AGENT_TOKEN` | The agent's token, starting `ca_` (shown once) |
+| `CORSAIR_AGENT_TOKEN` | The agent's API key, starting `ca_` (shown once). Also its password for IMAP, POP3, SMTP and HTTP Basic auth |
 
 > **note:** **If you are an agent reading this,** you probably cannot create the token
 yourself — it comes from your user. Ask them to create an agent under **Agent

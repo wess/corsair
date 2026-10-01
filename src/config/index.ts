@@ -154,7 +154,11 @@ export const config = defineConfig({
   webhookAllowPrivate: env("WEBHOOK_ALLOW_PRIVATE", { parse: bool, default: "false" }),
 
   rateLimitPerSecond: env("RATE_LIMIT_PER_SECOND", { parse: Number, default: "10" }),
-  maxMessageBytes: env("MAX_MESSAGE_BYTES", { parse: Number, default: "52428800" }),
+  // 25 MB, the limit the large providers apply to what they will accept. The
+  // pipeline holds several copies of a message at once (the buffer, the
+  // normalised text, a parse, the DKIM canonicalisation, the stored copy), so on a
+  // 1 GB machine one 50 MB message peaked near 900 MB.
+  maxMessageBytes: env("MAX_MESSAGE_BYTES", { parse: Number, default: "26214400" }),
   trustedProxies: env("TRUSTED_PROXIES", { default: "" }),
 })
 

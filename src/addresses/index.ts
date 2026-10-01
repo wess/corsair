@@ -50,6 +50,23 @@ export const normalizeLocalPart = (input: string): string => {
   return value
 }
 
+/**
+ * Refuses a forward that points at itself. `a@d -> a@d` queues the message to our
+ * own port 25, which forwards it again, forever: every hop adds a delivery row, a
+ * journal entry and a stored body. A longer cycle (a -> b -> a) is caught at
+ * delivery by the hop count, which is the only place it can be seen.
+ */
+export const assertNoSelfLoop = (
+  localPart: string,
+  domainName: string,
+  destinations: readonly string[],
+): void => {
+  const self = `${localPart}@${domainName}`.toLowerCase()
+  if (destinations.some((d) => d.trim().toLowerCase() === self)) {
+    throw invalidParameter("An address cannot forward to itself.")
+  }
+}
+
 export const emailOf = (address: Address, domain: Domain): string =>
   `${address.local_part}@${domain.name}`
 
@@ -205,6 +222,13 @@ export const createAddress = async (
   }
   if (input.type === "alias" && (input.destinations?.length ?? 0) > 1) {
     throw invalidParameter("An alias forwards to one address. Use a group for several.")
+  }
+
+  if (needsDestinations) {
+    const domain = await db().one<Domain>(
+      from(domains).where((q) => q("id").equals(input.domainId)),
+    )
+    if (domain) assertNoSelfLoop(localPart, domain.name, input.destinations ?? [])
   }
 
   const existing = await db().one<{ id: string }>(

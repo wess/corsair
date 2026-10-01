@@ -22,7 +22,9 @@ const PER_PAGE_CHOICES = [10, 25, 50, 100]
 export const parsePageQuery = (query: Record<string, string | undefined>): PageQuery => {
   const perPage = Number(query.per_page ?? "10")
   return {
-    page: Math.max(1, Number(query.page ?? "1") || 1),
+    // Finite and bounded: `page=1e400` is `Infinity`, which reached the SQL as
+    // `OFFSET Infinity`.
+    page: Math.min(1_000_000, Math.max(1, Math.floor(Number(query.page ?? "1")) || 1)),
     perPage: PER_PAGE_CHOICES.includes(perPage) ? perPage : 10,
     search: (query.search ?? "").trim(),
     sort: query.sort?.trim() || null,
@@ -69,7 +71,13 @@ export const paginate = async <T>(input: PaginateInput): Promise<Page<T>> => {
     where = `${where} AND (${clauses.join(" OR ")})`
   }
 
-  const sortColumn = (input.query.sort && input.sortable?.[input.query.sort]) || input.defaultSort
+  // Own properties only: `sort=__proto__` found Object.prototype on the lookup
+  // and put `[object Object]` in the ORDER BY.
+  const requested = input.query.sort
+  const sortColumn =
+    (requested && input.sortable && Object.hasOwn(input.sortable, requested)
+      ? input.sortable[requested]
+      : null) || input.defaultSort
   const direction = input.query.direction === "desc" ? "DESC" : "ASC"
 
   const totalRow = await db().one<{ count: string }>({

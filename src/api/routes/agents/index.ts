@@ -4,21 +4,19 @@ import { ownedDomain } from "../../../access/index.ts"
 import { deleteAddress } from "../../../addresses/index.ts"
 import { extractCodes, extractLinks } from "../../../agents/extract/index.ts"
 import {
-  AGENT_DAILY_SENDS,
   assertAddressQuota,
   createAgent,
   findAgent,
   listAgents,
   rotateAgentToken,
-  sentToday,
   setCanSend,
 } from "../../../agents/index.ts"
 import { db } from "../../../db/index.ts"
-import { dailyQuotaExceeded, forbidden, invalidParameter, notFound } from "../../../errors/index.ts"
+import { invalidParameter, notFound } from "../../../errors/index.ts"
 import { emit } from "../../../events/index.ts"
 import { sendFromMailbox } from "../../../mailsend/index.ts"
 import * as mime from "../../../mime/index.ts"
-import { partResponse } from "../../../parts/index.ts"
+import { partResponse, responseConn } from "../../../parts/index.ts"
 import type { Message } from "../../../schema/index.ts"
 import { agentObject } from "../../../serialize/index.ts"
 import { getRaw } from "../../../storage/index.ts"
@@ -53,6 +51,23 @@ const MAX_BODY = 20_000
 const POLL_MS = 1_000
 // Under the server's 60s idle timeout, with room for the last poll.
 const MAX_WAIT_SECONDS = 50
+
+// How many long-polls may be open at once. The request limiter bounds how fast
+// they can be *started*, not how many are alive, and each one queries the shared
+// pool every second for up to 50 s — so one agent stuck in a retry loop could
+// otherwise hold hundreds open and starve delivery of the pool. Past the cap a
+// wait answers `matched: false` at once, which is what the caller would have got
+// anyway and costs nothing.
+const MAX_WAITS_PER_AGENT = 2
+const MAX_WAITS_TOTAL = 50
+const waiting = new Map<string, number>()
+let waitingTotal = 0
+
+// Extraction runs over text a stranger wrote. It is linear, but a maximum-size
+// message is still about a second of the event loop, so it reads a bounded
+// prefix, and the lists it returns are bounded too.
+const MAX_EXTRACT = 200_000
+const MAX_LISTED = 100
 
 const summary = (m: Message) => ({
   id: m.id,
@@ -113,8 +128,11 @@ const detail = async (message: Message) => {
     text: text.slice(0, MAX_BODY),
     truncated: text.length > MAX_BODY,
     // Suggestions only. The body above is the source of truth.
-    links: extractLinks(bodies),
-    codes: extractCodes(text),
+    links: extractLinks({
+      text: bodies.text.slice(0, MAX_EXTRACT),
+      html: bodies.html.slice(0, MAX_EXTRACT),
+    }).slice(0, MAX_LISTED),
+    codes: extractCodes(text.slice(0, MAX_EXTRACT)).slice(0, MAX_LISTED),
     headers: {
       date: mime.headerValue(parsed.headers, "date"),
       message_id: mime.headerValue(parsed.headers, "message-id"),
@@ -187,11 +205,19 @@ export const agentRoutes: Route[] = [
       // The owner's, not a delegate's: an agent mailbox is a credential on the
       // domain, and handing those out is the owner's call like API keys.
       const domain = await ownedDomain(userId, c.body.domain_id)
+      // A domain that has not finished DNS setup receives no mail, so an agent on
+      // it would be an inbox that can never fill.
+      if (domain.status !== "active") {
+        throw invalidParameter(`${domain.name} is not verified yet. Finish DNS setup first.`)
+      }
       const entitlement = entitlementFrom(c)
       await assertAddressQuota(userId, entitlement.plan.max_addresses, entitlement.plan.name)
 
       const { agent, address, token } = await createAgent({
-        userId,
+        // The domain's owner, not whoever is signed in: a system administrator
+        // creating one on a customer's domain would otherwise leave it owned by,
+        // quota-checked against, and invisible to, the wrong account.
+        userId: domain.user_id,
         domain,
         name: c.body.name,
         localPart: c.body.local_part,
@@ -311,11 +337,26 @@ export const agentRoutes: Route[] = [
       const filters = { ...filtersOf(query), since: query.since ?? new Date().toISOString() }
       const deadline = Date.now() + seconds * 1_000
 
-      while (true) {
-        const [message] = await search(address.id, filters, 1)
-        if (message) return json(c, 200, { ...(await detail(message)), matched: true })
-        if (Date.now() + POLL_MS > deadline) break
-        await Bun.sleep(POLL_MS)
+      const mine = waiting.get(address.id) ?? 0
+      if (mine >= MAX_WAITS_PER_AGENT || waitingTotal >= MAX_WAITS_TOTAL) {
+        return json(c, 200, { object: "message", matched: false })
+      }
+      waiting.set(address.id, mine + 1)
+      waitingTotal++
+
+      try {
+        const signal = (c as unknown as { request?: Request }).request?.signal
+        while (!signal?.aborted) {
+          const [message] = await search(address.id, filters, 1)
+          if (message) return json(c, 200, { ...(await detail(message)), matched: true })
+          if (Date.now() + POLL_MS > deadline) break
+          await Bun.sleep(POLL_MS)
+        }
+      } finally {
+        waitingTotal--
+        const left = (waiting.get(address.id) ?? 1) - 1
+        if (left <= 0) waiting.delete(address.id)
+        else waiting.set(address.id, left)
       }
       return json(c, 200, { object: "message", matched: false })
     },
@@ -350,7 +391,7 @@ export const agentRoutes: Route[] = [
       if (!raw) throw notFound("This message's body is no longer available.")
       // Always a download. An agent has no page to render it in, and the
       // declared type is attacker-supplied.
-      return partResponse(raw, c.params.section, false) as never
+      return responseConn(c, partResponse(raw, c.params.section, false)) as never
     },
   ),
 
@@ -371,13 +412,7 @@ export const agentRoutes: Route[] = [
       assigns: {} as never,
     },
     async (c) => {
-      const { agent, address, domain } = agentOf(c)
-      if (!agent.can_send) {
-        throw forbidden(
-          "This agent can only read. Turn on sending for it in the control panel, or with PATCH /api/agents/:id.",
-        )
-      }
-
+      const { address, domain } = agentOf(c)
       let to = c.body.to ?? []
       let subject = c.body.subject
       let inReplyTo: string | null = null
@@ -389,9 +424,18 @@ export const agentRoutes: Route[] = [
           // Where the sender asked replies to go, as any mail client would. The
           // stored value is a display form ("Shop <a@b>"); only the address is
           // a recipient.
-          const target = original.envelope?.reply_to[0] ?? original.from_address
-          const parsed = mime.parseAddressList(target)[0]
-          if (parsed) to = [parsed.address]
+          //
+          // Only when it stays in the sender's own domain. A Reply-To pointing
+          // elsewhere is how a crafted message aims an agent's DKIM-signed
+          // allowance at a stranger of the attacker's choosing; if that is
+          // really where replies go, the agent can be told so with `to`.
+          const sender = mime.parseAddressList(original.from_address)[0]
+          const asked = mime.parseAddressList(original.envelope?.reply_to[0] ?? null)[0]
+          const domainOf = (address: string) =>
+            address.slice(address.lastIndexOf("@") + 1).toLowerCase()
+          const target =
+            asked && sender && domainOf(asked.address) === domainOf(sender.address) ? asked : sender
+          if (target) to = [target.address]
         }
         if (!subject && original.subject) {
           subject = /^re:/i.test(original.subject) ? original.subject : `Re: ${original.subject}`
@@ -402,13 +446,6 @@ export const agentRoutes: Route[] = [
 
       if (!to.length) throw invalidParameter("Say who to send to, or reply to a message.")
       if (!subject) throw invalidParameter("A message needs a subject.")
-
-      // Counted in recipients, because that is what the journal records, and
-      // checked before sending so one call cannot step over the cap.
-      const recipients = to.length + (c.body.cc?.length ?? 0)
-      if ((await sentToday(address.id)) + recipients > AGENT_DAILY_SENDS) {
-        throw dailyQuotaExceeded(AGENT_DAILY_SENDS)
-      }
 
       const { queued, messageId } = await sendFromMailbox({
         address,

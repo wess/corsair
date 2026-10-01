@@ -1,0 +1,1 @@
+ALTER TABLE agents DROP COLUMN IF EXISTS sent_count, DROP COLUMN IF EXISTS sent_on;

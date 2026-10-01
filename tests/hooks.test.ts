@@ -213,7 +213,7 @@ describe("delivery", () => {
     expect(received).toHaveLength(2)
   })
 
-  test("every attempt is recorded with its status and body", async () => {
+  test("every attempt is recorded with its status, and never the response body", async () => {
     failures = 1
     const hook = await createWebhook({ userId, url, events: ["domain.created"] })
     await emit({ userId, type: "domain.created", data: {} })
@@ -228,7 +228,9 @@ describe("delivery", () => {
     })
     expect(attempts).toHaveLength(2)
     expect(attempts[0]!.http_status_code).toBe(500)
-    expect(attempts[0]!.response).toContain("not today")
+    // The receiver's body is not kept: storing it made a webhook URL a way to read
+    // whatever an internal address answered with.
+    expect(attempts[0]!.response).toBeNull()
     expect(attempts[1]!.http_status_code).toBe(200)
   })
 

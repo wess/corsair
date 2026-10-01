@@ -79,7 +79,15 @@ export const readCookie = (header: string | null, name: string): string | null =
   if (!header) return null
   for (const part of header.split(";")) {
     const [k, ...rest] = part.trim().split("=")
-    if (k === name) return decodeURIComponent(rest.join("="))
+    if (k === name) {
+      // A cookie that is not valid percent-encoding is somebody's garbage, not a
+      // server fault: it is no session, and must not surface as a 500.
+      try {
+        return decodeURIComponent(rest.join("="))
+      } catch {
+        return null
+      }
+    }
   }
   return null
 }
@@ -216,6 +224,54 @@ const mailboxForAccountEmail = async (email: string): Promise<Address | null> =>
 }
 
 /**
+ * An agent mailbox's password is its API token.
+ *
+ * The same `ca_` secret opens the HTTP API and, here, IMAP, POP3, SMTP
+ * submission and the webmail, so an agent holds one credential and a harness
+ * that wants a mail client's settings can be given the address and the token.
+ * What it can *do* once in is narrower than a person's mailbox — see
+ * `reserveSends` and `mayUseSender` for sending — but reading is the same.
+ *
+ * Compared as SHA-256 digests in constant time, the way the token is stored. It
+ * is a 256-bit random value, so there is nothing to slow down with a password
+ * hash; the protocol listeners' failure bans still apply.
+ */
+const authenticateAgent = async (
+  address: Address,
+  password: string,
+): Promise<MailIdentity | null> => {
+  // Not a token, so not worth a query. Also keeps a person's ordinary password
+  // guess from touching the agents table at all.
+  if (!password.startsWith("ca_")) return null
+
+  const row = await db().one<{ id: string; token_hash: string }>({
+    text: `SELECT g.id, g.token_hash FROM agents g
+             JOIN users u ON u.id = g.user_id
+            WHERE g.address_id = $1 AND u.status <> 'terminated'`,
+    values: [address.id],
+  })
+  if (!row) return null
+
+  const given = Buffer.from(hashToken(password), "hex")
+  const expected = Buffer.from(row.token_hash, "hex")
+  if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null
+
+  const domain = await db().one<Domain>(
+    from(domains).where((q) => q("id").equals(address.domain_id)),
+  )
+  if (!domain) return null
+
+  void db()
+    .execute({
+      text: "UPDATE agents SET last_used_at = now() WHERE id = $1",
+      values: [row.id],
+    })
+    .catch(() => {})
+
+  return { address, domain, email: `${address.local_part}@${domain.name}` }
+}
+
+/**
  * Verifies a password against a resolved mailbox and builds its identity.
  *
  * Shared by both ways in — the mailbox address itself, and the owner's
@@ -227,6 +283,7 @@ const authenticateResolved = async (
   password: string,
 ): Promise<MailIdentity | null> => {
   if (address.disabled) return null
+  if (address.type === "agent") return authenticateAgent(address, password)
   if (address.type !== "standard" && address.type !== "catchall") return null
 
   /**
@@ -244,7 +301,7 @@ const authenticateResolved = async (
    */
   const expected = await mailboxHash(address)
   if (!expected) return null
-  if (!(await verify(password, expected))) return null
+  if (!(await verifyPassword(password, expected))) return null
 
   const domain = await db().one<Domain>(
     from(domains).where((q) => q("id").equals(address.domain_id)),
@@ -279,7 +336,7 @@ export const verifyMailboxPassword = async (
   password: string,
 ): Promise<boolean> => {
   const expected = await mailboxHash(address)
-  return expected ? verify(password, expected) : false
+  return expected ? verifyPassword(password, expected) : false
 }
 
 export const authenticateAddress = async (
@@ -430,8 +487,39 @@ export const clearAuthFailures = async (ip: string): Promise<void> => {
 // helpers
 
 export const hashPassword = (plain: string): Promise<string> => hash(plain)
+
+/**
+ * Argon2id holds tens of megabytes while it runs, and every login path funnels
+ * through it. On a 1 GB box a few dozen concurrent guesses is the whole of RAM,
+ * so verifies queue behind a small gate instead of all running at once. The
+ * failure bans and rate limits decide *who* may try; this decides how many
+ * tries are in flight.
+ */
+const MAX_VERIFIES = 4
+let verifying = 0
+const waiting: (() => void)[] = []
+
+const gated = async <T>(work: () => Promise<T>): Promise<T> => {
+  if (verifying >= MAX_VERIFIES) await new Promise<void>((resolve) => waiting.push(resolve))
+  verifying++
+  try {
+    return await work()
+  } finally {
+    verifying--
+    waiting.shift()?.()
+  }
+}
+
 export const verifyPassword = (plain: string, hashed: string): Promise<boolean> =>
-  verify(plain, hashed)
+  gated(() => verify(plain, hashed))
+
+// A hash to verify against when the account does not exist, so an unknown
+// address costs the same time as a wrong password rather than answering early.
+let decoy: Promise<string> | null = null
+export const spendVerifyTime = async (plain: string): Promise<void> => {
+  decoy ??= hash("corsair-decoy-password")
+  await verifyPassword(plain, await decoy)
+}
 
 /**
  * Constant-time compare for values an attacker supplies and can retry — TOTP

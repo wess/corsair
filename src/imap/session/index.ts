@@ -36,6 +36,12 @@ import {
 
 const CRLF = "\r\n"
 
+// Longest single command line, and the most an unauthenticated connection may
+// make us buffer for one command (line plus literals). Dovecot's line limit is
+// the same 64 KB; literals after login are bounded by the message size instead.
+const LINE_LIMIT = 65_536
+const PRE_AUTH_LIMIT = 8_192
+
 const CAPABILITIES = [
   "IMAP4rev1",
   "LITERAL+",
@@ -861,9 +867,18 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
           continue
         }
 
+        // Before login there is nothing legitimate worth more than a few KB, and
+        // the buffer is attacker-controlled memory on a 1 GB box. Chained
+        // literals each passed the per-literal cap, and LITERAL+ needs no
+        // server turn, so 300 x 1 MB cost 550 MB on one unauthenticated socket
+        // without a byte coming back. Both the line and the whole command are
+        // bounded, and the bound is small until the client has authenticated.
+        const lineLimit = identity ? LINE_LIMIT : PRE_AUTH_LIMIT
+        const commandLimit = identity ? config.maxMessageBytes : PRE_AUTH_LIMIT
+
         const end = buffer.indexOf(CRLF)
-        if (end === -1) {
-          if (buffer.length > config.maxMessageBytes) {
+        if (end === -1 || end > lineLimit) {
+          if (buffer.length > lineLimit) {
             buffer = ""
             closing = true
             out += `* BYE Line too long.${CRLF}`
@@ -878,10 +893,14 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
         const literal = line.match(/\{(\d+)(\+?)\}$/)
         if (literal) {
           const size = Number(literal[1])
-          if (size > config.maxMessageBytes) {
-            out += bad("*", "Literal too large.")
+          if (size > commandLimit - command.length) {
+            // Not recoverable: a client using LITERAL+ is already sending the
+            // octets, and they would be read as commands.
+            buffer = ""
             command = ""
-            continue
+            closing = true
+            out += `* BYE Command too large.${CRLF}`
+            break
           }
           command += `${line}${CRLF}`
           awaitingLiteral = size

@@ -34,6 +34,11 @@ and treat it as a credential:
 
 `openssl rand -base64 48`
 
+Corsair **refuses to start** with the default, with any value copied from the
+repository, or with fewer than 32 characters. It also keys the SRS signature that
+stops a forwarding address being an open relay, and encrypts stored transfer
+credentials, so one leaked value opens all three. (`bun run dev` is exempt.)
+
 Changing it invalidates every existing session, which is also how you revoke
 everything at once.
 :::
@@ -226,7 +231,7 @@ Turn it on only when your consumers are genuinely on the same private network.
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `RATE_LIMIT_PER_SECOND` | `10` | API requests per second, per principal |
-| `MAX_MESSAGE_BYTES` | `52428800` | 50 MB. Advertised in the SMTP `SIZE` extension |
+| `MAX_MESSAGE_BYTES` | `26214400` | 25 MB. Advertised in the SMTP `SIZE` extension. Raising it costs memory: the pipeline holds several copies of a message at once |
 
 Authenticated requests are limited per user; unauthenticated ones per IP. Sign-in
 and sign-up have their own tighter limit of **5 per second per IP**, since there

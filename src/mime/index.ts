@@ -56,6 +56,23 @@ export const fromLatin1 = (input: string): Buffer => Buffer.from(input, "latin1"
  * every header name this module emits goes through here first. There are
  * regression tests for this — keep them.
  */
+/**
+ * Whether a string is safe to write between the angle brackets of `MAIL FROM:`
+ * or `RCPT TO:`. The SMTP client writes these verbatim, so a CR, an LF, a `>`
+ * or a space in one is a second command sent to the remote server. Deliberately
+ * stricter than RFC 5321 allows: it only has to accept what real addresses look
+ * like, and refusing the rest costs nothing.
+ */
+export const isSafeAddress = (value: string): boolean => {
+  if (value.length > 320) return false
+  // Space and below are the controls and the space itself; 0x7f is DEL.
+  for (const ch of value) {
+    const code = ch.codePointAt(0) ?? 0
+    if (code <= 0x20 || code === 0x7f) return false
+  }
+  return /^[^<>"\\@]+@[^<>"\\@]+$/.test(value)
+}
+
 export const stripControls = (value: string): string =>
   // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping controls is the point
   value.replace(/[\x00-\x1f\x7f]/g, " ").trim()

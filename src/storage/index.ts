@@ -46,6 +46,27 @@ export const messageKey = (addressId: string, messageId: string, at = new Date()
   return `${config.storage.prefix}/messages/${addressId}/${y}/${m}/${d}/${messageId}.eml`
 }
 
+/**
+ * Gives an object-store call a deadline. Bun's `fetch` has no default timeout and
+ * Atlas's storage calls take no signal, so a bucket that accepts the connection
+ * and then stalls would hold the caller forever — and the delivery worker's poll
+ * loop does not start another tick until the batch settles, so one hung read
+ * stopped all outbound mail until a restart.
+ */
+const OBJECT_STORE_TIMEOUT_MS = 30_000
+
+const withDeadline = <T>(work: Promise<T>, what: string): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout>
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () =>
+        reject(new Error(`Object store ${what} timed out after ${OBJECT_STORE_TIMEOUT_MS} ms.`)),
+      OBJECT_STORE_TIMEOUT_MS,
+    )
+  })
+  return Promise.race([work, deadline]).finally(() => clearTimeout(timer))
+}
+
 export const queueKey = (id: string): string => `${config.storage.prefix}/queue/${id}.eml`
 
 /**
@@ -56,7 +77,10 @@ export const queueKey = (id: string): string => `${config.storage.prefix}/queue/
 export const putRaw = async (key: string, raw: string): Promise<string | null> => {
   const s = objectStore()
   if (!s) return null
-  await upload(s, { key, body: Buffer.from(raw, "latin1"), contentType: "message/rfc822" })
+  await withDeadline(
+    upload(s, { key, body: Buffer.from(raw, "latin1"), contentType: "message/rfc822" }),
+    "upload",
+  )
   return key
 }
 
@@ -76,7 +100,7 @@ export const getRaw = async (input: {
     const s = objectStore()
     if (!s) return null
     try {
-      const response = await download(s, input.storageKey)
+      const response = await withDeadline(download(s, input.storageKey), "download")
       // latin1, not UTF-8: the rest of the pipeline counts octets, and decoding
       // as UTF-8 here would silently change every offset. See core/mime.
       return Buffer.from(await response.arrayBuffer()).toString("latin1")
@@ -112,7 +136,7 @@ export const deleteRaw = async (storageKey: string | null): Promise<void> => {
       values: [storageKey],
     })
     if (live) return
-    await remove(s, storageKey)
+    await withDeadline(remove(s, storageKey), "delete")
   } catch (e) {
     console.error("[corsair] failed to delete object", storageKey, e)
   }

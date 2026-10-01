@@ -33,20 +33,49 @@ const credentialOf = (token: string) => ({
 })
 
 /**
- * Most mail an agent mailbox may send in a rolling day, across all its
- * recipients. A cap on the mailbox, not the account: one agent in a loop must
- * not be able to spend the allowance every other mailbox shares.
+ * Most recipients an agent mailbox may send to in a UTC day. A cap on the
+ * mailbox, not the account: one agent in a loop must not be able to spend the
+ * allowance every other mailbox shares.
  */
 export const AGENT_DAILY_SENDS = 50
 
-export const sentToday = async (addressId: string): Promise<number> => {
-  const row = await db().one<{ count: string }>({
-    text: `SELECT count(*)::text AS count FROM mail_log
-            WHERE address_id = $1 AND direction = 'outbound'
-              AND created_at > now() - interval '1 day'`,
-    values: [addressId],
+export type Reservation = { ok: true } | { ok: false; reason: "disabled" | "quota" }
+
+/**
+ * Takes `count` recipients off an agent's allowance, or says why not.
+ *
+ * Every way an agent can send goes through here — the agent API, SMTP
+ * submission, the webmail, JMAP — because the allowance is the whole defence
+ * against an agent that has been talked into mailing strangers, and a path that
+ * skips it is the path that gets used. Anything that is not an agent mailbox
+ * passes untouched.
+ *
+ * One UPDATE, so two concurrent sends cannot both read "49 used" and both pass:
+ * the row lock serialises them and the second sees the first's count. It is
+ * taken *before* sending, so a send that then fails still spends its recipients.
+ * That is the safe direction to be wrong in.
+ */
+export const reserveSends = async (address: Address, count: number): Promise<Reservation> => {
+  if (address.type !== "agent") return { ok: true }
+
+  const day = new Date().toISOString().slice(0, 10)
+  const taken = await db().one<{ sent_count: number }>({
+    text: `UPDATE agents
+              SET sent_count = CASE WHEN sent_on = $2 THEN sent_count + $3 ELSE $3 END,
+                  sent_on = $2
+            WHERE address_id = $1 AND can_send
+              AND (CASE WHEN sent_on = $2 THEN sent_count ELSE 0 END) + $3 <= $4
+        RETURNING sent_count`,
+    values: [address.id, day, count, AGENT_DAILY_SENDS],
   })
-  return Number(row?.count ?? 0)
+  if (taken) return { ok: true }
+
+  // Not taken: either sending is off for this agent, or the day is spent.
+  const agent = await db().one<{ can_send: boolean }>({
+    text: "SELECT can_send FROM agents WHERE address_id = $1",
+    values: [address.id],
+  })
+  return { ok: false, reason: agent?.can_send ? "quota" : "disabled" }
 }
 
 export const createAgent = async (input: {

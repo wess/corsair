@@ -3,6 +3,7 @@ import { delR, getR, json, patchR, postR, type Route } from "@atlas/server"
 import { z } from "zod"
 import { administeredDomain, grantFor } from "../../../access/index.ts"
 import {
+  assertNoSelfLoop,
   createAddress,
   deleteAddress,
   destinationsOf,
@@ -47,6 +48,10 @@ const ownedAddress = async (
   // be reached by a grant its domain would have refused.
   const domain = await administeredDomain(userId, row.domain_id).catch(() => null)
   if (!domain) throw notFound("Address not found.")
+  // An agent mailbox is a credential, so it is the domain owner's alone: a
+  // delegated administrator who could disable or delete it would be switching off
+  // somebody else's agent, and deleting its mail, from a page that never lists it.
+  if (row.type === "agent" && domain.user_id !== userId) throw notFound("Address not found.")
   return { address: row, domain }
 }
 
@@ -279,6 +284,7 @@ export const addressRoutes: Route[] = [
         if (address.type === "alias" && c.body.destinations.length !== 1) {
           throw invalidParameter("An alias forwards to exactly one address.")
         }
+        assertNoSelfLoop(address.local_part, domain.name, c.body.destinations)
         await db().execute(
           from(addressDestinations)
             .where((q) => q("address_id").equals(address.id))

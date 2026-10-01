@@ -131,6 +131,9 @@ const runJob = async (job: Job): Promise<void> => {
             .where((q) => q("id").equals(transfer.id))
             .update({
               status: "failed",
+              // Someone else's credential, kept only to run the transfer. A failed
+              // transfer is over, and nothing reads this again.
+              password_enc: null,
               last_error: (e as Error).message.slice(0, 1000),
               finished_at: new Date(),
               updated_at: new Date(),
@@ -253,6 +256,20 @@ export const tick = async (): Promise<void> => {
  * The transaction pins the advisory lock to one pooled connection. Checking
  * for outstanding work also keeps a slow sweep from accumulating more sweeps.
  */
+/**
+ * Puts a job back that a dead worker was running. `periodic` will not enqueue a
+ * sweep while a `running` row exists, so after one crash mid-sweep — an OOM kill
+ * is how — retention and quota recompute silently stopped for good.
+ */
+const releaseStaleJobs = async (): Promise<void> => {
+  await db().execute({
+    text: `UPDATE jobs SET status = 'pending', locked_at = NULL, locked_by = NULL,
+                          updated_at = now()
+            WHERE status = 'running' AND locked_at < now() - interval '15 minutes'`,
+    values: [],
+  })
+}
+
 const periodic = async (kind: JobKind, lockKey: number): Promise<void> => {
   await db().transaction(async (conn) => {
     const row = await conn.one<{ locked: boolean }>({
@@ -286,6 +303,7 @@ export const startWorker = async (): Promise<void> => {
     setInterval(() => {
       void releaseStale().catch(() => {})
       void releaseStaleWebhooks().catch(() => {})
+      void releaseStaleJobs().catch(() => {})
       void periodic("retention.sweep", 4711).catch(() => {})
     }, 15 * 60_000),
   )

@@ -13,6 +13,7 @@ import {
   signingSecret,
 } from "../../../events/index.ts"
 import { paginate, parsePageQuery } from "../../../pagination/index.ts"
+import { assertPublicHost, safeFetch } from "../../../safefetch/index.ts"
 import {
   type Webhook,
   type WebhookAttempt,
@@ -116,6 +117,18 @@ const assertDeliverable = (raw: string): string => {
   return url.toString()
 }
 
+/**
+ * The cheap string checks above, then the real one: what the host resolves to.
+ * Run again at every delivery, because DNS can change after this answers.
+ */
+const checkedUrl = async (raw: string): Promise<string> => {
+  const url = assertDeliverable(raw)
+  await assertPublicHost(new URL(url).hostname).catch((e: Error) => {
+    throw invalidParameter(e.message)
+  })
+  return url
+}
+
 const validateEvents = (events: string[]): string[] => {
   for (const pattern of events) {
     if (pattern === "*" || pattern.endsWith(".*")) continue
@@ -164,7 +177,7 @@ export const hookRoutes: Route[] = [
       assigns: {} as never,
     },
     async (c) => {
-      const url = assertDeliverable(c.body.url)
+      const url = await checkedUrl(c.body.url)
       const events = validateEvents(c.body.events ?? ["*"])
 
       if (c.body.domain_id) {
@@ -211,7 +224,7 @@ export const hookRoutes: Route[] = [
       const hook = await owned(principalOf(c).userId, c.params.webhook_id)
       const patch: Record<string, unknown> = { updated_at: new Date() }
 
-      if (c.body.url !== undefined) patch.url = assertDeliverable(c.body.url)
+      if (c.body.url !== undefined) patch.url = await checkedUrl(c.body.url)
       if (c.body.events !== undefined) patch.events = validateEvents(c.body.events)
       if (c.body.description !== undefined) patch.description = c.body.description
       if (c.body.status !== undefined) {
@@ -276,7 +289,7 @@ export const hookRoutes: Route[] = [
 
       const started = performance.now()
       try {
-        const res = await fetch(hook.url, {
+        const res = await safeFetch(hook.url, {
           method: "POST",
           headers: {
             "content-type": "application/json",
@@ -291,7 +304,6 @@ export const hookRoutes: Route[] = [
           ok: res.status >= 200 && res.status < 300,
           status: res.status,
           duration_ms: Math.round(performance.now() - started),
-          response: (await res.text()).slice(0, 2000),
         })
       } catch (e) {
         return json(c, 200, {

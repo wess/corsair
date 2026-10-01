@@ -99,3 +99,7 @@ Package.resolved
 **/Package.resolved
 .gradle/
 **/.gradle/
+
+# Anchored. A real certificate dropped here must never be committed; the self-signed
+# development pair that used to be tracked was baked into every image.
+/certs/

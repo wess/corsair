@@ -11,6 +11,7 @@ import {
   revokeSession,
   safeEqual,
   sessionCookie,
+  spendVerifyTime,
   verifyPassword,
 } from "../../../auth/index.ts"
 import { config } from "../../../config/index.ts"
@@ -181,7 +182,11 @@ export const authRoutes: Route[] = [
       // The same reply whether the address is unknown or the password is wrong,
       // so the endpoint cannot be used to enumerate accounts.
       const failed = unauthorized("Those credentials are not valid.")
-      if (!user?.password_hash) throw failed
+      if (!user?.password_hash) {
+        // Same time as a wrong password; see `spendVerifyTime`.
+        await spendVerifyTime(c.body.password)
+        throw failed
+      }
       if (!(await verifyPassword(c.body.password, user.password_hash))) throw failed
       if (user.status === "terminated") throw forbidden("This account has been terminated.")
 
@@ -191,7 +196,7 @@ export const authRoutes: Route[] = [
         }
         const ok =
           user.totp_secret &&
-          verifyTotp(c.body.code.replace(/\s/g, ""), user.totp_secret, { window: 1 })
+          verifyTotp(user.totp_secret, c.body.code.replace(/\s/g, ""), { window: 1 })
         const backup =
           !ok &&
           (user.backup_codes ?? []).some((stored) =>
@@ -271,7 +276,7 @@ export const authRoutes: Route[] = [
     async (c) => {
       const user = await userById(principalOf(c).userId)
       if (!user.totp_secret) throw invalidParameter("Start the setup first.")
-      if (!verifyTotp(c.body.code.replace(/\s/g, ""), user.totp_secret, { window: 1 })) {
+      if (!verifyTotp(user.totp_secret, c.body.code.replace(/\s/g, ""), { window: 1 })) {
         throw invalidParameter("That code is not valid. Check your device's clock.")
       }
 

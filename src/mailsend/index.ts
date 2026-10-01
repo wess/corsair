@@ -1,9 +1,10 @@
 import { from } from "@atlas/db"
 import { folderBySpecialUse, ownerOfDomain } from "../addresses/index.ts"
+import { AGENT_DAILY_SENDS, reserveSends } from "../agents/index.ts"
 import { db } from "../db/index.ts"
 import { sign } from "../dkim/index.ts"
 import { activeDkimKey } from "../domains/index.ts"
-import { invalidParameter } from "../errors/index.ts"
+import { dailyQuotaExceeded, forbidden, invalidParameter } from "../errors/index.ts"
 import { rfcMessageId } from "../ids/index.ts"
 import * as mime from "../mime/index.ts"
 import { enqueue } from "../outbound/index.ts"
@@ -51,6 +52,21 @@ export const sendFromMailbox = async (
     }
   }
 
+  // Bcc recipients are in the envelope but never in the headers — that is the
+  // entire point of Bcc, and a header would leak them to every other recipient.
+  const recipients = [...input.to, ...(input.cc ?? []), ...(input.bcc ?? [])]
+
+  // After every check that can refuse, before anything is queued: an agent's
+  // allowance is spent only on mail that is actually about to go.
+  const reserved = await reserveSends(address, recipients.length)
+  if (!reserved.ok) {
+    throw reserved.reason === "disabled"
+      ? forbidden(
+          "This agent can only read. Turn on sending for it in the control panel, or with PATCH /api/agents/:id.",
+        )
+      : dailyQuotaExceeded(AGENT_DAILY_SENDS)
+  }
+
   const messageId = rfcMessageId(domain.name)
   const raw = mime.buildMessage({
     from: { name: address.name, address: email },
@@ -70,9 +86,6 @@ export const sendFromMailbox = async (
     ? sign({ raw, domain: domain.name, selector: key.selector, privateKey: key.private_key })
     : raw
 
-  // Bcc recipients are in the envelope but never in the headers — that is the
-  // entire point of Bcc, and a header would leak them to every other recipient.
-  const recipients = [...input.to, ...(input.cc ?? []), ...(input.bcc ?? [])]
   await enqueue({
     raw: signed,
     mailFrom: email,

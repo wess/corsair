@@ -49,7 +49,7 @@ Corsair is a Bun and PostgreSQL application. Mail for every protocol is stored o
 - [Sending API](https://wess.io/corsair/docs/sending.html): Send transactional mail as your domains over HTTP, over a plain JSON API.
 - [Event hooks](https://wess.io/corsair/docs/webhooks.html): Signed JSON delivered to your endpoint when mail arrives, bounces, or is filed as spam.
 - [Plans and billing](https://wess.io/corsair/docs/plans-billing.html): How entitlements work, why an unconfigured instance is unmetered, and what happens when billing is turned on.
-- [Agent email](https://wess.io/corsair/docs/agents.html): A mailbox an AI agent can use to sign up for services and read the verification mail, with a token instead of a password.
+- [Agent email](https://wess.io/corsair/docs/agents.html): A mailbox an AI agent can use to sign up for services and read the verification mail, with an API key instead of a password.
 - [Tools for agents](https://wess.io/corsair/docs/agent-tools.html): A Claude Code plugin, a skill, and an MCP server that give an AI agent its Corsair inbox, with install steps for a person or an agent.
 
 ## Reference

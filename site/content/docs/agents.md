@@ -1,6 +1,6 @@
 ---
 title: Agent email
-description: A mailbox an AI agent can use to sign up for services and read the verification mail, with a token instead of a password.
+description: A mailbox an AI agent can use to sign up for services and read the verification mail, with an API key instead of a password.
 section: using
 order: 12
 short: Agent email
@@ -12,13 +12,22 @@ eyebrow: Using Corsair
 An agent signing up for a service on someone's behalf needs an address the
 service can mail, and a way to read what comes back — the confirmation link, the
 one-time code. An **agent email** is that: a mailbox on one of your domains,
-opened with a token instead of a password.
+opened with an **API key** instead of a password.
 
-The token reads that one mailbox and nothing else. It cannot reach another
-address, cannot create or see other tokens, and — unless you turn it on — cannot
-send. IMAP, POP3, SMTP
-submission, and the webmail all refuse the address, because there is no password
-to give them.
+You get the address and the key together when you create it. They work as a
+username and a password anywhere one is asked for:
+
+| Where | Username | Password |
+| --- | --- | --- |
+| HTTP API, bearer | — | `Authorization: Bearer <key>` |
+| HTTP API, Basic | the address | the key |
+| IMAP, POP3, SMTP submission, webmail | the address | the key |
+
+The key reads that one mailbox and nothing else. It cannot reach another address,
+cannot create or see other keys, cannot manage domains, API keys, or anything
+else on the account, and — unless you turn it on — cannot send. When sending *is*
+on it sends as the agent's own address only, never as another address on the
+domain, over every one of those routes and with the same daily cap.
 
 ## Create one
 
@@ -125,9 +134,12 @@ sender), the subject (`Re: …`), and the threading headers. Without it, send `t
 Plain text only, DKIM-signed like every other message from the domain, and the
 domain must have finished DNS setup.
 
-An agent mailbox may send to **50 recipients in any rolling day**. The cap is on
+An agent mailbox may send to **50 recipients in a UTC day**, counted however the
+mail is sent — the agent API, SMTP submission, the webmail, or JMAP. The cap is on
 the mailbox, not the account, so one agent stuck in a loop cannot spend the
-allowance of every other mailbox. Past it, `429 daily_quota_exceeded`.
+allowance of every other mailbox, and it is taken atomically, so concurrent
+requests cannot overshoot it. Past it, the API answers `429 daily_quota_exceeded`
+and SMTP answers `451`. A send that fails after being accepted still counts.
 
 ## Treat the mail as untrusted
 

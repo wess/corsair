@@ -199,6 +199,42 @@ async fn send_xclient(
     read_reply(backend, buf).await
 }
 
+/// Whether the backend accepted an XCLIENT. It answers 220 on success; anything
+/// else means it refused us, which happens when this address is not in its
+/// `SMTP_TRUSTED_PROXIES`.
+///
+/// The reply used to be passed to the client as if it were a greeting and its
+/// code never read. A backend that refused then saw a session whose real peer
+/// was this loopback address, and loopback is exempt from SPF — so every message
+/// from the internet was accepted as if it were local, with nothing logged.
+fn xclient_accepted(reply: &[u8]) -> bool {
+    reply_code(reply) == Some(220)
+}
+
+fn refused_xclient(stage: &str) -> std::io::Error {
+    eprintln!(
+        "[mxfront] backend refused XCLIENT {stage}; is 127.0.0.1 in SMTP_TRUSTED_PROXIES? closing the connection"
+    );
+    std::io::Error::new(std::io::ErrorKind::PermissionDenied, "backend refused XCLIENT")
+}
+
+// limits
+
+/// How long a connection may say nothing, in either direction, before it is
+/// dropped. Five minutes is what RFC 5321 §4.5.3.2 asks servers to allow between
+/// commands. Without it, a connection that opens and never speaks holds a task, a
+/// socket here and another to the backend, until the process runs out of
+/// descriptors.
+const IDLE: std::time::Duration = std::time::Duration::from_secs(300);
+
+/// How long a client gets to finish the TLS handshake after STARTTLS.
+const HANDSHAKE: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// Most connections held at once, across every listener. Past it a new one is
+/// closed immediately: refusing a scanner costs nothing, and the alternative is
+/// a descriptor limit that also takes legitimate mail down.
+const MAX_CONNECTIONS: usize = 512;
+
 // relay
 
 struct Session {
@@ -252,6 +288,9 @@ async fn handle(
         "SMTP",
     )
     .await?;
+    if !xclient_accepted(&greeting) {
+        return Err(refused_xclient("at connect"));
+    }
 
     let mut client = Client::Plain(client_tcp);
     client.write_all(&greeting).await?;
@@ -280,6 +319,16 @@ async fn handle(
 
                 while let Some(line) = take_line(&mut client_buf) {
                     if !state.secure && is_command(&line, "STARTTLS") {
+                        // Anything the client sent after the STARTTLS line was sent
+                        // in the clear, before the handshake. Carrying it across
+                        // would let a man in the middle inject commands that arrive
+                        // looking encrypted (CVE-2011-0411). A well-behaved client
+                        // waits for the 220, so there is nothing to lose by closing.
+                        if !client_buf.is_empty() {
+                            eprintln!("[mxfront] data after STARTTLS before the handshake; closing");
+                            break
+                        }
+
                         client.write_all(b"220 2.0.0 Ready to start TLS\r\n").await?;
                         client.flush().await?;
 
@@ -287,7 +336,9 @@ async fn handle(
                             Client::Plain(s) => s,
                             other => { client = other; break }
                         };
-                        let upgraded = acceptor.accept(plain).await?;
+                        let upgraded = tokio::time::timeout(HANDSHAKE, acceptor.accept(plain))
+                            .await
+                            .map_err(|_| std::io::Error::new(std::io::ErrorKind::TimedOut, "TLS handshake timed out"))??;
                         client = Client::Tls(Box::new(upgraded));
                         state.secure = true;
                         state.awaiting_ehlo_reply = false;
@@ -297,7 +348,10 @@ async fn handle(
                         // before the upgrade and starts again with EHLO. Tell
                         // the backend the same, and that the session is now
                         // encrypted so it will offer AUTH.
-                        send_xclient(&mut backend, &mut backend_buf, None, "ESMTPS").await?;
+                        let reply = send_xclient(&mut backend, &mut backend_buf, None, "ESMTPS").await?;
+                        if !xclient_accepted(&reply) {
+                            return Err(refused_xclient("after STARTTLS"));
+                        }
                         continue
                     }
 
@@ -323,6 +377,12 @@ async fn handle(
                     backend.flush().await?;
                     client_buf.clear();
                 }
+            }
+
+            _ = tokio::time::sleep(IDLE) => {
+                // Restarted on every pass through the loop, so only a connection
+                // quiet in both directions for the whole period gets here.
+                break
             }
 
             read = backend.read(&mut from_backend) => {
@@ -423,8 +483,10 @@ async fn main() -> std::io::Result<()> {
     let tls = load_tls(&cert, &key)?;
     let acceptor = TlsAcceptor::from(tls);
 
+    let slots = std::sync::Arc::new(tokio::sync::Semaphore::new(MAX_CONNECTIONS));
     let mut tasks = Vec::new();
     for (listen, backend) in routes {
+        let slots = slots.clone();
         let listener = TcpListener::bind(listen).await?;
         println!("[mxfront] {listen} -> {backend}");
         let acceptor = acceptor.clone();
@@ -438,8 +500,13 @@ async fn main() -> std::io::Result<()> {
                         continue;
                     }
                 };
+                let Ok(permit) = slots.clone().try_acquire_owned() else {
+                    eprintln!("[mxfront] at {MAX_CONNECTIONS} connections; refusing {peer}");
+                    continue;
+                };
                 let acceptor = acceptor.clone();
                 tokio::spawn(async move {
+                    let _held = permit;
                     // A failed session is one connection, not an outage. The
                     // common cases are a client hanging up mid-handshake and a
                     // scanner sending garbage.
@@ -462,6 +529,15 @@ async fn main() -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_a_220_means_the_backend_accepted_xclient() {
+        assert!(xclient_accepted(b"220 mx.example ESMTP\r\n"));
+        assert!(!xclient_accepted(b"550 5.7.0 Not permitted.\r\n"));
+        assert!(!xclient_accepted(b"501 5.5.4 Malformed XCLIENT.\r\n"));
+        assert!(!xclient_accepted(b"garbage\r\n"));
+        assert!(!xclient_accepted(b""));
+    }
 
     #[test]
     fn a_final_reply_is_the_one_with_a_space() {

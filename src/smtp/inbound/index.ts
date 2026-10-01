@@ -365,12 +365,33 @@ const deliverToForward = async (
 
 // entrypoint
 
+/**
+ * RFC 5321 §6.3: a message that has been through this many hops is in a loop.
+ * Thirty is the figure the RFC gives as a floor for loop detection, and no real
+ * path comes near it — a forwarding cycle, or two auto-responders answering each
+ * other, climbs it a hop at a time and every hop costs a queue row and a body.
+ */
+const MAX_HOPS = 30
+
+const hopCount = (raw: string): number => {
+  const end = raw.indexOf("\r\n\r\n")
+  const headers = end === -1 ? raw : raw.slice(0, end)
+  return (headers.match(/^Received:/gim) ?? []).length
+}
+
 export const handleMessage = async (
   envelope: Envelope,
   raw: string,
   ctx: InboundContext,
 ): Promise<Reply> => {
   const normalized = mime.normalizeEol(raw)
+  if (hopCount(normalized) > MAX_HOPS) {
+    return {
+      code: 554,
+      enhanced: "5.4.6",
+      message: "Too many hops: this message is in a mail loop.",
+    }
+  }
   const parsed = mime.parseMessage(normalized)
   const results = await authenticate(normalized, parsed, envelope, ctx)
 

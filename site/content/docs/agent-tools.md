@@ -19,7 +19,7 @@ Everything here needs two values from the control panel's **Agent email** page:
 | Variable | Value |
 | --- | --- |
 | `CORSAIR_URL` | Your server, e.g. `https://mail.example.com` |
-| `CORSAIR_AGENT_TOKEN` | The agent's token, starting `ca_` (shown once) |
+| `CORSAIR_AGENT_TOKEN` | The agent's API key, starting `ca_` (shown once). Also its password for IMAP, POP3, SMTP and HTTP Basic auth |
 
 :::note
 **If you are an agent reading this,** you probably cannot create the token

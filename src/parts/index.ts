@@ -1,3 +1,4 @@
+import type { Conn } from "@atlas/server"
 import { notFound } from "../errors/index.ts"
 import * as mime from "../mime/index.ts"
 
@@ -30,3 +31,21 @@ export const partResponse = (raw: string, section: string, inlineImages: boolean
     },
   })
 }
+
+/**
+ * A `Response` as the router wants it: a `Conn`.
+ *
+ * The router only reads `status`, `respHeaders` and `body` off what a handler
+ * returns, so handing it a `Response` itself serves the bytes and silently drops
+ * every header on it — `Content-Disposition`, `nosniff`, and the sandbox CSP that
+ * `partResponse` exists to set. Attachment downloads were served that way, with no
+ * content type at all, until a test looked at the headers. A body has to be a
+ * stream or a string for the router to pass it through unchanged.
+ */
+export const responseConn = <C extends Conn>(conn: C, response: Response): C => ({
+  ...conn,
+  status: response.status,
+  halted: true,
+  respHeaders: new Headers(response.headers),
+  body: response.body,
+})

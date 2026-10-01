@@ -19,6 +19,11 @@ export { createSession } from "./session/index.ts"
 export { isJunk, score as spamScore } from "./spam/index.ts"
 export { reverse as srsReverse, rewrite as srsRewrite } from "./srs/index.ts"
 
+// Seconds of silence before a connection is dropped. RFC 5321 §4.5.3.2 asks for
+// five minutes between commands; a connection quieter than that is dead or
+// hostile, and each one holds a socket and a session on a small box.
+const IDLE_SECONDS = 300
+
 type SocketData = {
   session: Session
   /** The client's address: the socket's, or what a trusted proxy reported. */
@@ -133,6 +138,7 @@ const createListener = (input: {
       })
 
       socket.data = data
+      socket.timeout(IDLE_SECONDS)
 
       // A banned source gets a 421 and nothing else. Answering at all costs one
       // packet; answering properly costs an Argon2 hash per attempt.
@@ -171,7 +177,13 @@ const createListener = (input: {
             // connection with an unauthenticated one that still advertised
             // STARTTLS and no longer advertised AUTH. Carrying the existing
             // state across is the whole point of an in-place upgrade.
-            socket: { ...handlers, open: (s: Bun.Socket<SocketData>) => (s.data = state) },
+            socket: {
+              ...handlers,
+              open: (s: Bun.Socket<SocketData>) => {
+                s.data = state
+                s.timeout(IDLE_SECONDS)
+              },
+            },
           })
           state.tlsSocket = tlsSocket
           tlsSocket.data = state
@@ -189,6 +201,10 @@ const createListener = (input: {
       }
 
       if (state.session.shouldClose()) socket.end()
+    },
+
+    timeout(socket: Bun.Socket<SocketData>) {
+      socket.end()
     },
 
     close(socket: Bun.Socket<SocketData>) {

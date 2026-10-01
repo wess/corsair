@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+!.env.example
+node_modules
+/certs
+*.pem
+*.key
+.claude
+engine/target
+coverage

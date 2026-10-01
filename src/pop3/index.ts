@@ -6,6 +6,10 @@ import { createPop3Session, type Pop3Session } from "./session/index.ts"
 
 export { createPop3Session } from "./session/index.ts"
 
+// Short until the client has logged in, then the RFC 1939 minimum of ten minutes.
+const PRE_AUTH_IDLE = 120
+const AUTHED_IDLE = 600
+
 type SocketData = {
   session: Pop3Session
   remoteIp: string
@@ -13,6 +17,7 @@ type SocketData = {
   upgradeRequested: boolean
   /** Set once STARTTLS succeeds; see the gate in `data`. */
   tlsSocket: Bun.Socket<SocketData> | null
+  authed: boolean
 }
 
 const createListener = (input: {
@@ -35,6 +40,7 @@ const createListener = (input: {
         secure: input.implicitTls,
         upgradeRequested: false,
         tlsSocket: null,
+        authed: false,
       }
 
       data.session = createPop3Session({
@@ -48,6 +54,8 @@ const createListener = (input: {
             }
           : {}),
         onAuthSuccess: () => {
+          data.authed = true
+          ;(data.tlsSocket ?? socket).timeout(AUTHED_IDLE)
           void clearAuthFailures(remoteIp).catch(() => {})
         },
         onAuthFailure: (username) => {
@@ -56,6 +64,7 @@ const createListener = (input: {
       })
 
       socket.data = data
+      socket.timeout(PRE_AUTH_IDLE)
 
       void isBanned(remoteIp).then((banned) => {
         if (banned) {
@@ -92,7 +101,13 @@ const createListener = (input: {
             // connection with an unauthenticated one that still advertised
             // STARTTLS and no longer advertised AUTH. Carrying the existing
             // state across is the whole point of an in-place upgrade.
-            socket: { ...handlers, open: (s: Bun.Socket<SocketData>) => (s.data = state) },
+            socket: {
+              ...handlers,
+              open: (s: Bun.Socket<SocketData>) => {
+                s.data = state
+                s.timeout(state.authed ? AUTHED_IDLE : PRE_AUTH_IDLE)
+              },
+            },
           })
           state.tlsSocket = tlsSocket
           tlsSocket.data = state
@@ -106,6 +121,10 @@ const createListener = (input: {
       }
 
       if (state.session.shouldClose()) socket.end()
+    },
+
+    timeout(socket: Bun.Socket<SocketData>) {
+      socket.end()
     },
 
     error(socket: Bun.Socket<SocketData>, error: Error) {

@@ -260,12 +260,83 @@ export const senderOf = (conn: { assigns: unknown }): Sender =>
  * the other. Limited per agent, because the account's bucket is shared with
  * everything else it does.
  */
+/**
+ * Two ways to present the same token: `Bearer ca_…`, or HTTP Basic with the
+ * agent's address as the username and the token as the password — which is what
+ * a mail client, `curl -u`, or any HTTP library's "username and password" field
+ * already does. With Basic the address has to be the one the token belongs to,
+ * so a mistyped or swapped address fails here instead of quietly working.
+ */
+const agentCredential = (header: string): { token: string; email: string | null } | null => {
+  const bearer = header.match(/^Bearer\s+(\S+)$/i)
+  if (bearer) return { token: bearer[1]!, email: null }
+
+  const basic = header.match(/^Basic\s+(\S+)$/i)
+  if (!basic) return null
+  const decoded = Buffer.from(basic[1]!, "base64").toString("utf8")
+  const colon = decoded.indexOf(":")
+  if (colon <= 0) return null
+  return { token: decoded.slice(colon + 1), email: decoded.slice(0, colon).trim().toLowerCase() }
+}
+
+/**
+ * Failed token attempts per IP, in memory.
+ *
+ * A bad token cannot be brute-forced (256 bits), but each one still costs a
+ * database lookup before it can be refused, and the shared per-second limiter
+ * only sees authenticated callers. So *failures* are counted, and an address that
+ * keeps failing is turned away before the lookup. Successful requests are not
+ * counted, which is why this is not `publicLimit`: agents polling from one NAT
+ * must not share a five-a-second budget. In memory because the thing being
+ * protected is the database; a restart forgetting the counts costs nothing.
+ */
+const BAD_TOKEN_LIMIT = 30
+const BAD_TOKEN_WINDOW_MS = 60_000
+const badTokens = new Map<string, { count: number; resetAt: number }>()
+
+const tooManyBadTokens = (ip: string): boolean => {
+  const entry = badTokens.get(ip)
+  if (!entry) return false
+  if (entry.resetAt < Date.now()) {
+    badTokens.delete(ip)
+    return false
+  }
+  return entry.count >= BAD_TOKEN_LIMIT
+}
+
+const noteBadToken = (ip: string): void => {
+  const now = Date.now()
+  // Bounded: a flood from many addresses must not grow this without limit.
+  if (badTokens.size > 10_000) {
+    for (const [key, value] of badTokens) if (value.resetAt < now) badTokens.delete(key)
+    if (badTokens.size > 10_000) badTokens.clear()
+  }
+  const entry = badTokens.get(ip)
+  if (!entry || entry.resetAt < now) {
+    badTokens.set(ip, { count: 1, resetAt: now + BAD_TOKEN_WINDOW_MS })
+  } else {
+    entry.count++
+  }
+}
+
 const agentAuth: PipeFn = async (conn) => {
   const header = conn.headers.get("authorization")
   if (!header) throw missingApiKey()
-  const match = header.match(/^Bearer\s+(\S+)$/i)
-  const resolved = match ? await resolveAgent(match[1]!) : null
-  if (!resolved) throw invalidApiKey()
+
+  const ip = ipOf(conn)
+  if (tooManyBadTokens(ip)) throw rateLimitExceeded(BAD_TOKEN_WINDOW_MS / 1000, BAD_TOKEN_LIMIT)
+
+  const credential = agentCredential(header)
+  const resolved = credential ? await resolveAgent(credential.token) : null
+  if (
+    !credential ||
+    !resolved ||
+    (credential.email !== null &&
+      credential.email !== `${resolved.address.local_part}@${resolved.domain.name}`.toLowerCase())
+  ) {
+    noteBadToken(ip)
+    throw invalidApiKey()
+  }
 
   const { ok, retryAfterSeconds } = await limiter.check(
     `api:agent:${resolved.agent.id}`,

@@ -799,6 +799,9 @@ export const agents = defineSchema("agents", {
   token_prefix: column.text(),
   // Off by default; see the migration. Turning it on caps daily sends.
   can_send: column.boolean().default(false),
+  // The day's send count, advanced by one atomic UPDATE; see `reserveSends`.
+  sent_on: column.text().nullable(),
+  sent_count: column.integer().default(0),
   last_used_at: column.timestamp().nullable(),
   created_at: now(),
 })

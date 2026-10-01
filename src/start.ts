@@ -3,6 +3,7 @@ import { config } from "./config/index.ts"
 import { startImap } from "./imap/index.ts"
 import { startPop3 } from "./pop3/index.ts"
 import { installCrashGuards } from "./resilience/index.ts"
+import { assertSecret } from "./secrets/index.ts"
 import { startSmtp } from "./smtp/index.ts"
 import { probeServerStartTls } from "./starttls/index.ts"
 import { tlsOptions } from "./tls/index.ts"
@@ -18,6 +19,10 @@ import { startWorker } from "./worker/index.ts"
  */
 export const start = async (options: { hmr?: boolean } = {}): Promise<void> => {
   installCrashGuards()
+
+  // Not in development, where `hmr` is on and a throwaway secret is the point.
+  // Everywhere else a default secret is a server whose sessions anyone can forge.
+  if (!options.hmr) assertSecret(config.jwtSecret)
 
   // Before anything advertises a capability. Autoconfig names the submission
   // port and MTA-STS names a mode, and both have to agree with what the mail

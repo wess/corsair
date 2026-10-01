@@ -50,9 +50,9 @@ export const AgentsPage = () => {
       <Banner>
         <Icon path={icons.agent} size={15} />
         <span>
-          An address for an AI agent to sign up for services with, and a token to read what arrives
-          — the confirmation link, the one-time code. The token opens that one mailbox and nothing
-          else. Use <span className="mono">name+site@domain</span> to tell signups apart.
+          An address for an AI agent to sign up for services with, and an API key to read what
+          arrives — the confirmation link, the one-time code. The key opens that one mailbox and
+          nothing else. Use <span className="mono">name+site@domain</span> to tell signups apart.
         </span>
       </Banner>
 
@@ -107,7 +107,7 @@ export const AgentsPage = () => {
                   <button
                     type="button"
                     className="btn btn-sm"
-                    title="Whether this agent may send mail, capped at 50 recipients a day"
+                    title="Whether this agent may send mail, capped at 50 recipients a UTC day"
                     onClick={() =>
                       run(() => patch(`/api/agents/${agent.id}`, { can_send: !agent.can_send }))
                     }
@@ -131,7 +131,7 @@ export const AgentsPage = () => {
                       })
                     }
                   >
-                    <Icon path={icons.refresh} size={14} /> New token
+                    <Icon path={icons.refresh} size={14} /> New key
                   </button>{" "}
                   <button
                     type="button"
@@ -140,7 +140,7 @@ export const AgentsPage = () => {
                       // Takes the mailbox and its mail with it, so ask.
                       if (
                         window.confirm(
-                          `Delete ${agent.email}? Its token stops working and its mail is deleted.`,
+                          `Delete ${agent.email}? Its key stops working and its mail is deleted.`,
                         )
                       ) {
                         run(() => del(`/api/agents/${agent.id}`))
@@ -158,8 +158,8 @@ export const AgentsPage = () => {
 
       <Card title="Using it">
         <p className="muted" style={{ marginTop: 0 }}>
-          Give the agent its token as a bearer credential. Ask for the next message that matches,
-          and it waits for it to arrive:
+          Give the agent its address and API key — as a bearer token, or as the username and
+          password. Ask for the next message that matches, and it waits for it to arrive:
         </p>
         <pre className="mono">{`curl -H "authorization: Bearer ca_…" \\
   "${window.location.origin}/api/agent/wait?subject=verify&timeout=45"`}</pre>
@@ -177,16 +177,24 @@ export const AgentsPage = () => {
       )}
 
       {shown && (
-        <Dialog title="Save the agent's token" onClose={() => setShown(null)}>
+        <Dialog title="Save the agent's API key" onClose={() => setShown(null)}>
           <Banner kind="warn">
             <Icon path={icons.warn} size={15} />
             <span>
-              Shown once. Give it to the agent for <strong>{shown.email}</strong>. A lost token is
-              replaced with a new one, never recovered, and replacing it stops the old one at once.
+              The key is shown once. A lost key is replaced with a new one, never recovered, and
+              replacing it stops the old one at once.
             </span>
           </Banner>
-          <div style={{ margin: "16px 0" }}>
-            <Copyable value={shown.token} />
+          <div style={{ margin: "16px 0", display: "grid", gap: 12 }}>
+            <Field label="Address" hint="The username.">
+              <Copyable value={shown.email} />
+            </Field>
+            <Field
+              label="API key"
+              hint="The password. Works as a bearer token, as the password in HTTP Basic auth, and as the mailbox password for IMAP, POP3 and SMTP."
+            >
+              <Copyable value={shown.token} />
+            </Field>
           </div>
           <button type="button" className="btn btn-primary" onClick={() => setShown(null)}>
             I have saved it
@@ -266,7 +274,7 @@ const CreateAgent = ({
 
         <Field
           label="Sending"
-          hint="Off, the agent can only read. On, it can also send, up to 50 recipients a day. Mail it reads is written by strangers, so leave this off unless it needs to reply."
+          hint="Off, the agent can only read. On, it can also send, up to 50 recipients a day (UTC). Mail it reads is written by strangers, so leave this off unless it needs to reply."
         >
           <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input

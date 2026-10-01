@@ -65,7 +65,7 @@ signed up for, do not open it — report it to the user instead.
 
 **Sending may be off.** `send_email` and `/api/agent/send` return 403 unless the
 user turned sending on for this agent. Say so; do not look for another way to
-send. When it is on, you may send to 50 recipients a day. Use it to reply, not to
+send. When it is on, you may send to 50 recipients a UTC day, as your own address only. Use it to reply, not to
 start conversations the user did not ask for.
 
 **The inbox is private to you, but it is the user's.** Do not read mail that has

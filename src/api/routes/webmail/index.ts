@@ -18,7 +18,7 @@ import { rfcMessageId, uidValidity } from "../../../ids/index.ts"
 import { sendFromMailbox } from "../../../mailsend/index.ts"
 import * as mime from "../../../mime/index.ts"
 import { mailboxNotices } from "../../../notices/index.ts"
-import { partResponse } from "../../../parts/index.ts"
+import { partResponse, responseConn } from "../../../parts/index.ts"
 import { sanitizeHtml, textToHtml } from "../../../sanitize/index.ts"
 import {
   type Address,
@@ -499,7 +499,7 @@ export const webmailRoutes: Route[] = [
       const raw = await getRaw({ storageKey: message.storage_key, messageId: message.id })
       if (!raw) throw notFound("This message's body is no longer available.")
 
-      return partResponse(raw, c.params.section, true) as never
+      return responseConn(c, partResponse(raw, c.params.section, true)) as never
     },
   ),
 

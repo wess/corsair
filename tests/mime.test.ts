@@ -7,6 +7,7 @@ import {
   envelopeOf,
   findPart,
   headerValue,
+  isSafeAddress,
   normalizeEol,
   parseAddressList,
   parseMessage,
@@ -162,5 +163,30 @@ describe("structure", () => {
 
   test("snippet strips markup and collapses whitespace", () => {
     expect(snippetOf(multipart, parseMessage(multipart))).toBe("plain body")
+  })
+})
+
+describe("isSafeAddress", () => {
+  const safe = (value: string) => isSafeAddress(value)
+
+  test("accepts ordinary addresses", () => {
+    expect(safe("someone@example.com")).toBe(true)
+    expect(safe("first.last+tag@sub.example.co.uk")).toBe(true)
+  })
+
+  test("refuses anything that would end the command or start another", () => {
+    expect(safe("a@b.test>\r\nRSET")).toBe(false)
+    expect(safe("a@b.test\nMAIL FROM:<x@y.test>")).toBe(false)
+    expect(safe("a@b.test>")).toBe(false)
+    expect(safe("a b@c.test")).toBe(false)
+    expect(safe("a@b.test\0")).toBe(false)
+  })
+
+  test("refuses what is not an address", () => {
+    expect(safe("")).toBe(false)
+    expect(safe("nobody")).toBe(false)
+    expect(safe("@b.test")).toBe(false)
+    expect(safe("a@@b.test")).toBe(false)
+    expect(safe(`${"a".repeat(320)}@b.test`)).toBe(false)
   })
 })

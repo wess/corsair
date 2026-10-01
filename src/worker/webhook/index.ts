@@ -1,6 +1,7 @@
 import { from } from "@atlas/db"
 import { db } from "../../db/index.ts"
 import { recordFailure, recordSuccess, signatureHeaders } from "../../events/index.ts"
+import { safeFetch } from "../../safefetch/index.ts"
 import {
   type Webhook,
   type WebhookEvent,
@@ -51,11 +52,11 @@ export const deliverEvent = async (eventId: string): Promise<DeliveryResult> => 
   const body = JSON.stringify(event.payload)
   const started = performance.now()
   let statusCode: number | null = null
-  let response: string | null = null
+  const response: string | null = null
   let error: string | null = null
 
   try {
-    const res = await fetch(hook.url, {
+    const res = await safeFetch(hook.url, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -68,9 +69,11 @@ export const deliverEvent = async (eventId: string): Promise<DeliveryResult> => 
       signal: AbortSignal.timeout(TIMEOUT_MS),
     })
     statusCode = res.status
-    // Truncated: the panel shows this to help debugging, and an endpoint that
-    // answers with a megabyte of HTML should not put a megabyte in the database.
-    response = (await res.text()).slice(0, 2000)
+    // The status is kept; the body is not. It used to be stored and shown, which
+    // turned a webhook URL into a way to read whatever an internal address
+    // answered with. Nothing needs it to deliver or to debug a failure — the
+    // status and the error say what happened.
+    await res.body?.cancel().catch(() => {})
   } catch (e) {
     error = (e as Error).message
   }

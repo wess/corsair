@@ -331,10 +331,13 @@ separate prefixes and separate pipes (`agentOnly` vs `sending`) means neither ca
 be accepted where the other belongs. `tests/agents.test.ts` checks both
 directions.
 
-**The mailbox has no password and is refused by every protocol.**
-`authenticateResolved` only admits `standard` and `catchall`, which is what keeps
-IMAP, POP3, SMTP submission, and the webmail out. Do not add `agent` to that
-list. `createAddress` skips account-linking for it too, so an owner who happens to
+**The API key is the mailbox password, on every protocol.** An agent address has
+no `password_hash`; `authenticateResolved` sends `agent` addresses to
+`authenticateAgent`, which compares the SHA-256 of the presented `ca_…` secret to
+`agents.token_hash` in constant time. IMAP, POP3, SMTP submission, the webmail,
+JMAP Basic and the HTTP API's Basic auth all reach it through that one funnel, so
+a rotated or deleted key stops working everywhere at once. `createAddress` skips
+account-linking for it, so an owner who happens to
 share an agent's local part cannot end up with the mailbox bound to their
 password. The ordinary address route's `type` enum excludes `agent` so every one
 is made through `POST /api/agents`, which does the plan-limit check and mints the
@@ -345,10 +348,17 @@ belonging to another agent is a 404, the same as one that does not exist.
 
 **Sending is opt-in and capped on the mailbox.** `agents.can_send` defaults to
 false so a prompt injection in mail the agent reads cannot make it a spam
-source. The 50-recipients-a-day cap counts `mail_log` rows by `address_id`, not
-by account, and is deliberately not `daily_out_limit`: `withinDailyLimit` counts
-the whole account's usage against whatever override it is given, which would
-let one agent's override throttle every other mailbox. Webmail and agents both
+source. The 50-recipients-a-UTC-day cap is `agents.sent_count`, advanced by the one
+atomic UPDATE in `reserveSends` — not a count of `mail_log` read before sending,
+which two concurrent requests both pass. It is deliberately not
+`daily_out_limit`: `withinDailyLimit` counts the whole account's usage against
+whatever override it is given, which would let one agent's override throttle
+every other mailbox. **Every send path must call `reserveSends`** (the agent API
+and webmail via `sendFromMailbox`, SMTP at RCPT, JMAP `EmailSubmission`); a new
+path that skips it is a path around the only defence against a prompt-injected
+agent mailing strangers. An agent may also only use its *own* address as sender —
+`mayUseSender` and JMAP both enforce it, where a person may send as the owner's
+other addresses. Webmail and agents both
 send through `sendFromMailbox` in `src/mailsend`, so signing and the Bcc rule
 live in one place.
 
@@ -358,6 +368,56 @@ the agent route passes `inlineImages: false`. The declared type is the sender's.
 
 **`wait` only counts mail that arrives after the call** unless given `since`.
 Dropping that default hands an agent last week's verification code.
+
+## Hardening from the 2026-10 audit
+
+A security and stability audit found these; each has a test, and each is the
+kind of thing that regresses quietly.
+
+- **A handler must return a `Conn`, never a `Response`.** The router reads only
+  `status`, `respHeaders` and `body` off the result, so a `Response` is served
+  with every header dropped. Attachment downloads went out with no
+  `Content-Disposition`, no `nosniff` and no sandbox CSP that way. `responseConn`
+  in `src/parts` adapts one; a body has to be a stream or a string, because the
+  router `JSON.stringify`s any other object.
+- **Any URL a user supplies goes through `safeFetch`** (`src/safefetch`). It
+  resolves the host, judges every address (IPv4-mapped IPv6, NAT64, CGNAT and the
+  cloud metadata address included), and does not follow redirects. Webhook
+  response bodies are not stored or returned: they were a way to read internal
+  services. It does not pin the connection to the checked address, so DNS
+  rebinding is a residual risk. The suite runs with `WEBHOOK_ALLOW_PRIVATE=true`
+  so webhook tests can use a local server; tests of the check pass `false`.
+- **`enqueue` rejects any address with a control character, space, `<`, `>` or
+  quote.** The SMTP client writes them into `MAIL FROM:<…>` verbatim, so one with a
+  CRLF is a command injected into a remote server's session. This covers every
+  caller — JMAP, Sieve `redirect`, forwarding, the sending API.
+- **JMAP `EmailSubmission` applies the same sender, daily-limit and agent rules as
+  SMTP submission**, using the same `mayUseSender`. It was the one way in that
+  checked nothing. Submission also requires the *From header* to pass
+  `mayUseSender`, not only the envelope.
+- **Every login path is behind the same gate**: failures are recorded and banned
+  by IP (JMAP Basic included), argon2 verifies queue behind a limit of four in
+  flight (`gated` in `src/auth`), and an unknown address spends the same time as a
+  wrong password (`spendVerifyTime`).
+- **The server will not start with a default or short `JWT_SECRET`** (`src/secrets`),
+  because it signs sessions, keys SRS, and encrypts transfer credentials.
+- **Mail loops are cut at 30 `Received:` headers** (554 5.4.6), and an alias cannot
+  forward to itself. Both caps exist because each hop costs a queue row and a body.
+- **Listeners have idle timeouts and the IMAP buffer is bounded.** Unauthenticated
+  IMAP may buffer 8 KB per command (line plus literals); chained LITERAL+ once held
+  550 MB on one socket. IMAP `data` chunks are chained per socket, because Bun
+  runs an async handler for the next chunk while the last is still awaiting, and
+  pipelined commands were being concatenated. The Rust front checks that the
+  backend answered XCLIENT with 220, refuses bytes pipelined after STARTTLS, and
+  caps idle time, handshake time and connections.
+- **`MAX_MESSAGE_BYTES` defaults to 25 MB**: the pipeline holds several copies of a
+  message and one 50 MB message peaked near 900 MB on a 1 GB box.
+- **Known and not yet done:** billing lets any user self-grant a plan with a
+  fabricated payment method when a provider is configured; webmail sessions are a
+  JWT with no server-side row to revoke; the inbound and outbound paths still copy
+  a message several times (parse once and stream is the real fix); IMAP `SEARCH`
+  and `FETCH` hold whole mailboxes in memory; DSNs to unverified senders are
+  backscatter; SRS is never reversed on inbound.
 
 ## Adding an endpoint
 
