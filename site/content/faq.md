@@ -97,9 +97,10 @@ and a key instead, which is a separate credential with a much smaller reach.
 
 ## Can an application send mail without a mailbox?
 
-Yes. Create a key in the control panel and POST to `/api/emails`. The API is
-[Resend](https://resend.com)'s — the same paths, request bodies, and error names
-— so a Resend SDK works against your server with only the base URL changed.
+Yes. Create a key in the control panel and POST to `/api/emails`. The API uses the
+paths, request bodies, and error names that transactional-email SDKs already
+expect, so an existing client works against your server with only the base URL
+changed.
 
 A key sends as any domain its account owns that has finished DNS setup. It
 cannot open the panel, read a mailbox, or create other keys. Sends are signed

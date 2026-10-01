@@ -1,6 +1,6 @@
 ---
 title: Sending API
-description: Send transactional mail as your domains over HTTP, with Resend's API.
+description: Send transactional mail as your domains over HTTP, over a plain JSON API.
 section: using
 order: 9
 short: Sending API
@@ -12,22 +12,23 @@ eyebrow: Using Corsair
 Applications — a contact form, a password reset, a receipt — send as your
 domains over HTTP, with an API key rather than a mailbox and an SMTP password.
 
-The API is [Resend](https://resend.com/docs/api-reference/introduction)'s: the
-same paths, request bodies, response shapes, and error names. Point a Resend SDK
-at your server and it works unchanged.
+It is a small JSON API with the paths, request bodies, response shapes, and error
+names that transactional-email SDKs already expect, so an application written
+against one of them only needs its base URL changed.
 
 ```js
-import { Resend } from "resend"
-
-const resend = new Resend("cs_...", {
-  baseUrl: "https://mail.example.com/api",
-})
-
-await resend.emails.send({
-  from: "Acme <receipts@example.com>",
-  to: ["customer@example.net"],
-  subject: "Your receipt",
-  html: "<p>Thanks for your order.</p>",
+await fetch("https://mail.example.com/api/emails", {
+  method: "POST",
+  headers: {
+    authorization: "Bearer cs_...",
+    "content-type": "application/json",
+  },
+  body: JSON.stringify({
+    from: "Acme <receipts@example.com>",
+    to: ["customer@example.net"],
+    subject: "Your receipt",
+    html: "<p>Thanks for your order.</p>",
+  }),
 })
 ```
 
@@ -105,7 +106,7 @@ again. A repeat while the first is still running, or with a different body, gets
 - **Templates, topics, audiences, broadcasts, and open or click tracking.** This
   is transactional sending. Bulk mail from the same address your mailboxes use
   puts every mailbox's deliverability at risk.
-- **Resend's `/domains` and `/api-keys` endpoints.** Domains are managed in the
+- **`/domains` endpoints in the shape SDKs use.** Domains are managed in the
   control panel, and keys cannot create keys.
 
 ## Managing sends

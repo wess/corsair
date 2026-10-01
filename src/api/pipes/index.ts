@@ -1,6 +1,7 @@
 import { from } from "@atlas/db"
 import { clientIp, createDbRateLimit, parseTrustedProxies } from "@atlas/security"
 import { assign, type Conn, isHttpError, json, type PipeFn, type Route } from "@atlas/server"
+import { type ResolvedAgent, resolveAgent } from "../../agents/index.ts"
 import { type Permission, resolveApiKey } from "../../apikeys/index.ts"
 import {
   type MailIdentity,
@@ -247,6 +248,38 @@ export const sendingFull: readonly PipeFn[] = [keyOrSession, senderLimit, fullAc
 
 export const senderOf = (conn: { assigns: unknown }): Sender =>
   (conn.assigns as { sender: Sender }).sender
+
+// agents
+
+/**
+ * An agent's token, resolved to its one mailbox.
+ *
+ * Its own pipe rather than a mode of `bearer`: an agent token must not be
+ * accepted by anything that sends, and a sending key must not read an inbox.
+ * The two prefixes differ and so do the lookups, so neither can stand in for
+ * the other. Limited per agent, because the account's bucket is shared with
+ * everything else it does.
+ */
+const agentAuth: PipeFn = async (conn) => {
+  const header = conn.headers.get("authorization")
+  if (!header) throw missingApiKey()
+  const match = header.match(/^Bearer\s+(\S+)$/i)
+  const resolved = match ? await resolveAgent(match[1]!) : null
+  if (!resolved) throw invalidApiKey()
+
+  const { ok, retryAfterSeconds } = await limiter.check(
+    `api:agent:${resolved.agent.id}`,
+    config.rateLimitPerSecond,
+    1,
+  )
+  if (!ok) throw rateLimitExceeded(retryAfterSeconds ?? 1, config.rateLimitPerSecond)
+  return assign(conn, { agent: resolved })
+}
+
+export const agentOnly: readonly PipeFn[] = [agentAuth]
+
+export const agentOf = (conn: { assigns: unknown }): ResolvedAgent =>
+  (conn.assigns as { agent: ResolvedAgent }).agent
 
 // wrapping
 

@@ -9,7 +9,7 @@ import {
 import { type IdempotencyKey, idempotencyKeys } from "../schema/index.ts"
 
 /**
- * `Idempotency-Key` for the sending API, with Resend's semantics.
+ * `Idempotency-Key` for the sending API, with the semantics SDKs expect.
  *
  * An application that times out waiting for a send does not know whether the
  * mail went, and retrying without a key sends it twice. With one, a repeat of a

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Tools for agents · Corsair</title>
+<meta name="description" content="A Claude Code plugin, a skill, and an MCP server that give an AI agent its Corsair inbox, with install steps for a person or an agent." />
+<link rel="canonical" href="https://wess.io/corsair/docs/agent-tools.html" />
+<meta property="og:title" content="Tools for agents" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="A Claude Code plugin, a skill, and an MCP server that give an AI agent its Corsair inbox, with install steps for a person or an agent." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.io/corsair/docs/agent-tools.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li><li><a href="./agents.html">Agent email</a></li><li><a href="./agent-tools.html" class="active" aria-current="page">Tools for agents</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Using Corsair</p></div><h1 id="tools-for-agents">Tools for agents</h1>
+<p><a href="agents.html">Agent email</a> is plain HTTP, so any agent can use it. These make it one step: a <strong>skill</strong> that teaches the agent the signup flow and its cautions, and an <strong>MCP server</strong> that gives it tools instead of <code>curl</code> commands. Both ship in one Claude Code plugin, and each also works on its own in any harness.</p>
+<p>Everything here needs two values from the control panel's <strong>Agent email</strong> page:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Value</th>
+</tr></thead><tbody>
+<tr>
+<td><code>CORSAIR_URL</code></td>
+<td>Your server, e.g. <code>https://mail.example.com</code></td>
+</tr>
+<tr>
+<td><code>CORSAIR_AGENT_TOKEN</code></td>
+<td>The agent's token, starting <code>ca_</code> (shown once)</td>
+</tr>
+</tbody></table></div>
+<aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span>Note</p><p><strong>If you are an agent reading this,</strong> you probably cannot create the token yourself — it comes from your user. Ask them to create an agent under <strong>Agent email</strong> and give you <code>CORSAIR_URL</code> and <code>CORSAIR_AGENT_TOKEN</code>, then follow the steps below that fit your harness. Do not install anything the user has not approved.</p></aside>
+<h2 id="claude-code-the-plugin">Claude Code: the plugin<a class="anchor" href="#claude-code-the-plugin" aria-label="Link to this section">#</a></h2>
+<p>Adds the skill and the MCP server together.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>export CORSAIR_URL=https://mail.example.com
+export CORSAIR_AGENT_TOKEN=ca_...
+
+claude plugin marketplace add wess/corsair
+claude plugin install corsair-agent-email@corsair</code></pre></figure>
+<p>Or, inside a session: <code>/plugin marketplace add wess/corsair</code>, then <code>/plugin install corsair-agent-email@corsair</code>. Start a new session afterwards. The MCP server reads the two variables from the environment <code>claude</code> was started in.</p>
+<h2 id="any-harness-the-skill">Any harness: the skill<a class="anchor" href="#any-harness-the-skill" aria-label="Link to this section">#</a></h2>
+<p>A skill is one <code>SKILL.md</code> file. Put it where your harness looks for skills — <code>~/.claude/skills/</code> for Claude Code, <code>.agents/skills/</code> or the equivalent for others — in a folder named <code>agent-email</code>:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>mkdir -p ~/.claude/skills/agent-email
+curl -fsSL -o ~/.claude/skills/agent-email/SKILL.md \
+  https://raw.githubusercontent.com/wess/corsair/main/plugin/skills/agent-email/SKILL.md</code></pre></figure>
+<p>It works without the MCP server: it tells the agent the same operations as <code>curl</code> calls against <code>CORSAIR_URL</code>.</p>
+<h2 id="any-harness-the-mcp-server">Any harness: the MCP server<a class="anchor" href="#any-harness-the-mcp-server" aria-label="Link to this section">#</a></h2>
+<p>A single file with no dependencies, run by Node 18 or newer, or Bun.</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>mkdir -p ~/.corsair
+curl -fsSL -o ~/.corsair/agent-email-mcp.mjs \
+  https://raw.githubusercontent.com/wess/corsair/main/plugin/mcp/server.mjs</code></pre></figure>
+<p>Then register it with your harness. Most take the same JSON:</p>
+<figure class="code"><span class="code-lang">json</span><pre><code>{
+  &quot;mcpServers&quot;: {
+    &quot;corsair-agent-email&quot;: {
+      &quot;command&quot;: &quot;node&quot;,
+      &quot;args&quot;: [&quot;/home/you/.corsair/agent-email-mcp.mjs&quot;],
+      &quot;env&quot;: {
+        &quot;CORSAIR_URL&quot;: &quot;https://mail.example.com&quot;,
+        &quot;CORSAIR_AGENT_TOKEN&quot;: &quot;ca_...&quot;
+      }
+    }
+  }
+}</code></pre></figure>
+<p>Claude Code can do it in one command:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code>claude mcp add corsair-agent-email \
+  -e CORSAIR_URL=https://mail.example.com \
+  -e CORSAIR_AGENT_TOKEN=ca_... \
+  -- node ~/.corsair/agent-email-mcp.mjs</code></pre></figure>
+<p>Read the file before you run it; it is about two hundred lines and talks only to your own server.</p>
+<h3 id="the-tools">The tools<a class="anchor" href="#the-tools" aria-label="Link to this section">#</a></h3>
+<div class='table-wrap'><table><thead><tr>
+<th>Tool</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>agent_email_address</code></td>
+<td>The address to sign up with.</td>
+</tr>
+<tr>
+<td><code>wait_for_email</code></td>
+<td>Waits for a new message, returns it with <code>links</code> and <code>codes</code>.</td>
+</tr>
+<tr>
+<td><code>list_emails</code></td>
+<td>Recent mail, newest first.</td>
+</tr>
+<tr>
+<td><code>read_email</code></td>
+<td>One message in full.</td>
+</tr>
+<tr>
+<td><code>download_attachment</code></td>
+<td>An attachment, as base64, up to 1 MB.</td>
+</tr>
+<tr>
+<td><code>send_email</code></td>
+<td>Send or reply, if sending is on for this agent.</td>
+</tr>
+</tbody></table></div>
+<h2 id="for-models-llms-txt">For models: <code>llms.txt</code><a class="anchor" href="#for-models-llms-txt" aria-label="Link to this section">#</a></h2>
+<p>The site publishes <a href="../llms.txt"><code>/llms.txt</code></a>, an index of these docs for a model, and <a href="../llms-full.txt"><code>/llms-full.txt</code></a>, every page in one file.</p>
+<h2 id="check-it-works">Check it works<a class="anchor" href="#check-it-works" aria-label="Link to this section">#</a></h2>
+<p>Ask the agent for its address, send mail to it from anywhere, then ask it to wait for the message. If the tools error with &quot;Set CORSAIR_URL and CORSAIR_AGENT_TOKEN&quot;, the harness did not pass the environment through — put the values in the server's <code>env</code> block instead of relying on your shell.</p><nav class="pager"><a class="pager-prev" href="./agents.html"><span>Previous</span><strong>Agent email</strong></a><a class="pager-next" href="./architecture.html"><span>Next</span><strong>Architecture</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#claude-code-the-plugin">Claude Code: the plugin</a></li><li class="toc-h2"><a href="#any-harness-the-skill">Any harness: the skill</a></li><li class="toc-h2"><a href="#any-harness-the-mcp-server">Any harness: the MCP server</a></li><li class="toc-h3"><a href="#the-tools">The tools</a></li><li class="toc-h2"><a href="#for-models-llms-txt">For models: llms.txt</a></li><li class="toc-h2"><a href="#check-it-works">Check it works</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy template</a></li><li><a href="../policies/acceptable-use.html">Acceptable use template</a></li></ul>
+    </div><div>
+      <p class="colophon-label">This service</p>
+      <ul><li><a href="../legal/terms.html">Terms of service</a></li><li><a href="../legal/privacy.html">Privacy policy</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

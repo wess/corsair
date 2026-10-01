@@ -16,8 +16,8 @@ export type CorsairErrorName =
   | "unauthorized"
   | "forbidden"
   | "application_error"
-  // The sending API answers with Resend's names, so a client written against
-  // Resend can switch on them unchanged.
+  // The sending API answers with the names SDKs switch on, so a client written against
+  // one can switch on them unchanged.
   | "missing_api_key"
   | "invalid_api_key"
   | "restricted_api_key"
@@ -103,7 +103,7 @@ export const invalidFromAddress = (message: string) => err(422, "invalid_from_ad
 
 /**
  * A sender this account may not use. 403 with `validation_error`, which is what
- * Resend answers for an unverified domain, so clients already handle it.
+ * SDKs expect for an unverified domain, so clients already handle it.
  */
 export const senderNotAllowed = (message: string) => err(403, "validation_error", message)
 

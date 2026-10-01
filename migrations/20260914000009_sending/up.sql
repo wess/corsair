@@ -1,4 +1,4 @@
--- Transactional sending over HTTP: a Resend-shaped API for applications that
+-- Transactional sending over HTTP: an SDK-shaped API for applications that
 -- send as a hosted domain without holding a mailbox credential.
 --
 -- It rides the same delivery queue as submission. What is new is the record of
@@ -13,7 +13,7 @@ CREATE TABLE api_keys (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   -- Null means every domain the account owns. Only a sending_access key can be
-  -- narrowed to one, matching Resend: a key that can read every email on the
+  -- narrowed to one, like every comparable API: a key that can read every email on the
   -- account is not usefully restricted by where it may send from.
   domain_id UUID REFERENCES domains(id) ON DELETE CASCADE,
   name TEXT NOT NULL,

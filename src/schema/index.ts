@@ -785,10 +785,30 @@ export const apiKeys = defineSchema("api_keys", {
   created_at: now(),
 })
 
+/**
+ * The credential for an agent mailbox (an `addresses` row of type `agent`).
+ * Only the hash of the token is stored; the token is shown once, on create or
+ * rotate.
+ */
+export const agents = defineSchema("agents", {
+  id: id(),
+  user_id: column.uuid().ref("users", "id"),
+  address_id: column.uuid().unique().ref("addresses", "id"),
+  name: column.text(),
+  token_hash: column.text().unique(),
+  token_prefix: column.text(),
+  // Off by default; see the migration. Turning it on caps daily sends.
+  can_send: column.boolean().default(false),
+  last_used_at: column.timestamp().nullable(),
+  created_at: now(),
+})
+
+export type Agent = RowOf<typeof agents>
+
 export type Tag = { name: string; value: string }
 
 /**
- * One API send, shaped after the object Resend returns. The message itself is
+ * One API send, shaped after the object SDKs expect. The message itself is
  * in the delivery queue; this is what the application asked for and where it
  * got to.
  *
@@ -856,6 +876,7 @@ export type IdempotencyKey = RowOf<typeof idempotencyKeys>
 export const allSchemas = [
   addressDestinations,
   addresses,
+  agents,
   apiKeys,
   auditEvents,
   authFailures,

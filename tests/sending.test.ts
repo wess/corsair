@@ -602,7 +602,7 @@ describe("idempotency", () => {
 })
 
 describe("listing", () => {
-  test("pages newest first with Resend's cursors, and only the account's own", async () => {
+  test("pages newest first with the SDK's cursors, and only the account's own", async () => {
     const lister = await makeUser("lister")
     const listZone = `list-${suffix}.invalid`
     await makeDomain(lister, listZone)

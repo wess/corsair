@@ -15,7 +15,7 @@ import {
   users,
 } from "../schema/index.ts"
 
-export type AddressType = "standard" | "alias" | "catchall" | "group"
+export type AddressType = "standard" | "alias" | "catchall" | "group" | "agent"
 
 /**
  * The addresses a hosted domain is not allowed to refuse.
@@ -175,7 +175,10 @@ export const createAddress = async (
 ): Promise<{ address: Address; destinations: AddressDestination[] }> => {
   const localPart = normalizeLocalPart(input.localPart)
   const needsDestinations = input.type === "alias" || input.type === "group"
-  const isMailbox = input.type === "standard" || input.type === "catchall"
+  const isMailbox = input.type === "standard" || input.type === "catchall" || input.type === "agent"
+  // An agent mailbox is opened by a token, never a password, so it is the one
+  // mailbox that is neither linked to an account nor required to have a hash.
+  const passwordless = input.type === "agent"
 
   // Resolved before the password check: a mailbox that is its owner's own
   // account already has a password, and demanding a second one is the thing
@@ -184,12 +187,13 @@ export const createAddress = async (
   // `useAccountPassword` is the explicit form, for the common case where the
   // panel sign-in address and the mailbox address are simply different — the
   // automatic match only fires when they are identical.
-  const userId = isMailbox
-    ? ((input.useAccountPassword ? (input.ownerId ?? null) : null) ??
-      (await accountFor(input.domainId, localPart)))
-    : null
+  const userId =
+    isMailbox && !passwordless
+      ? ((input.useAccountPassword ? (input.ownerId ?? null) : null) ??
+        (await accountFor(input.domainId, localPart)))
+      : null
 
-  if (isMailbox && !input.password && !userId) {
+  if (isMailbox && !passwordless && !input.password && !userId) {
     throw invalidParameter("A mailbox needs a password.")
   }
   if (needsDestinations && !input.destinations?.length) {
@@ -229,7 +233,12 @@ export const createAddress = async (
         user_id: userId,
         // A linked mailbox deliberately stores nothing here. Two hashes for one
         // person is how they drift apart.
-        password_hash: userId ? null : input.password ? await hashPassword(input.password) : null,
+        password_hash:
+          userId || passwordless
+            ? null
+            : input.password
+              ? await hashPassword(input.password)
+              : null,
         filter_id: input.filterId ?? null,
         password_changed_at: input.password ? new Date() : null,
       })

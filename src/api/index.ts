@@ -9,6 +9,7 @@ import { wrapAll } from "./pipes/index.ts"
 import { accountRoutes } from "./routes/account/index.ts"
 import { addressRoutes } from "./routes/addresses/index.ts"
 import { adminRoutes } from "./routes/admins/index.ts"
+import { agentRoutes } from "./routes/agents/index.ts"
 import { apiKeyRoutes } from "./routes/apikeys/index.ts"
 import { authRoutes } from "./routes/auth/index.ts"
 import { autoconfigRoutes } from "./routes/autoconfig/index.ts"
@@ -57,6 +58,8 @@ export const allRoutes = (): Route[] => [
   // `/api/emails/:id` patterns inside its own module.
   ...wrapAll(emailRoutes),
   ...wrapAll(apiKeyRoutes),
+  // `/api/agents` is the panel's; `/api/agent` is the agent's own token surface.
+  ...wrapAll(agentRoutes),
   ...wrapAll(suppressionRoutes),
   // Ahead of the webmail's own routes: `/api/mail/admin/...` must not be
   // shadowed by anything matching `/api/mail/:something`.

@@ -1,0 +1,10 @@
+{
+  "name": "corsair-agent-email",
+  "version": "0.1.0",
+  "description": "Give an AI agent an email address of its own: sign up for services, read the verification link or code, and reply.",
+  "author": { "name": "Wess Cope", "url": "https://github.com/wess" },
+  "homepage": "https://github.com/wess/corsair",
+  "repository": "https://github.com/wess/corsair",
+  "license": "MIT",
+  "keywords": ["email", "agent", "mcp", "verification", "signup"]
+}

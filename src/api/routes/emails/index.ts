@@ -16,12 +16,12 @@ import { emailObject } from "../../../serialize/index.ts"
 import { senderOf, sending, sendingFull } from "../../pipes/index.ts"
 
 /**
- * The sending API, on Resend's paths under `/api`.
+ * The sending API, on the paths SDKs expect under `/api`.
  *
- * Point a Resend SDK at `https://<server>/api` and these are the routes it
+ * Point an SDK at `https://<server>/api` and these are the routes it
  * calls. Fields are optional in the schema on purpose: a missing `to` must come
- * back as Resend's `missing_required_field`, not as a generic validation error
- * a Resend client does not know to expect.
+ * back as the SDK-expected `missing_required_field`, not as a generic validation error
+ * a client does not know to expect.
  */
 
 const byte = z.number().int().min(0).max(255)

@@ -38,7 +38,9 @@
   <url><loc>https://wess.io/corsair/docs/tutorials/index.html</loc><priority>0.8</priority></url>
   <url><loc>https://wess.io/corsair/docs/tutorials/webhook-consumer.html</loc><priority>0.8</priority></url>
   <url><loc>https://wess.io/corsair/docs/tutorials/migrate-from-google.html</loc><priority>0.8</priority></url>
+  <url><loc>https://wess.io/corsair/docs/agent-tools.html</loc><priority>0.8</priority></url>
   <url><loc>https://wess.io/corsair/docs/deliverability.html</loc><priority>0.8</priority></url>
+  <url><loc>https://wess.io/corsair/docs/agents.html</loc><priority>0.8</priority></url>
   <url><loc>https://wess.io/corsair/docs/upgrading.html</loc><priority>0.8</priority></url>
   <url><loc>https://wess.io/corsair/docs/installation.html</loc><priority>0.8</priority></url>
   <url><loc>https://wess.io/corsair/docs/monitoring.html</loc><priority>0.8</priority></url>

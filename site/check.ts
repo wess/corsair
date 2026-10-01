@@ -100,17 +100,42 @@ for (const page of pages) {
   }
 }
 
+// llms.txt is read by models that have nothing to resolve a relative path
+// against, so its links are absolute and a typo in one is invisible in the HTML
+// checks above. Every link under this site's own base has to be a built file.
+const llmsMissing: string[] = []
+const llmsFile = Bun.file(join(OUT, "llms.txt"))
+if (!(await llmsFile.exists())) {
+  llmsMissing.push("llms.txt itself")
+} else {
+  const robots = await readFile(join(OUT, "robots.txt"), "utf8")
+  const base = /Sitemap:\s*(\S+)\/sitemap\.xml/.exec(robots)?.[1]
+  for (const match of (await llmsFile.text()).matchAll(/\]\((https?:\/\/[^)]+)\)/g)) {
+    const url = match[1]!
+    if (!base || !url.startsWith(`${base}/`)) continue
+    if (!(await exists(join(OUT, url.slice(base.length + 1))))) llmsMissing.push(url)
+  }
+}
+
 for (const { page, href } of broken) console.error(`broken link  ${page} → ${href}`)
 for (const { page, href } of anchorsMissing) console.error(`dead anchor  ${page} → ${href}`)
 for (const page of sourceless) console.error(`no source    ${page}`)
+for (const url of llmsMissing) console.error(`llms.txt     ${url} is not a built file`)
 for (const source of untracked) {
   console.error(`not in git   ${source} — check .gitignore for an unanchored pattern`)
 }
 
-if (broken.length || anchorsMissing.length || sourceless.length || untracked.length) {
+if (
+  broken.length ||
+  anchorsMissing.length ||
+  sourceless.length ||
+  untracked.length ||
+  llmsMissing.length
+) {
   console.error(
     `\n${broken.length} broken link(s), ${anchorsMissing.length} dead anchor(s), ` +
-      `${sourceless.length} page(s) with no source, ${untracked.length} source(s) not in git`,
+      `${sourceless.length} page(s) with no source, ${untracked.length} source(s) not in git, ` +
+      `${llmsMissing.length} dead llms.txt link(s)`,
   )
   process.exit(1)
 }

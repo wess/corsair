@@ -129,8 +129,8 @@ layout: home
       <h2>Applications send as your domain, over HTTP</h2>
       <p>
         A password reset, a receipt, a contact form — sent with an API key instead of a
-        mailbox and an SMTP password. The API is Resend's, so their SDK works against your
-        server with the base URL changed and nothing else.
+        mailbox and an SMTP password. The API speaks the JSON shape that transactional-email SDKs
+        already expect, so an existing client works with the base URL changed.
       </p>
       <p>
         Sends ride the same queue and the same DKIM key as mail from a mailbox, so a domain
@@ -143,17 +143,18 @@ layout: home
 ```
 
 ```js
-import { Resend } from "resend"
-
-const resend = new Resend("cs_...", {
-  baseUrl: "https://mail.example.com/api",
-})
-
-await resend.emails.send({
-  from: "Acme <receipts@example.com>",
-  to: ["customer@example.net"],
-  subject: "Your receipt",
-  html: "<p>Thanks for your order.</p>",
+await fetch("https://mail.example.com/api/emails", {
+  method: "POST",
+  headers: {
+    authorization: "Bearer cs_...",
+    "content-type": "application/json",
+  },
+  body: JSON.stringify({
+    from: "Acme <receipts@example.com>",
+    to: ["customer@example.net"],
+    subject: "Your receipt",
+    html: "<p>Thanks for your order.</p>",
+  }),
 })
 ```
 

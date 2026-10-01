@@ -162,8 +162,8 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
       <h2>Applications send as your domain, over HTTP</h2>
       <p>
         A password reset, a receipt, a contact form — sent with an API key instead of a
-        mailbox and an SMTP password. The API is Resend's, so their SDK works against your
-        server with the base URL changed and nothing else.
+        mailbox and an SMTP password. The API speaks the JSON shape that transactional-email SDKs
+        already expect, so an existing client works with the base URL changed.
       </p>
       <p>
         Sends ride the same queue and the same DKIM key as mail from a mailbox, so a domain
@@ -173,17 +173,18 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
       <p><a href="docs/sending.html">The sending API →</a></p>
     </div>
     <div>
-<figure class="code"><span class="code-lang">js</span><pre><code>import { Resend } from &quot;resend&quot;
-
-const resend = new Resend(&quot;cs_...&quot;, {
-  baseUrl: &quot;https://mail.example.com/api&quot;,
-})
-
-await resend.emails.send({
-  from: &quot;Acme &lt;receipts@example.com&gt;&quot;,
-  to: [&quot;customer@example.net&quot;],
-  subject: &quot;Your receipt&quot;,
-  html: &quot;&lt;p&gt;Thanks for your order.&lt;/p&gt;&quot;,
+<figure class="code"><span class="code-lang">js</span><pre><code>await fetch(&quot;https://mail.example.com/api/emails&quot;, {
+  method: &quot;POST&quot;,
+  headers: {
+    authorization: &quot;Bearer cs_...&quot;,
+    &quot;content-type&quot;: &quot;application/json&quot;,
+  },
+  body: JSON.stringify({
+    from: &quot;Acme &lt;receipts@example.com&gt;&quot;,
+    to: [&quot;customer@example.net&quot;],
+    subject: &quot;Your receipt&quot;,
+    html: &quot;&lt;p&gt;Thanks for your order.&lt;/p&gt;&quot;,
+  }),
 })</code></pre></figure>
     </div>
   </div>

@@ -89,10 +89,10 @@ export const SendingPage = () => {
       <Banner>
         <Icon path={icons.send} size={15} />
         <span>
-          Applications send as your domains over HTTP with a key from here. The API is Resend's:
-          point a Resend SDK at <span className="mono">{window.location.origin}/api</span> and it
-          works unchanged. Delivery events arrive through your webhooks as{" "}
-          <span className="mono">email.*</span>.
+          Applications send as your domains over HTTP with a key from here. The API has the shape
+          transactional-email SDKs expect: point one at{" "}
+          <span className="mono">{window.location.origin}/api</span> and it works unchanged.
+          Delivery events arrive through your webhooks as <span className="mono">email.*</span>.
         </span>
       </Banner>
 

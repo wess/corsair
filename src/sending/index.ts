@@ -49,8 +49,8 @@ import { isSuppressed, normalizeRecipient, suppress } from "../suppressions/inde
  * event, and an address that is gone is suppressed so the application stops
  * mailing it.
  *
- * The request and response shapes are Resend's, so an application written
- * against Resend moves here by changing its base URL.
+ * The request and response shapes are the ones transactional-email SDKs
+ * expect, so an application written against one moves here by changing its base URL.
  */
 
 export type Sender = {
@@ -422,7 +422,7 @@ const LAST_EVENT: Partial<Record<EventType, string>> = {
 
 /**
  * Moves an email's `last_event` and tells the account's hooks. The payload is
- * Resend's `data` object, plus `recipient`, because an email to several people
+ * The SDK's `data` object, plus `recipient`, because an email to several people
  * can be delivered to one and bounce for another.
  */
 const record = async (
@@ -779,7 +779,7 @@ export const rescheduleEmail = async (email: Email, value: string): Promise<void
 }
 
 /**
- * Newest first, with Resend's cursors: `after` pages toward older emails,
+ * Newest first, with the SDK's cursors: `after` pages toward older emails,
  * `before` toward newer.
  */
 export const listEmails = async (

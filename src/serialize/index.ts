@@ -2,6 +2,7 @@ import { num } from "../db/index.ts"
 import type { Entitlement, Usage } from "../plans/index.ts"
 import type {
   Address,
+  Agent,
   ApiKey,
   DkimKey,
   Domain,
@@ -281,7 +282,7 @@ export const entitlementObject = (entitlement: Entitlement, usage: Usage) => ({
 // sending
 
 /**
- * The email object, in Resend's shape. `full` adds the bodies and tags, which
+ * The email object, in the SDK-expected shape. `full` adds the bodies and tags, which
  * the single-email read returns and the list does not.
  */
 export const emailObject = (email: Email, opts: { full?: boolean } = {}) => {
@@ -313,6 +314,24 @@ export const apiKeyObject = (key: ApiKey, extra: { domain?: string | null } = {}
   token_prefix: key.token_prefix,
   last_used_at: key.last_used_at?.toISOString() ?? null,
   created_at: key.created_at.toISOString(),
+})
+
+/** The token is never part of this. It is returned once, by create and rotate. */
+export const agentObject = (
+  agent: Agent,
+  extra: { email: string; localPart: string; domain: string },
+) => ({
+  object: "agent" as const,
+  id: agent.id,
+  name: agent.name,
+  email: extra.email,
+  local_part: extra.localPart,
+  domain: extra.domain,
+  address_id: agent.address_id,
+  token_prefix: agent.token_prefix,
+  can_send: agent.can_send,
+  last_used_at: agent.last_used_at?.toISOString() ?? null,
+  created_at: agent.created_at.toISOString(),
 })
 
 export const suppressionObject = (row: Suppression) => ({

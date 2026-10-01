@@ -1,0 +1,15 @@
+{
+  "name": "corsair",
+  "owner": { "name": "Wess Cope", "url": "https://github.com/wess" },
+  "metadata": {
+    "description": "Tools for agents that use a Corsair mail server."
+  },
+  "plugins": [
+    {
+      "name": "corsair-agent-email",
+      "source": "./plugin",
+      "description": "Give an AI agent an email address of its own: sign up for services, read the verification link or code, and reply.",
+      "category": "productivity"
+    }
+  ]
+}

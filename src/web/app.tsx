@@ -4,6 +4,7 @@ import { Banner, Icon, icons, Loading, useLoad } from "./components/index.tsx"
 import { get, post } from "./lib/api.ts"
 import { AccountPage } from "./pages/account.tsx"
 import { AdminsPage } from "./pages/admins.tsx"
+import { AgentsPage } from "./pages/agents.tsx"
 import { AuthPage } from "./pages/auth.tsx"
 import { BillingPage, PlansPage } from "./pages/billing.tsx"
 import { AddressDetailPage, DomainDetailPage, DomainsPage } from "./pages/domains.tsx"
@@ -75,6 +76,7 @@ const NAV = [
   { label: "Transfers", path: "/transfers", icon: icons.transfers },
   { label: "Webhooks", path: "/webhooks", icon: icons.webhook },
   { label: "Sending API", path: "/sending", icon: icons.send },
+  { label: "Agent email", path: "/agents", icon: icons.agent },
   { label: "Account", path: "/account", icon: icons.account },
   { label: "Plans", path: "/plans", icon: icons.plans },
   { label: "Billing", path: "/billing", icon: icons.billing },
@@ -102,6 +104,7 @@ const titleFor = (route: string): string => {
   if (route.startsWith("/transfers")) return "Transfers"
   if (route.startsWith("/webhooks")) return "Webhooks"
   if (route.startsWith("/sending")) return "Sending API"
+  if (route.startsWith("/agents")) return "Agent email"
   if (route.startsWith("/account")) return "Account"
   if (route.startsWith("/plans")) return "Plans"
   if (route.startsWith("/billing")) return "Billing"
@@ -144,6 +147,7 @@ const Shell = ({
     if (route.startsWith("/webhooks")) return <HooksPage />
 
     if (route.startsWith("/sending")) return <SendingPage />
+    if (route.startsWith("/agents")) return <AgentsPage />
     if (route.startsWith("/transfers")) return <TransfersPage />
     if (route.startsWith("/account"))
       return <AccountPage me={me} onUpdated={onUpdated} onSignOut={onSignOut} />

@@ -1,0 +1,77 @@
+# Corsair
+
+> Self-hostable email hosting: SMTP, IMAP, POP3, JMAP, and a webmail on your own domains, with a control panel, an HTTP sending API, and mailboxes for AI agents.
+
+Corsair is a Bun and PostgreSQL application. Mail for every protocol is stored once and read by all of them. To give an agent an inbox, start with "Agent email" and "Tools for agents" below.
+
+## Start here
+
+- [Documentation](https://wess.io/corsair/docs/index.html): Everything needed to install, operate, and use Corsair — from a laptop trial to a production mail server.
+- [Introduction](https://wess.io/corsair/docs/introduction.html): What Corsair is, what it is not, and the shape of the system before you install it.
+- [Quickstart](https://wess.io/corsair/docs/quickstart.html): Get Corsair running on your own machine in about ten minutes, with nothing leaving the laptop.
+- [Core concepts](https://wess.io/corsair/docs/concepts.html): Users, addresses, domains, folders, and the single-store model — the vocabulary the rest of the manual assumes.
+- [Prerequisites](https://wess.io/corsair/docs/prerequisites.html): The four things that decide whether your mail is delivered, none of which are code.
+
+## Tutorials
+
+- [Tutorials](https://wess.io/corsair/docs/tutorials/index.html): Start-to-finish builds — a production server, a migration off Google, a household domain, filters, webhooks, and a restore drill.
+- [Your first production server](https://wess.io/corsair/docs/tutorials/first-server.html): Take a blank VPS to delivered, authenticated mail — host, DNS, TLS, domain, mailbox, and a verified round trip.
+- [Migrating from Google Workspace](https://wess.io/corsair/docs/tutorials/migrate-from-google.html): Copy an existing mailbox across with the MX untouched, verify it, cut over, then catch the tail.
+- [Mail for a household or small team](https://wess.io/corsair/docs/tutorials/household.html): Real mailboxes for people, aliases for roles, a group for everyone, a catch-all for the rest, and self-service recovery.
+- [A filter cookbook](https://wess.io/corsair/docs/tutorials/filter-cookbook.html): Sieve scripts that solve real problems — newsletters, sub-address filing, sender rules, quarantine, and the traps.
+- [Consuming webhooks](https://wess.io/corsair/docs/tutorials/webhook-consumer.html): Build a service that receives Corsair's events, verifies the signature correctly, and survives retries.
+- [A backup and restore drill](https://wess.io/corsair/docs/tutorials/backup-drill.html): Take a backup, destroy the install, bring it back. The only way to know a backup works.
+
+## Install and operate
+
+- [Installation](https://wess.io/corsair/docs/installation.html): Docker Compose, bare metal with systemd, and a split deployment — plus what each entrypoint does.
+- [Configuration](https://wess.io/corsair/docs/configuration.html): Every environment variable Corsair reads, its default, and what changes when you set it.
+- [DNS setup](https://wess.io/corsair/docs/dns-setup.html): Every record Corsair asks for, what it does, what breaks without it, and how to check it.
+- [TLS certificates](https://wess.io/corsair/docs/tls.html): Getting a certificate, wiring it in, renewing it, and why Corsair refuses to authenticate without one.
+- [Production checklist](https://wess.io/corsair/docs/production-checklist.html): What to verify before you point a real domain at a Corsair install, and how to check each one.
+- [Backups and restore](https://wess.io/corsair/docs/backups.html): What has to survive, how to capture it, and how to bring it back without breaking IMAP clients.
+- [Monitoring](https://wess.io/corsair/docs/monitoring.html): What to watch, what to alert on, and the queries that tell you whether mail is actually flowing.
+- [Upgrading](https://wess.io/corsair/docs/upgrading.html): Pull, migrate, restart — and the parts of that sequence which are not safe to do in the wrong order.
+- [Scaling and performance](https://wess.io/corsair/docs/scaling.html): Where the limits actually are, what to measure, and what to do when one of them is reached.
+- [Troubleshooting](https://wess.io/corsair/docs/troubleshooting.html): Symptom first — find what you are seeing, then the cause and the fix.
+- [Security model](https://wess.io/corsair/docs/security.html): What Corsair defends against, what it deliberately does not store, and where the responsibility is yours.
+
+## Using Corsair
+
+- [The control panel](https://wess.io/corsair/docs/control-panel.html): A tour of every screen — what it shows, what it lets you do, and what to check when something looks wrong.
+- [Domains](https://wess.io/corsair/docs/domains.html): Adding a domain, verifying it, rotating DKIM keys, fallback domains, and removing one safely.
+- [Addresses](https://wess.io/corsair/docs/addresses.html): The four kinds of address, sub-addressing, folders, passwords, and recovery.
+- [Client settings](https://wess.io/corsair/docs/client-setup.html): Hostnames, ports, and per-client notes for every mail client worth naming.
+- [Webmail](https://wess.io/corsair/docs/webmail.html): The built-in three-pane client, how it signs in, and why message rendering is sanitised on the server.
+- [Filters](https://wess.io/corsair/docs/filters.html): The Sieve subset Corsair implements, and why filtering is a real language rather than a rules builder.
+- [Transfers](https://wess.io/corsair/docs/transfers.html): Copying an existing mailbox in over IMAP, folder structure and flags intact.
+- [Deliverability](https://wess.io/corsair/docs/deliverability.html): Getting mail accepted is a reputation problem, not a software problem. What to do about it.
+- [Sending API](https://wess.io/corsair/docs/sending.html): Send transactional mail as your domains over HTTP, over a plain JSON API.
+- [Event hooks](https://wess.io/corsair/docs/webhooks.html): Signed JSON delivered to your endpoint when mail arrives, bounces, or is filed as spam.
+- [Plans and billing](https://wess.io/corsair/docs/plans-billing.html): How entitlements work, why an unconfigured instance is unmetered, and what happens when billing is turned on.
+- [Agent email](https://wess.io/corsair/docs/agents.html): A mailbox an AI agent can use to sign up for services and read the verification mail, with a token instead of a password.
+- [Tools for agents](https://wess.io/corsair/docs/agent-tools.html): A Claude Code plugin, a skill, and an MCP server that give an AI agent its Corsair inbox, with install steps for a person or an agent.
+
+## Reference
+
+- [Architecture](https://wess.io/corsair/docs/architecture.html): How the pieces fit together — one process, one store, and the decisions that shape everything else.
+- [HTTP API](https://wess.io/corsair/docs/api.html): Authentication, error envelope, pagination, and every endpoint the control panel is built on.
+- [SMTP](https://wess.io/corsair/docs/smtp.html): The MX listener, authenticated submission, the inbound pipeline, and how outbound delivery retries.
+- [IMAP](https://wess.io/corsair/docs/imap.html): Advertised capabilities, supported commands, and the two behaviours that make IMAP correct rather than merely working.
+- [JMAP](https://wess.io/corsair/docs/jmap.html): Session discovery, the supported methods, back-references, and blob upload and download.
+- [POP3](https://wess.io/corsair/docs/pop3.html): The supported command set, and an honest account of when POP3 is the wrong choice.
+- [Command line](https://wess.io/corsair/docs/cli.html): Every script and entrypoint, what it does, and when to reach for it.
+- [Database schema](https://wess.io/corsair/docs/database.html): Every table, what it holds, and the constraints that are load-bearing rather than decorative.
+- [SMTP error lookup](https://wess.io/corsair/docs/smtp-errors.html): What an SMTP reply code actually means, and whether you need to act on it.
+- [Glossary](https://wess.io/corsair/docs/glossary.html): The mail vocabulary this manual assumes, defined once.
+
+## Agent tools
+
+- [Agent email skill](https://wess.io/corsair/agent/SKILL.md): instructions an agent follows to sign up for services and read verification mail. Install it as `SKILL.md`.
+- [Agent email MCP server](https://wess.io/corsair/agent/mcp.mjs): one dependency-free file (Node 18+ or Bun) exposing the inbox as MCP tools.
+
+## Optional
+
+- [FAQ](https://wess.io/corsair/faq.html): Common questions about running Corsair.
+- [Every page in one file](https://wess.io/corsair/llms-full.txt): the documentation as a single markdown document.
+- [Source](https://github.com/wess/corsair)

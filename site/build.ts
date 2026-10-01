@@ -658,6 +658,77 @@ ${pages
 </urlset>
 `
 
+// llms.txt
+
+const SUMMARY =
+  "Self-hostable email hosting: SMTP, IMAP, POP3, JMAP, and a webmail on your own domains, with a control panel, an HTTP sending API, and mailboxes for AI agents."
+
+const absolute = (href: string): string => `${SITE_URL}/${href}`
+
+/**
+ * `llms.txt`: the docs as an index a model can read, in the llmstxt.org shape.
+ *
+ * These links are absolute, unlike every link in the HTML. A model fetches this
+ * file on its own, with no page for a relative path to be relative to, and an
+ * index of paths it cannot resolve is worse than no index. They follow
+ * `SITE_URL`, so the same build is right wherever it is published.
+ */
+const llmsIndex = (pages: Page[]): string => {
+  const line = (p: Page) =>
+    `- [${p.meta.title}](${absolute(p.href)})${p.meta.description ? `: ${p.meta.description}` : ""}`
+
+  const sections = SECTIONS.map((section) => {
+    const entries = pages
+      .filter((p) => p.meta.section === section.key)
+      .sort((a, b) => (a.meta.order ?? 999) - (b.meta.order ?? 999))
+    return entries.length ? `## ${section.label}\n\n${entries.map(line).join("\n")}\n` : ""
+  }).filter(Boolean)
+
+  const faq = pages.find((p) => p.href === "faq.html")
+
+  return `# Corsair
+
+> ${SUMMARY}
+
+Corsair is a Bun and PostgreSQL application. Mail for every protocol is stored once and read by all of them. To give an agent an inbox, start with "Agent email" and "Tools for agents" below.
+
+${sections.join("\n")}
+## Agent tools
+
+- [Agent email skill](${absolute("agent/SKILL.md")}): instructions an agent follows to sign up for services and read verification mail. Install it as \`SKILL.md\`.
+- [Agent email MCP server](${absolute("agent/mcp.mjs")}): one dependency-free file (Node 18+ or Bun) exposing the inbox as MCP tools.
+
+## Optional
+
+${faq ? `${line(faq)}\n` : ""}- [Every page in one file](${absolute("llms-full.txt")}): the documentation as a single markdown document.
+- [Source](${REPO})
+`
+}
+
+/** Markdown for a model: the page as written, minus the HTML-only widgets. */
+const llmsPage = (page: Page): string => {
+  const body = page.body
+    .replace(/^```raw\n[\s\S]*?^```\n?/gm, "")
+    .replace(/^:::(\w+)\n/gm, "> **$1:** ")
+    .replace(/^:::\n?/gm, "")
+    .trim()
+  return `# ${page.meta.title}\n\nSource: ${absolute(page.href)}\n\n${body}\n`
+}
+
+const llmsFull = (pages: Page[]): string => {
+  const ordered = SECTIONS.flatMap((section) =>
+    pages
+      .filter((p) => p.meta.section === section.key)
+      .sort((a, b) => (a.meta.order ?? 999) - (b.meta.order ?? 999)),
+  )
+  const faq = pages.find((p) => p.href === "faq.html")
+  return `# Corsair\n\n> ${SUMMARY}\n\n${[...ordered, ...(faq ? [faq] : [])].map(llmsPage).join("\n---\n\n")}`
+}
+
+// The agent tools are built from the plugin's own files, so the copy a model
+// fetches from here can never drift from the one the plugin installs.
+const PLUGIN = new URL("../plugin/", import.meta.url).pathname
+
 export const build = async (): Promise<number> => {
   const files = await walk(CONTENT)
   await mkdir(OUT, { recursive: true })
@@ -688,6 +759,12 @@ export const build = async (): Promise<number> => {
     `User-agent: *\nAllow: /\nSitemap: ${SITE_URL}/sitemap.xml\n`,
   )
   await writeFile(join(OUT, "sitemap.xml"), sitemap(pages))
+  await writeFile(join(OUT, "llms.txt"), llmsIndex(pages))
+  await writeFile(join(OUT, "llms-full.txt"), llmsFull(pages))
+
+  await mkdir(join(OUT, "agent"), { recursive: true })
+  await cp(join(PLUGIN, "skills/agent-email/SKILL.md"), join(OUT, "agent/SKILL.md"))
+  await cp(join(PLUGIN, "mcp/server.mjs"), join(OUT, "agent/mcp.mjs"))
 
   // Pages serves 404.html for anything it cannot resolve. It is served from
   // arbitrary depths, so its links have to be absolute to the site root.

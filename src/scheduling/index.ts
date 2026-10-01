@@ -3,8 +3,8 @@ import { invalidParameter } from "../errors/index.ts"
 /**
  * `scheduled_at` for the sending API.
  *
- * Accepts ISO 8601 and the natural-language offsets Resend documents (`in 1
- * min`, `in 2 hours`, `tomorrow`), because clients written against Resend send
+ * Accepts ISO 8601 and the natural-language offsets SDKs send (`in 1
+ * min`, `in 2 hours`, `tomorrow`), because clients written against these SDKs send
  * both and a schedule that is refused is a message that is never sent.
  */
 

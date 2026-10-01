@@ -549,7 +549,7 @@ const run = async () => {
 
   const missingTo = await bearer("POST", "/api/emails", token, { ...message, to: undefined })
   check(
-    "a missing field answers with Resend's error name",
+    "a missing field answers with the SDK-expected error name",
     missingTo.status === 422 && missingTo.body?.name === "missing_required_field",
     missingTo.body,
   )
@@ -601,6 +601,64 @@ const run = async () => {
   )
   const unsuppressed = await call("DELETE", `/api/suppressions/${suppressed.body?.id}`)
   check("and let through again", unsuppressed.status === 200, unsuppressed.body)
+
+  section("agent email")
+  const agent = await call("POST", "/api/agents", { name: "smoke agent", domain_id: domainId })
+  const agentToken = String(agent.body?.token ?? "")
+  check(
+    "an agent can be created, read-only by default",
+    agent.status === 201 &&
+      agentToken.startsWith("ca_") &&
+      agent.body?.can_send === false &&
+      String(agent.body?.email ?? "").endsWith(`@${domainName}`),
+    agent.body,
+  )
+
+  const listedAgents = await call("GET", "/api/agents")
+  check(
+    "the agent token is never listed",
+    listedAgents.status === 200 && !JSON.stringify(listedAgents.body).includes(agentToken),
+    listedAgents.body,
+  )
+
+  const whoami = await bearer("GET", "/api/agent", agentToken)
+  check(
+    "the token reads its own mailbox",
+    whoami.status === 200 && whoami.body?.email === agent.body?.email,
+    whoami.body,
+  )
+
+  const empty = await bearer("GET", "/api/agent/wait?timeout=1", agentToken)
+  check("waiting with nothing new is not an error", empty.body?.matched === false, empty.body)
+
+  const readOnlySend = await bearer("POST", "/api/agent/send", agentToken, {
+    to: ["someone@far.invalid"],
+    subject: "s",
+    text: "t",
+  })
+  check("a read-only agent cannot send", readOnlySend.status === 403, readOnlySend.body)
+
+  const agentOnApi = await bearer("POST", "/api/emails", agentToken, message)
+  check("an agent token is not a sending key", agentOnApi.status === 403, agentOnApi.body)
+
+  const enabled = await call("PATCH", `/api/agents/${agent.body?.id}`, { can_send: true })
+  check("sending can be turned on", enabled.status === 200 && enabled.body?.can_send === true)
+
+  const rotatedAgent = await call("POST", `/api/agents/${agent.body?.id}/rotate`)
+  const afterRotate = await bearer("GET", "/api/agent", agentToken)
+  check(
+    "rotating replaces the token at once",
+    rotatedAgent.status === 200 && afterRotate.status === 403,
+    afterRotate.body,
+  )
+
+  const removedAgent = await call("DELETE", `/api/agents/${agent.body?.id}`)
+  const afterDelete = await bearer("GET", "/api/agent", String(rotatedAgent.body?.token ?? ""))
+  check(
+    "deleting removes the mailbox and the token",
+    removedAgent.status === 200 && afterDelete.status === 403,
+    afterDelete.body,
+  )
 
   section("public endpoints")
   const autoconfig = await fetch(`${BASE}/mail/config-v1.1.xml?emailaddress=me@${domainName}`)

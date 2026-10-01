@@ -67,9 +67,15 @@ Signed with the Standard Webhooks scheme, so existing verification libraries
 work unchanged; retried on a widening schedule for about a day; and an endpoint
 that fails twenty times in a row is disabled rather than hammered forever.
 
+**Agent email.** A mailbox an AI agent can sign up for services with, read
+the verification link or code from, and reply from — opened by a token, not a
+password. A Claude Code plugin, a skill, and an MCP server make it one step; see
+[Tools for agents](site/content/docs/agent-tools.md).
+
 **Sending API.** Applications send as your domains over HTTP with an API key,
-using Resend's API — point a Resend SDK at `https://<server>/api` and it works
-unchanged. Sends ride the same queue and DKIM keys as mailbox mail. Bounces come
+over a JSON API with the shape transactional-email SDKs expect — point one at
+`https://<server>/api` and it works unchanged. Sends ride the same queue and DKIM
+keys as mailbox mail. Bounces come
 back to a per-message return path, and an address that no longer exists is
 suppressed so the application stops mailing it.
 

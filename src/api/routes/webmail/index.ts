@@ -2,7 +2,7 @@ import { from } from "@atlas/db"
 import { delR, getR, json, postR, type Route, text } from "@atlas/server"
 import { z } from "zod"
 import { domainsAdministeredByAddress } from "../../../access/index.ts"
-import { folderBySpecialUse, ownerOfDomain, setPassword } from "../../../addresses/index.ts"
+import { folderBySpecialUse, setPassword } from "../../../addresses/index.ts"
 import {
   authenticateAddress,
   clearedMailCookie,
@@ -13,14 +13,12 @@ import {
 } from "../../../auth/index.ts"
 import { config } from "../../../config/index.ts"
 import { allColumns, db, num } from "../../../db/index.ts"
-import { sign } from "../../../dkim/index.ts"
-import { activeDkimKey } from "../../../domains/index.ts"
 import { invalidParameter, notFound, unauthorized } from "../../../errors/index.ts"
 import { rfcMessageId, uidValidity } from "../../../ids/index.ts"
+import { sendFromMailbox } from "../../../mailsend/index.ts"
 import * as mime from "../../../mime/index.ts"
 import { mailboxNotices } from "../../../notices/index.ts"
-import { enqueue } from "../../../outbound/index.ts"
-import { withinDailyLimit } from "../../../plans/index.ts"
+import { partResponse } from "../../../parts/index.ts"
 import { sanitizeHtml, textToHtml } from "../../../sanitize/index.ts"
 import {
   type Address,
@@ -28,7 +26,6 @@ import {
   type Folder,
   folders,
   type Message,
-  mailLog,
   messages,
 } from "../../../schema/index.ts"
 import { getRaw } from "../../../storage/index.ts"
@@ -502,28 +499,7 @@ export const webmailRoutes: Route[] = [
       const raw = await getRaw({ storageKey: message.storage_key, messageId: message.id })
       if (!raw) throw notFound("This message's body is no longer available.")
 
-      const parsed = mime.parseMessage(raw)
-      const part = mime.findPart(parsed, c.params.section)
-      if (!part) throw notFound("No such part.")
-
-      const bytes = mime.decodeTransfer(raw.slice(part.bodyStart, part.end), part.encoding)
-      const filename =
-        part.disposition?.params.filename ?? part.params.name ?? `part-${part.section}`
-
-      // Copied into a fresh Uint8Array: a Buffer view can share a larger
-      // ArrayBuffer, and Response would then serve the neighbouring bytes.
-      return new Response(new Uint8Array(bytes), {
-        headers: {
-          // The declared type is not trusted for rendering. Serving an
-          // attacker-supplied text/html attachment inline on this origin would
-          // hand it the session cookie.
-          "content-type":
-            part.type === "image" ? `${part.type}/${part.subtype}` : "application/octet-stream",
-          "content-disposition": `${part.disposition?.type === "inline" && part.type === "image" ? "inline" : "attachment"}; filename="${mime.stripControls(filename).replace(/"/g, "")}"`,
-          "content-security-policy": "default-src 'none'; sandbox",
-          "x-content-type-options": "nosniff",
-        },
-      }) as never
+      return partResponse(raw, c.params.section, true) as never
     },
   ),
 
@@ -651,67 +627,17 @@ export const webmailRoutes: Route[] = [
     async (c) => {
       const identity = identityOf(c)
 
-      if (identity.domain.status !== "active") {
-        throw invalidParameter(
-          `${identity.domain.name} is not verified yet. Finish DNS setup before sending.`,
-        )
-      }
-
-      const owner = await ownerOfDomain(identity.domain.id)
-      if (owner) {
-        const limit = await withinDailyLimit(owner, "outbound", identity.address.daily_out_limit)
-        if (!limit.ok) {
-          throw invalidParameter(
-            `Daily sending limit of ${limit.limit} messages reached. Try again tomorrow.`,
-          )
-        }
-      }
-
-      const messageId = rfcMessageId(identity.domain.name)
-      const raw = mime.buildMessage({
-        from: { name: identity.address.name, address: identity.email },
-        to: c.body.to.map((address) => ({ name: null, address })),
-        cc: c.body.cc?.map((address) => ({ name: null, address })),
+      const { queued, messageId } = await sendFromMailbox({
+        address: identity.address,
+        domain: identity.domain,
+        to: c.body.to,
+        cc: c.body.cc,
+        bcc: c.body.bcc,
         subject: c.body.subject,
         text: c.body.text,
-        messageId,
-        inReplyTo: c.body.in_reply_to ?? null,
+        inReplyTo: c.body.in_reply_to,
         references: c.body.references,
       })
-
-      // Signed before anything is stored, so the copy in Sent is byte-identical
-      // to what the recipient receives.
-      const key = await activeDkimKey(identity.domain.id)
-      const signed = key
-        ? sign({
-            raw,
-            domain: identity.domain.name,
-            selector: key.selector,
-            privateKey: key.private_key,
-          })
-        : raw
-
-      // Bcc recipients are in the envelope but never in the headers — that is
-      // the entire point of Bcc, and putting them in a header leaks them to
-      // every other recipient.
-      const recipients = [...c.body.to, ...(c.body.cc ?? []), ...(c.body.bcc ?? [])]
-      await enqueue({
-        raw: signed,
-        mailFrom: identity.email,
-        recipients,
-        addressId: identity.address.id,
-        domainId: identity.domain.id,
-      })
-
-      const sent = await folderBySpecialUse(identity.address.id, "sent")
-      if (sent) {
-        await deliver({
-          addressId: identity.address.id,
-          folderId: sent.id,
-          raw: signed,
-          flags: ["\\Seen"],
-        }).catch((e: unknown) => console.error("[corsair] could not file a copy in Sent:", e))
-      }
 
       // A sent draft is no longer a draft.
       if (c.body.draft_id) {
@@ -719,28 +645,7 @@ export const webmailRoutes: Route[] = [
         if (draft) await expunge({ folderId: draft.folder_id, messageIds: [draft.id] })
       }
 
-      for (const recipient of recipients) {
-        await db()
-          .execute(
-            from(mailLog).insert({
-              user_id: owner,
-              domain_id: identity.domain.id,
-              address_id: identity.address.id,
-              direction: "outbound",
-              status: "accepted",
-              mail_from: identity.email,
-              rcpt_to: recipient,
-              subject: c.body.subject,
-              message_id: messageId,
-              size: signed.length,
-              dkim: key ? "signed" : "unsigned",
-              code: 250,
-            }),
-          )
-          .catch(() => {})
-      }
-
-      return json(c, 202, { object: "message", queued: recipients.length, message_id: messageId })
+      return json(c, 202, { object: "message", queued, message_id: messageId })
     },
   ),
 

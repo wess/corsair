@@ -42,7 +42,7 @@ export const EVENT_TYPES = [
   "message.delivered",
   "message.deferred",
   "message.bounced",
-  // The sending API. Named and shaped after Resend's events, and emitted
+  // The sending API. Named and shaped after the events SDKs expect, and emitted
   // *instead of* the message.* outbound family for API sends: an application
   // subscribed to its own receipts should not also be told about every mailbox
   // on the domain, and a mailbox owner watching message.bounced should not see

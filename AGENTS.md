@@ -281,7 +281,9 @@ invalid regardless of the plan.
 
 ## Sending API
 
-`/api/emails` is Resend's API over the submission path, without a mailbox.
+`/api/emails` is the transactional-email API shape (the one SDKs already speak)
+over the submission path, without a mailbox. Do not name a vendor in docs, UI,
+or comments — the shape is the contract.
 `src/sending` owns it. The queue and the MX path each call into it, and those
 seams are where it bites.
 
@@ -316,8 +318,46 @@ guarded.
 
 **Keys are hashes, cannot mint keys, and belong to the domain's owner.** A
 domain administrator manages mailboxes; sending as the domain is not delegated.
-`api_keys_scope_chk` keeps a domain-scoped key sending-only, the same rule
-Resend has.
+`api_keys_scope_chk` keeps a domain-scoped key sending-only.
+
+## Agent email
+
+An agent mailbox is an `addresses` row of type `agent` plus a row in `agents`
+holding the token hash (`ca_` prefix). `src/agents` owns it.
+
+**The token is not an `api_keys` row, deliberately.** A `cs_` key sends as a
+domain and a `ca_` token reads one inbox; keeping them in separate tables with
+separate prefixes and separate pipes (`agentOnly` vs `sending`) means neither can
+be accepted where the other belongs. `tests/agents.test.ts` checks both
+directions.
+
+**The mailbox has no password and is refused by every protocol.**
+`authenticateResolved` only admits `standard` and `catchall`, which is what keeps
+IMAP, POP3, SMTP submission, and the webmail out. Do not add `agent` to that
+list. `createAddress` skips account-linking for it too, so an owner who happens to
+share an agent's local part cannot end up with the mailbox bound to their
+password. The ordinary address route's `type` enum excludes `agent` so every one
+is made through `POST /api/agents`, which does the plan-limit check and mints the
+token.
+
+**Reads are scoped by `address_id` in the query, not checked after.** A message id
+belonging to another agent is a 404, the same as one that does not exist.
+
+**Sending is opt-in and capped on the mailbox.** `agents.can_send` defaults to
+false so a prompt injection in mail the agent reads cannot make it a spam
+source. The 50-recipients-a-day cap counts `mail_log` rows by `address_id`, not
+by account, and is deliberately not `daily_out_limit`: `withinDailyLimit` counts
+the whole account's usage against whatever override it is given, which would
+let one agent's override throttle every other mailbox. Webmail and agents both
+send through `sendFromMailbox` in `src/mailsend`, so signing and the Bcc rule
+live in one place.
+
+**Attachments are always downloads.** `partResponse` in `src/parts` serves
+anything but an inline image as `application/octet-stream` with a sandbox CSP;
+the agent route passes `inlineImages: false`. The declared type is the sender's.
+
+**`wait` only counts mail that arrives after the call** unless given `since`.
+Dropping that default hands an agent last week's verification code.
 
 ## Adding an endpoint
 
@@ -372,6 +412,20 @@ That last line matters: `site/public` is committed and the server serves it, so
 leaving a pages-mode build in the tree swaps the panel link for a docs link on
 the running instance.
 
+**`llms.txt` and the agent tools are built, not written.** `site/build.ts`
+emits `llms.txt` (an index grouped like the sidebar) and `llms-full.txt` (every
+page as markdown), and copies `plugin/skills/agent-email/SKILL.md` and
+`plugin/mcp/server.mjs` to `public/agent/`. The plugin is the source of truth, so
+the copy a model fetches cannot drift from the one the plugin installs. `llms.txt`
+links are **absolute** (following `SITE_URL`) — the one exception to the
+relative-links rule, because a model fetches it with no page to resolve against.
+`site/check.ts` fails on a dead link in it.
+
+The Claude Code plugin lives in `plugin/` with its marketplace at
+`.claude-plugin/marketplace.json`; `claude plugin validate .` checks both. The MCP
+server is one dependency-free `.mjs` that must keep running under Node and Bun,
+and `tests/mcp.test.ts` drives it over stdio against a stub (no database).
+
 A docs page's place in the sidebar comes from its front matter — `section` (one
 of the keys in `SECTIONS`) and `order`. A page with no `section` renders without
 a sidebar entry and drops out of the previous/next chain, which is the failure
@@ -389,7 +443,7 @@ a dependency to get more is the wrong trade for a mail server.
   database.
 - `bun run test:smoke` — API contract. Needs a running server; backs off on 429
   because the rate limiter is real.
-- `bun run test:resend` — the official `resend` package against a running server,
+- `bun run test:resend` — a third-party SDK (the `resend` package) against a running server,
   with only the base URL changed. The sending API's compatibility claim, checked.
 - `bun run site:check` — the docs site builds and every internal link resolves.
 - `bun run test:starttls` — the *outbound* client's STARTTLS, against a real

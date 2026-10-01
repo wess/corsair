@@ -624,7 +624,7 @@ export const attachmentParts = (message: ParsedMessage): Part[] => {
   return out
 }
 
-const stripHtml = (input: string): string =>
+export const stripHtml = (input: string): string =>
   input
     .replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
     .replace(/<[^>]+>/g, " ")

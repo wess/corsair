@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light dark" />
 <title>Sending API · Corsair</title>
-<meta name="description" content="Send transactional mail as your domains over HTTP, with Resend's API." />
+<meta name="description" content="Send transactional mail as your domains over HTTP, over a plain JSON API." />
 <link rel="canonical" href="https://wess.io/corsair/docs/sending.html" />
 <meta property="og:title" content="Sending API" />
 <meta property="og:site_name" content="Corsair" />
-<meta property="og:description" content="Send transactional mail as your domains over HTTP, with Resend's API." />
+<meta property="og:description" content="Send transactional mail as your domains over HTTP, over a plain JSON API." />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://wess.io/corsair/docs/sending.html" />
 <meta name="twitter:card" content="summary" />
@@ -53,7 +53,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">04</span>Using Corsair</p>
-<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html" class="active" aria-current="page">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li></ul>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html" class="active" aria-current="page">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li><li><a href="./agents.html">Agent email</a></li><li><a href="./agent-tools.html">Tools for agents</a></li></ul>
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">05</span>Reference</p>
@@ -61,18 +61,19 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </div></nav>
 <main class="prose"><div class="page-head"><p class="eyebrow">Using Corsair</p></div><h1 id="sending-api">Sending API</h1>
 <p>Applications — a contact form, a password reset, a receipt — send as your domains over HTTP, with an API key rather than a mailbox and an SMTP password.</p>
-<p>The API is <a href="https://resend.com/docs/api-reference/introduction" class="external" rel="noopener">Resend</a>'s: the same paths, request bodies, response shapes, and error names. Point a Resend SDK at your server and it works unchanged.</p>
-<figure class="code"><span class="code-lang">js</span><pre><code>import { Resend } from &quot;resend&quot;
-
-const resend = new Resend(&quot;cs_...&quot;, {
-  baseUrl: &quot;https://mail.example.com/api&quot;,
-})
-
-await resend.emails.send({
-  from: &quot;Acme &lt;receipts@example.com&gt;&quot;,
-  to: [&quot;customer@example.net&quot;],
-  subject: &quot;Your receipt&quot;,
-  html: &quot;&lt;p&gt;Thanks for your order.&lt;/p&gt;&quot;,
+<p>It is a small JSON API with the paths, request bodies, response shapes, and error names that transactional-email SDKs already expect, so an application written against one of them only needs its base URL changed.</p>
+<figure class="code"><span class="code-lang">js</span><pre><code>await fetch(&quot;https://mail.example.com/api/emails&quot;, {
+  method: &quot;POST&quot;,
+  headers: {
+    authorization: &quot;Bearer cs_...&quot;,
+    &quot;content-type&quot;: &quot;application/json&quot;,
+  },
+  body: JSON.stringify({
+    from: &quot;Acme &lt;receipts@example.com&gt;&quot;,
+    to: [&quot;customer@example.net&quot;],
+    subject: &quot;Your receipt&quot;,
+    html: &quot;&lt;p&gt;Thanks for your order.&lt;/p&gt;&quot;,
+  }),
 })</code></pre></figure>
 <p>Sends ride the same delivery queue as mail from a mailbox, are signed with the same DKIM key, and count toward the same daily outbound limit. A domain that already receives mail here needs <strong>no new DNS records</strong> to send through the API.</p>
 <h2 id="keys">Keys<a class="anchor" href="#keys" aria-label="Link to this section">#</a></h2>
@@ -149,7 +150,7 @@ await resend.emails.send({
 <h3 id="retrying-safely">Retrying safely<a class="anchor" href="#retrying-safely" aria-label="Link to this section">#</a></h3>
 <p>Send an <code>Idempotency-Key</code> header and a retry cannot send twice. For 24 hours a repeat of a finished request gets the original response back without sending again. A repeat while the first is still running, or with a different body, gets <code>409</code>.</p>
 <h3 id="what-is-not-supported">What is not supported<a class="anchor" href="#what-is-not-supported" aria-label="Link to this section">#</a></h3>
-<ul><li><strong>Attachments by <code>path</code>.</strong> The server would fetch a URL you name, from inside its own network, and mail the response back out. Send the bytes as <code>content</code>.</li><li><strong>Templates, topics, audiences, broadcasts, and open or click tracking.</strong> This is transactional sending. Bulk mail from the same address your mailboxes use puts every mailbox's deliverability at risk.</li><li><strong>Resend's <code>/domains</code> and <code>/api-keys</code> endpoints.</strong> Domains are managed in the control panel, and keys cannot create keys.</li></ul>
+<ul><li><strong>Attachments by <code>path</code>.</strong> The server would fetch a URL you name, from inside its own network, and mail the response back out. Send the bytes as <code>content</code>.</li><li><strong>Templates, topics, audiences, broadcasts, and open or click tracking.</strong> This is transactional sending. Bulk mail from the same address your mailboxes use puts every mailbox's deliverability at risk.</li><li><strong><code>/domains</code> endpoints in the shape SDKs use.</strong> Domains are managed in the control panel, and keys cannot create keys.</li></ul>
 <h2 id="managing-sends">Managing sends<a class="anchor" href="#managing-sends" aria-label="Link to this section">#</a></h2>
 <p>These take a full-access key.</p>
 <div class='table-wrap'><table><thead><tr>

@@ -25,6 +25,7 @@ export const icons = {
   refresh: "M21 12a9 9 0 1 1-3-6.7M21 3v6h-6",
   download: "M12 3v12M7 10l5 5 5-5M4 21h16",
   send: "M22 2 11 13M22 2l-7 20-4-9-9-4z",
+  agent: "M9 3h6v4H9zM5 7h14v13H5zM9 12h.01M15 12h.01M9 16h6",
   webhook:
     "M18 16.98h-5.99M6 8a3 3 0 1 1 5.2 2.05L9 14M15.5 12a3 3 0 1 1 1.5 5.6M8.5 17a3 3 0 1 1-2.6-4.5",
 } as const

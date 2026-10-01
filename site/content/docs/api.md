@@ -237,7 +237,7 @@ endpoint that has lost its secret should rotate rather than read it back.
 
 `Authorization: Bearer <key>` rather than the session cookie. The reads, cancel,
 and reschedule also accept a session, which is how the control panel shows sends.
-Errors carry Resend's names. See [Sending API](sending.html).
+Errors carry the names SDKs switch on. See [Sending API](sending.html).
 
 | Method | Path | Does |
 | --- | --- | --- |
@@ -250,6 +250,25 @@ Errors carry Resend's names. See [Sending API](sending.html).
 | GET | `/api/api-keys` | List keys. Session only |
 | POST | `/api/api-keys` | Create a key. The token is returned **once**. Session only |
 | DELETE | `/api/api-keys/:api_key_id` | Revoke. Session only |
+
+### Agent email
+
+See [Agent email](agents.html). The panel's routes take a session; the agent's own
+take its `ca_` token and reach one mailbox.
+
+| Method | Path | |
+| --- | --- | --- |
+| GET | `/api/agents` | List agents. Session only |
+| POST | `/api/agents` | Create one. The token is returned **once**. Session only |
+| PATCH | `/api/agents/:agent_id` | Turn sending on or off (`can_send`). Session only |
+| POST | `/api/agents/:agent_id/rotate` | Replace the token. Session only |
+| DELETE | `/api/agents/:agent_id` | Remove the agent and its mailbox. Session only |
+| GET | `/api/agent` | The address this token reads. Agent token |
+| GET | `/api/agent/messages` | List, with `from`, `subject`, `since`, `unseen`. Agent token |
+| GET | `/api/agent/messages/:message_id` | One message with `links` and `codes`. Agent token |
+| GET | `/api/agent/messages/:message_id/attachments/:section` | Download an attachment. Agent token |
+| POST | `/api/agent/send` | Send or reply, if `can_send`. Capped at 50 recipients a day. Agent token |
+| GET | `/api/agent/wait` | Wait for a new matching message. Agent token |
 | GET | `/api/suppressions` | The suppression list. Session only |
 | POST | `/api/suppressions` | Suppress an address by hand. Session only |
 | DELETE | `/api/suppressions/:suppression_id` | Let mail through to it again. Session only |
