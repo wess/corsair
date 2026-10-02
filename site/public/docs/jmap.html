@@ -179,7 +179,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <figure class="code"><pre><code>GET /jmap/download/:accountId/:blobId/:name</code></pre></figure>
 <p><strong>Upload:</strong></p>
 <figure class="code"><pre><code>POST /jmap/upload/:accountId</code></pre></figure>
-<p>Bounded by <code>MAX_MESSAGE_BYTES</code> — 50 MB by default. Over it, the response is <code>urn:ietf:params:jmap:error:limit</code> with <code>&quot;limit&quot;: &quot;maxSizeUpload&quot;</code>.</p>
+<p>Bounded by <code>MAX_MESSAGE_BYTES</code> — 25 MB by default. Over it, the response is <code>urn:ietf:params:jmap:error:limit</code> with <code>&quot;limit&quot;: &quot;maxSizeUpload&quot;</code>.</p>
 <aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Set your proxy's body limit</p><p>nginx defaults <code>client_max_body_size</code> to 1 MB, which rejects almost every upload before Corsair sees it. Set it above <code>MAX_MESSAGE_BYTES</code>.</p></aside>
 <h2 id="errors">Errors<a class="anchor" href="#errors" aria-label="Link to this section">#</a></h2>
 <p>Request-level problems use JMAP's own error types rather than the panel API's envelope:</p>

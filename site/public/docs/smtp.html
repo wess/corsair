@@ -90,7 +90,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p>Senders on port 25 therefore deliver in plaintext, which is what opportunistic encryption degrades to. Submission works only on <strong>465</strong>. See <a href="tls.html">TLS</a>.</p></aside>
 <h2 id="extensions-advertised">Extensions advertised<a class="anchor" href="#extensions-advertised" aria-label="Link to this section">#</a></h2>
 <figure class="code"><pre><code>250-mail.example.com at your service
-250-SIZE 52428800
+250-SIZE 26214400
 250-8BITMIME
 250-SMTPUTF8
 250-PIPELINING
@@ -100,7 +100,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p><strong><code>AUTH</code> is advertised only on an already-encrypted connection</strong>, which in practice means port 465. On a server with no certificate configured it is never advertised at all — the correct failure. A self-hoster who has not set up TLS should discover it there rather than after their users' passwords have crossed the network.</p>
 <p><code>STARTTLS</code> is not advertised at all; see <a href="tls.html">TLS</a>.</p>
 <p><code>CHUNKING</code> is deliberately not advertised. It invites <code>BDAT</code>, and a sender that switches to BDAT against a server without it gets a hard failure rather than falling back to <code>DATA</code>.</p>
-<p><code>SIZE</code> is <code>MAX_MESSAGE_BYTES</code>, 50 MB by default. That is the wire size after encoding — base64 costs about a third, so it is roughly a 35 MB attachment.</p>
+<p><code>SIZE</code> is <code>MAX_MESSAGE_BYTES</code>, 25 MB by default — the limit the large providers apply, and what a small server can hold several copies of while it works. That is the wire size after encoding: base64 costs about a third, so it is roughly an 18 MB attachment.</p>
 <h2 id="the-inbound-pipeline">The inbound pipeline<a class="anchor" href="#the-inbound-pipeline" aria-label="Link to this section">#</a></h2>
 <p>A message arriving on port 25 goes through this, in order:</p>
 <ol><li><strong>Connection checks</strong> — the client IP against the ban list and rate limits.</li><li><strong>SPF</strong> — evaluated against the envelope sender.</li><li><strong>Recipient resolution</strong> — per <code>RCPT TO</code>. An unknown recipient is refused <strong>during the transaction</strong> with a 550.</li><li><strong>DATA</strong> — the message is read, bounded by <code>SIZE</code>.</li><li><strong>DKIM verification</strong> — every signature on the message.</li><li><strong>DMARC</strong> — the From domain's policy, applied to the SPF and DKIM results.</li><li><strong>Spam scoring</strong> — heuristic, over the raw message plus the authentication signals.</li><li><strong><code>Authentication-Results</code></strong> — stamped into the message so a client can see what the server made of it.</li><li><strong>Sieve</strong> — the recipient's filter runs.</li><li><strong>Filing</strong> — into a folder, with an atomically allocated UID.</li><li><strong>Events</strong> — <code>message.received</code>, <code>message.spam</code>, or <code>message.rejected</code>.</li></ol>

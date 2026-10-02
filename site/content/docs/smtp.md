@@ -31,7 +31,7 @@ encryption degrades to. Submission works only on **465**. See [TLS](tls.html).
 
 ```
 250-mail.example.com at your service
-250-SIZE 52428800
+250-SIZE 26214400
 250-8BITMIME
 250-SMTPUTF8
 250-PIPELINING
@@ -52,8 +52,10 @@ the network.
 switches to BDAT against a server without it gets a hard failure rather than
 falling back to `DATA`.
 
-`SIZE` is `MAX_MESSAGE_BYTES`, 50 MB by default. That is the wire size after
-encoding — base64 costs about a third, so it is roughly a 35 MB attachment.
+`SIZE` is `MAX_MESSAGE_BYTES`, 25 MB by default — the limit the large providers
+apply, and what a small server can hold several copies of while it works. That is
+the wire size after encoding: base64 costs about a third, so it is roughly an 18 MB
+attachment.
 
 ## The inbound pipeline
 

@@ -2767,8 +2767,9 @@ code path here that could accept a card number.
 | `WEBHOOK_ALLOW_PRIVATE` | `false` | Allow endpoints on private, loopback, and link-local addresses |
 
 The customer supplies the URL and this server fetches it, which is a server-side
-request forgery primitive. `assertDeliverable` refuses private ranges by default.
-Turn it on only when your consumers are genuinely on the same private network.
+request forgery primitive. Corsair resolves the host and refuses private ranges by
+default, and does not follow redirects. Turn it on only when your consumers are
+genuinely on the same private network.
 
 ## Limits
 
@@ -2785,7 +2786,7 @@ A 429 carries `retry-after`, `ratelimit-limit`, `ratelimit-remaining`, and
 `ratelimit-reset`.
 
 `MAX_MESSAGE_BYTES` is the wire size after encoding. Base64 costs about a third,
-so 50 MB on the wire is roughly a 35 MB attachment.
+so 25 MB on the wire is roughly an 18 MB attachment.
 
 ## Seeding
 
@@ -4022,6 +4023,29 @@ systemctl status corsair
 sudo ss -lntp | grep bun            # every listener came back
 curl -sf localhost:3000/api/plans   # the API answers
 ```
+
+## Upgrading to 0.3
+
+Four things in 0.3 can surprise an existing install:
+
+warning Corsair will not start with a default `JWT_SECRET`
+It refuses the shipped default, any value copied from the repository, and anything
+shorter than 32 characters, and says so in the log. Set a real one first
+(`openssl rand -base64 48`). Changing it signs everyone out, and invalidates the
+SRS signatures on bounces for mail forwarded in the last few days, which is
+harmless but noisy.
+
+- **Webmail sessions are now stored on the server.** Everyone signed in to webmail
+  signs in once more after the upgrade.
+- **The message size limit defaults to 25 MB** (it was 50 MB). If you set
+  `MAX_MESSAGE_BYTES` yourself, nothing changes; if you relied on the default and
+  want the old limit, set it, mindful that the pipeline holds several copies of a
+  message and one 50 MB message once peaked near 900 MB.
+- **Four migrations** (`…011` to `…014`) add agent mailboxes and webmail sessions.
+  All additive; each has a `down.sql`. Run them before restarting, as always.
+- **If you run the Rust STARTTLS front,** rebuild and replace it. The new one
+  refuses a backend that does not accept its XCLIENT (check `127.0.0.1` is in
+  `SMTP_TRUSTED_PROXIES`), and has idle, handshake and connection limits.
 
 ## Why migrations do not run at startup
 
@@ -5712,9 +5736,9 @@ Downloaded through the API, streamed from wherever the body lives. Corsair does
 not render them — no preview, no inline PDF viewer. Your browser or your operating
 system opens the file, having been told the correct content type.
 
-Uploads are bounded by `MAX_MESSAGE_BYTES` (50 MB by default), which is the wire
-size after encoding. Base64 costs about a third, so a 50 MB limit is roughly a
-35 MB attachment.
+Uploads are bounded by `MAX_MESSAGE_BYTES` (25 MB by default), which is the wire
+size after encoding. Base64 costs about a third, so a 25 MB limit is roughly an
+18 MB attachment.
 
 ## Using something else instead
 
@@ -6392,12 +6416,21 @@ panel says so. Re-enable it once it is fixed.
 
 The URL has to be reachable from the public internet. Private, loopback, and
 link-local addresses are refused, because the URL is customer-supplied and this
-server is what fetches it — an open one is a server-side request forgery. A
-self-hoster whose consumers are on the same private network can set
+server is what fetches it — an open one is a server-side request forgery.
+
+The check is on what the host name *resolves to*, not how the URL is spelled, and
+it is made again at every delivery: a public name that points at an internal
+address is refused, and so is every way of writing one (`[::ffff:127.0.0.1]`, the
+cloud metadata address, carrier-grade NAT). A redirect is not followed — it is
+treated as a failed delivery, so an endpoint that moves has to be updated here.
+
+A self-hoster whose consumers are on the same private network can set
 `WEBHOOK_ALLOW_PRIVATE=true`.
 
 Use the **Send test** button after adding an endpoint. It delivers a signed
-sample synchronously and shows you the exact status and body that came back.
+sample synchronously and shows you the status that came back and how long it took.
+The response body is deliberately not kept or shown — it was a way to read what an
+internal address answered with.
 
 ---
 
@@ -7349,7 +7382,7 @@ encryption degrades to. Submission works only on **465**. See [TLS](tls.html).
 
 ```
 250-mail.example.com at your service
-250-SIZE 52428800
+250-SIZE 26214400
 250-8BITMIME
 250-SMTPUTF8
 250-PIPELINING
@@ -7370,8 +7403,10 @@ the network.
 switches to BDAT against a server without it gets a hard failure rather than
 falling back to `DATA`.
 
-`SIZE` is `MAX_MESSAGE_BYTES`, 50 MB by default. That is the wire size after
-encoding — base64 costs about a third, so it is roughly a 35 MB attachment.
+`SIZE` is `MAX_MESSAGE_BYTES`, 25 MB by default — the limit the large providers
+apply, and what a small server can hold several copies of while it works. That is
+the wire size after encoding: base64 costs about a third, so it is roughly an 18 MB
+attachment.
 
 ## The inbound pipeline
 
@@ -7883,7 +7918,7 @@ GET /jmap/download/:accountId/:blobId/:name
 POST /jmap/upload/:accountId
 ```
 
-Bounded by `MAX_MESSAGE_BYTES` — 50 MB by default. Over it, the response is
+Bounded by `MAX_MESSAGE_BYTES` — 25 MB by default. Over it, the response is
 `urn:ietf:params:jmap:error:limit` with `"limit": "maxSizeUpload"`.
 
 warning Set your proxy's body limit
@@ -8440,7 +8475,7 @@ Paste a code or part of a message to find it.
 | --- | --- | --- |
 | 421 | Too many errors, or too many failed logins from this address | The IP is temporarily banned. Wait an hour. |
 | 450 | Mailbox temporarily unavailable | Retry. |
-| 451 | Daily sending limit reached | The account is over its outbound allowance for the day. |
+| 451 | Daily sending limit reached | The account (or, for an [agent mailbox](agents.html), that one mailbox) is over its outbound allowance for the day. |
 | 452 | Storage quota exceeded, or recipient's daily inbound limit reached | Free space or upgrade; the sender will retry. |
 | 501 | Malformed address or syntax | The sending client has a bug. |
 | 503 | Commands out of order | Usually a client that pipelined without checking for support. |
@@ -8448,8 +8483,10 @@ Paste a code or part of a message to find it.
 | 535 | Credentials invalid | Wrong mailbox password. Note this is not the panel password. |
 | 538 | Encryption required | The client tried to authenticate before STARTTLS. |
 | 550 | No such user, or relay denied | The address does not exist here, or the domain is not hosted here. |
+| 550 | You are not allowed to send as … | On submission, the envelope sender **or the `From:` header** is not an address this login may send as. Check the client's identity settings. An agent mailbox may only send as itself, and only if sending is turned on for it. |
 | 552 | Message too large | Over `MAX_MESSAGE_BYTES`. |
 | 554 | No valid recipients | Every recipient was rejected. |
+| 554 5.4.6 | Too many hops | The message carries more than 30 `Received:` headers, so it is in a mail loop — usually a forward that points back at itself. |
 
 ## Codes you will see from others
 

@@ -135,7 +135,7 @@ GET /jmap/download/:accountId/:blobId/:name
 POST /jmap/upload/:accountId
 ```
 
-Bounded by `MAX_MESSAGE_BYTES` — 50 MB by default. Over it, the response is
+Bounded by `MAX_MESSAGE_BYTES` — 25 MB by default. Over it, the response is
 `urn:ietf:params:jmap:error:limit` with `"limit": "maxSizeUpload"`.
 
 :::warning Set your proxy's body limit

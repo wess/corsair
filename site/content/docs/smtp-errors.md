@@ -50,7 +50,7 @@ Paste a code or part of a message to find it.
 | --- | --- | --- |
 | 421 | Too many errors, or too many failed logins from this address | The IP is temporarily banned. Wait an hour. |
 | 450 | Mailbox temporarily unavailable | Retry. |
-| 451 | Daily sending limit reached | The account is over its outbound allowance for the day. |
+| 451 | Daily sending limit reached | The account (or, for an [agent mailbox](agents.html), that one mailbox) is over its outbound allowance for the day. |
 | 452 | Storage quota exceeded, or recipient's daily inbound limit reached | Free space or upgrade; the sender will retry. |
 | 501 | Malformed address or syntax | The sending client has a bug. |
 | 503 | Commands out of order | Usually a client that pipelined without checking for support. |
@@ -58,8 +58,10 @@ Paste a code or part of a message to find it.
 | 535 | Credentials invalid | Wrong mailbox password. Note this is not the panel password. |
 | 538 | Encryption required | The client tried to authenticate before STARTTLS. |
 | 550 | No such user, or relay denied | The address does not exist here, or the domain is not hosted here. |
+| 550 | You are not allowed to send as … | On submission, the envelope sender **or the `From:` header** is not an address this login may send as. Check the client's identity settings. An agent mailbox may only send as itself, and only if sending is turned on for it. |
 | 552 | Message too large | Over `MAX_MESSAGE_BYTES`. |
 | 554 | No valid recipients | Every recipient was rejected. |
+| 554 5.4.6 | Too many hops | The message carries more than 30 `Received:` headers, so it is in a mail loop — usually a forward that points back at itself. |
 
 ## Codes you will see from others
 

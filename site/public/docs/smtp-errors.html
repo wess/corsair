@@ -108,7 +108,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <tr>
 <td>451</td>
 <td>Daily sending limit reached</td>
-<td>The account is over its outbound allowance for the day.</td>
+<td>The account (or, for an <a href="agents.html">agent mailbox</a>, that one mailbox) is over its outbound allowance for the day.</td>
 </tr>
 <tr>
 <td>452</td>
@@ -146,6 +146,11 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td>The address does not exist here, or the domain is not hosted here.</td>
 </tr>
 <tr>
+<td>550</td>
+<td>You are not allowed to send as …</td>
+<td>On submission, the envelope sender <strong>or the <code>From:</code> header</strong> is not an address this login may send as. Check the client's identity settings. An agent mailbox may only send as itself, and only if sending is turned on for it.</td>
+</tr>
+<tr>
 <td>552</td>
 <td>Message too large</td>
 <td>Over <code>MAX_MESSAGE_BYTES</code>.</td>
@@ -154,6 +159,11 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td>554</td>
 <td>No valid recipients</td>
 <td>Every recipient was rejected.</td>
+</tr>
+<tr>
+<td>554 5.4.6</td>
+<td>Too many hops</td>
+<td>The message carries more than 30 <code>Received:</code> headers, so it is in a mail loop — usually a forward that points back at itself.</td>
 </tr>
 </tbody></table></div>
 <h2 id="codes-you-will-see-from-others">Codes you will see from others<a class="anchor" href="#codes-you-will-see-from-others" aria-label="Link to this section">#</a></h2>

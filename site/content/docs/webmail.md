@@ -88,9 +88,9 @@ Downloaded through the API, streamed from wherever the body lives. Corsair does
 not render them — no preview, no inline PDF viewer. Your browser or your operating
 system opens the file, having been told the correct content type.
 
-Uploads are bounded by `MAX_MESSAGE_BYTES` (50 MB by default), which is the wire
-size after encoding. Base64 costs about a third, so a 50 MB limit is roughly a
-35 MB attachment.
+Uploads are bounded by `MAX_MESSAGE_BYTES` (25 MB by default), which is the wire
+size after encoding. Base64 costs about a third, so a 25 MB limit is roughly an
+18 MB attachment.
 
 ## Using something else instead
 

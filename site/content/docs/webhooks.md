@@ -114,9 +114,18 @@ panel says so. Re-enable it once it is fixed.
 
 The URL has to be reachable from the public internet. Private, loopback, and
 link-local addresses are refused, because the URL is customer-supplied and this
-server is what fetches it — an open one is a server-side request forgery. A
-self-hoster whose consumers are on the same private network can set
+server is what fetches it — an open one is a server-side request forgery.
+
+The check is on what the host name *resolves to*, not how the URL is spelled, and
+it is made again at every delivery: a public name that points at an internal
+address is refused, and so is every way of writing one (`[::ffff:127.0.0.1]`, the
+cloud metadata address, carrier-grade NAT). A redirect is not followed — it is
+treated as a failed delivery, so an endpoint that moves has to be updated here.
+
+A self-hoster whose consumers are on the same private network can set
 `WEBHOOK_ALLOW_PRIVATE=true`.
 
 Use the **Send test** button after adding an endpoint. It delivers a signed
-sample synchronously and shows you the exact status and body that came back.
+sample synchronously and shows you the status that came back and how long it took.
+The response body is deliberately not kept or shown — it was a way to read what an
+internal address answered with.

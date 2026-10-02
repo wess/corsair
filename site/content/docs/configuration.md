@@ -223,8 +223,9 @@ code path here that could accept a card number.
 | `WEBHOOK_ALLOW_PRIVATE` | `false` | Allow endpoints on private, loopback, and link-local addresses |
 
 The customer supplies the URL and this server fetches it, which is a server-side
-request forgery primitive. `assertDeliverable` refuses private ranges by default.
-Turn it on only when your consumers are genuinely on the same private network.
+request forgery primitive. Corsair resolves the host and refuses private ranges by
+default, and does not follow redirects. Turn it on only when your consumers are
+genuinely on the same private network.
 
 ## Limits
 
@@ -241,7 +242,7 @@ A 429 carries `retry-after`, `ratelimit-limit`, `ratelimit-remaining`, and
 `ratelimit-reset`.
 
 `MAX_MESSAGE_BYTES` is the wire size after encoding. Base64 costs about a third,
-so 50 MB on the wire is roughly a 35 MB attachment.
+so 25 MB on the wire is roughly an 18 MB attachment.
 
 ## Seeding
 

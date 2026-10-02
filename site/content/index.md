@@ -44,7 +44,7 @@ layout: home
 <b>250</b>-mail.example.com
 <b>250</b>-STARTTLS
 <b>250</b>-8BITMIME
-<b>250</b> SIZE 52428800
+<b>250</b> SIZE 26214400
 <i>MAIL FROM:&lt;sam@sender.example.net&gt;</i>
 <b>250</b> 2.1.0 Sender OK
 <i>RCPT TO:&lt;you+receipts@example.com&gt;</i>

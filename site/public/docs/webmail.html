@@ -84,7 +84,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p>Subject, sender, recipients, and body text. Scoped to the current folder or across everything.</p>
 <h2 id="attachments">Attachments<a class="anchor" href="#attachments" aria-label="Link to this section">#</a></h2>
 <p>Downloaded through the API, streamed from wherever the body lives. Corsair does not render them — no preview, no inline PDF viewer. Your browser or your operating system opens the file, having been told the correct content type.</p>
-<p>Uploads are bounded by <code>MAX_MESSAGE_BYTES</code> (50 MB by default), which is the wire size after encoding. Base64 costs about a third, so a 50 MB limit is roughly a 35 MB attachment.</p>
+<p>Uploads are bounded by <code>MAX_MESSAGE_BYTES</code> (25 MB by default), which is the wire size after encoding. Base64 costs about a third, so a 25 MB limit is roughly an 18 MB attachment.</p>
 <h2 id="using-something-else-instead">Using something else instead<a class="anchor" href="#using-something-else-instead" aria-label="Link to this section">#</a></h2>
 <p>The IMAP and JMAP servers are standard. Roundcube, SnappyMail, and any JMAP client work against them unchanged — point them at 993 with the full address as the username.</p>
 <p>Corsair's own webmail exists so that a fresh install is usable immediately, without a second thing to deploy. It is not trying to be Roundcube.</p>

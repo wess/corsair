@@ -70,6 +70,30 @@ sudo ss -lntp | grep bun            # every listener came back
 curl -sf localhost:3000/api/plans   # the API answers
 ```
 
+## Upgrading to 0.3
+
+Four things in 0.3 can surprise an existing install:
+
+:::warning Corsair will not start with a default `JWT_SECRET`
+It refuses the shipped default, any value copied from the repository, and anything
+shorter than 32 characters, and says so in the log. Set a real one first
+(`openssl rand -base64 48`). Changing it signs everyone out, and invalidates the
+SRS signatures on bounces for mail forwarded in the last few days, which is
+harmless but noisy.
+:::
+
+- **Webmail sessions are now stored on the server.** Everyone signed in to webmail
+  signs in once more after the upgrade.
+- **The message size limit defaults to 25 MB** (it was 50 MB). If you set
+  `MAX_MESSAGE_BYTES` yourself, nothing changes; if you relied on the default and
+  want the old limit, set it, mindful that the pipeline holds several copies of a
+  message and one 50 MB message once peaked near 900 MB.
+- **Four migrations** (`…011` to `…014`) add agent mailboxes and webmail sessions.
+  All additive; each has a `down.sql`. Run them before restarting, as always.
+- **If you run the Rust STARTTLS front,** rebuild and replace it. The new one
+  refuses a backend that does not accept its XCLIENT (check `127.0.0.1` is in
+  `SMTP_TRUSTED_PROXIES`), and has idle, handshake and connection limits.
+
 ## Why migrations do not run at startup
 
 Two instances coming up at once would race on the migration table. Running it

@@ -383,7 +383,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td>Allow endpoints on private, loopback, and link-local addresses</td>
 </tr>
 </tbody></table></div>
-<p>The customer supplies the URL and this server fetches it, which is a server-side request forgery primitive. <code>assertDeliverable</code> refuses private ranges by default. Turn it on only when your consumers are genuinely on the same private network.</p>
+<p>The customer supplies the URL and this server fetches it, which is a server-side request forgery primitive. Corsair resolves the host and refuses private ranges by default, and does not follow redirects. Turn it on only when your consumers are genuinely on the same private network.</p>
 <h2 id="limits">Limits<a class="anchor" href="#limits" aria-label="Link to this section">#</a></h2>
 <div class='table-wrap'><table><thead><tr>
 <th>Variable</th>
@@ -403,7 +403,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tbody></table></div>
 <p>Authenticated requests are limited per user; unauthenticated ones per IP. Sign-in and sign-up have their own tighter limit of <strong>5 per second per IP</strong>, since there is no principal yet.</p>
 <p>A 429 carries <code>retry-after</code>, <code>ratelimit-limit</code>, <code>ratelimit-remaining</code>, and <code>ratelimit-reset</code>.</p>
-<p><code>MAX_MESSAGE_BYTES</code> is the wire size after encoding. Base64 costs about a third, so 50 MB on the wire is roughly a 35 MB attachment.</p>
+<p><code>MAX_MESSAGE_BYTES</code> is the wire size after encoding. Base64 costs about a third, so 25 MB on the wire is roughly an 18 MB attachment.</p>
 <h2 id="seeding">Seeding<a class="anchor" href="#seeding" aria-label="Link to this section">#</a></h2>
 <div class='table-wrap'><table><thead><tr>
 <th>Variable</th>
