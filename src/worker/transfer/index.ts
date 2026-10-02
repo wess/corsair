@@ -1,7 +1,5 @@
-import { createDecipheriv, createHash } from "node:crypto"
 import { from } from "@atlas/db"
 import { folderBySpecialUse } from "../../addresses/index.ts"
-import { config } from "../../config/index.ts"
 import { db } from "../../db/index.ts"
 import { uidValidity } from "../../ids/index.ts"
 import {
@@ -12,6 +10,7 @@ import {
   type Transfer,
   transfers,
 } from "../../schema/index.ts"
+import { decryptSecret } from "../../secrets/index.ts"
 import { deliver } from "../../store/index.ts"
 
 /**
@@ -24,14 +23,7 @@ import { deliver } from "../../store/index.ts"
 
 const CRLF = "\r\n"
 
-export const decryptPassword = (encrypted: string): string => {
-  const [ivHex, tagHex, payload] = encrypted.split(":")
-  if (!ivHex || !tagHex || !payload) return ""
-  const key = createHash("sha256").update(config.jwtSecret).digest()
-  const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(ivHex, "hex"))
-  decipher.setAuthTag(Buffer.from(tagHex, "hex"))
-  return decipher.update(payload, "base64", "utf8") + decipher.final("utf8")
-}
+export const decryptPassword = decryptSecret
 
 type Client = {
   send: (command: string) => Promise<string>

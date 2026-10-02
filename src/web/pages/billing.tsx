@@ -52,6 +52,9 @@ export const PlansPage = () => {
       "/api/plans",
     ),
   )
+  const provider = useLoad(() =>
+    get<{ configured: boolean; beta?: boolean }>("/api/billing/provider"),
+  )
 
   if (loading) return <Loading />
 
@@ -59,6 +62,18 @@ export const PlansPage = () => {
     setBusy(plan.id)
     setError(null)
     try {
+      const price = interval === "monthly" ? plan.monthly_cents : plan.yearly_cents
+      // With a payment provider, a paid plan is bought on the provider's page and
+      // switched on by its signed webhook, not by this request. The server refuses
+      // to activate one any other way.
+      if (price > 0 && provider.data?.configured && !provider.data.beta) {
+        const session = await post<{ url: string }>("/api/billing/checkout/subscription", {
+          plan_id: plan.id,
+          interval,
+        })
+        window.location.href = session.url
+        return
+      }
       await post("/api/subscription", { plan_id: plan.id, interval })
       reload()
     } catch (e) {
@@ -344,6 +359,7 @@ const PaymentMethods = () => {
     get<{ configured: boolean; beta?: boolean }>("/api/billing/provider"),
   )
   const [adding, setAdding] = useState(false)
+  const [setupError, setSetupError] = useState<unknown>(null)
 
   if (loading) return <Loading />
 
@@ -353,7 +369,7 @@ const PaymentMethods = () => {
 
   return (
     <>
-      <ErrorText error={error} />
+      <ErrorText error={error ?? setupError} />
       <Card
         title="Payment methods"
         actions={
@@ -361,7 +377,21 @@ const PaymentMethods = () => {
             <button
               type="button"
               className="btn btn-sm btn-primary"
-              onClick={() => setAdding(true)}
+              onClick={async () => {
+                // With a provider the card is entered on its hosted page and a
+                // signed webhook records the result; there is no form here to
+                // post a reference to, because the server would not trust one.
+                if (provider.data?.configured) {
+                  try {
+                    const session = await post<{ url: string }>("/api/billing/checkout/setup")
+                    window.location.href = session.url
+                  } catch (e) {
+                    setSetupError(e)
+                  }
+                  return
+                }
+                setAdding(true)
+              }}
             >
               <Icon path={icons.plus} size={14} /> Add
             </button>

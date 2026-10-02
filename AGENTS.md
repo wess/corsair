@@ -441,12 +441,35 @@ kind of thing that regresses quietly.
   (`revokeMailSessions`, and inside `revokeAllSessions` for linked mailboxes).
   Tokens with no session id are refused, so every webmail user signed in again once
   when this shipped.
-- **Known and not yet done:** billing lets any user self-grant a plan with a
-  fabricated payment method when a provider is configured; DSNs to unverified
-  senders are backscatter; SRS is never reversed on inbound; the per-purpose key
-  derivation (HKDF) the audit suggested is not done — a leaked `JWT_SECRET` no
-  longer mints webmail sessions, but it still signs SRS and keys transfer
-  encryption.
+- **Billing trusts the provider, not the browser.** With `STRIPE_SECRET_KEY` set,
+  `POST /api/subscription` for a paid plan and `POST /api/billing/payment-methods`
+  are refused: a paid plan starts at hosted checkout and only the signed webhook
+  activates it. They used to accept a client-posted "payment method" — a fabricated
+  row bought every plan and recorded a `paid` transaction nobody paid. The panel
+  sends users to checkout when a provider is configured. Provider config is
+  process-wide, so `tests/billingstripe.test.ts` runs twice (`bun run test` does
+  both).
+- **A bounce is only sent where the evidence supports it** (`mayBounceTo`): the
+  sender's SPF passed or a DKIM signature verified. A post-DATA failure for one of
+  several recipients cannot go in the reply to DATA, and bouncing it to a forged
+  `MAIL FROM` is backscatter that costs this IP its reputation.
+- **A bounce for forwarded mail is routed home.** `resolveRecipient` reverses
+  `SRS0=` addresses (signature and age checked) into a forward to the original
+  sender; a bad or expired one is an unknown address, which is what keeps the
+  rewritten form from being an open relay. No mailbox can shadow it: `=` is not
+  allowed in a local part.
+- **`JWT_SECRET` is a root, not a key.** `keyFor(purpose)` in `src/secrets` derives
+  an independent key per purpose with HKDF — panel sessions, webmail sessions, SRS,
+  stored transfer credentials — so a token cannot be replayed across purposes and
+  none of them is the raw secret. Two things still accept the pre-derivation
+  scheme so nothing in flight breaks: SRS addresses (self-expiring, until
+  2026-11-03) and transfer credentials (they erase themselves when a transfer
+  finishes). Tokens are not carried over: everyone signs in again once.
+- **Known and not yet done:** SRS1 (an address already rewritten by another
+  forwarder) is rewritten under our domain but cannot be reversed here, since it was
+  signed with their key; mail between two mailboxes on this box arrives from
+  `127.0.0.1` and softfails SPF (DMARC still passes on DKIM) because the loopback
+  exemption deliberately requires a *direct* connection.
 
 ## Adding an endpoint
 

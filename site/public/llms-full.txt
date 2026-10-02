@@ -2581,9 +2581,14 @@ and treat it as a credential:
 `openssl rand -base64 48`
 
 Corsair **refuses to start** with the default, with any value copied from the
-repository, or with fewer than 32 characters. It also keys the SRS signature that
-stops a forwarding address being an open relay, and encrypts stored transfer
-credentials, so one leaked value opens all three. (`bun run dev` is exempt.)
+repository, or with fewer than 32 characters. (`bun run dev` is exempt.)
+
+It is the root of every key Corsair uses, but not used directly: panel sessions,
+webmail sessions, the SRS signature that stops a forwarding address being an open
+relay, and the encryption of stored transfer credentials each get their own key,
+derived with HKDF. Knowing one of those tells you nothing about the others. It also
+means the secret alone cannot mint a session — a token has to name a live row on
+the server.
 
 Changing it invalidates every existing session, which is also how you revoke
 everything at once.
@@ -4035,8 +4040,10 @@ shorter than 32 characters, and says so in the log. Set a real one first
 SRS signatures on bounces for mail forwarded in the last few days, which is
 harmless but noisy.
 
-- **Webmail sessions are now stored on the server.** Everyone signed in to webmail
-  signs in once more after the upgrade.
+- **Sessions are stored on the server and signed with their own keys.** Everyone
+  signed in — to the panel and to webmail — signs in once more after the upgrade.
+  Forwarded mail already in flight, and transfers already running, keep working:
+  the old signature and encryption are still accepted for them until they age out.
 - **The message size limit defaults to 25 MB** (it was 50 MB). If you set
   `MAX_MESSAGE_BYTES` yourself, nothing changes; if you relied on the default and
   want the old limit, set it, mindful that the pipeline holds several copies of a
@@ -5331,7 +5338,12 @@ cannot be compromised, and repointing it later is one edit.
 
 An alias can forward **outside** the domain. When it does, Corsair rewrites the
 envelope sender with SRS — the original sender's SPF does not list your server,
-so without the rewrite the next hop sees a forgery. This is automatic.
+so without the rewrite the next hop sees a forgery. This is automatic, and so is
+the return trip: a bounce for forwarded mail comes back to the rewritten address,
+Corsair checks its signature and age (21 days), and routes it to the original
+sender. One that was not signed by this server, or is too old, is refused as an
+address that does not exist — which is what stops the rewritten form being an open
+relay.
 
 ### Group
 
@@ -5389,6 +5401,12 @@ catch-all that was covering it.
 
 No match is a **rejection at SMTP time** with a 550, not an accept-then-bounce. A
 bounce to a forged sender is backscatter.
+
+The one case that cannot be answered at SMTP time is a message to several
+recipients where one fails *after* the data is accepted (over quota, or its filter
+rejects). That becomes a bounce, and it is sent only if the sender's SPF passed or
+the message has a verified DKIM signature. Otherwise the failure is logged and
+nothing is sent, because the sender may be forged.
 
 ## Folders
 
@@ -6540,6 +6558,19 @@ provider's price identifiers.
 Point the provider's webhook at `/api/webhooks/payments`. That endpoint reads the
 body **verbatim** — the signature covers the exact bytes, so it verifies before
 parsing.
+
+### With a provider, only the provider can start a paid plan
+
+Once `STRIPE_SECRET_KEY` is set, a paid plan is bought on the provider's hosted
+checkout and switched on by its **signed webhook** — nothing a customer's browser
+sends can do it. The panel sends them to checkout for you. The direct routes
+(`POST /api/subscription` for a paid plan, and `POST /api/billing/payment-methods`)
+answer 400 and point at `/api/billing/checkout/subscription` and
+`/api/billing/checkout/setup`. Free plans are unaffected.
+
+This matters because those routes used to trust the client: a made-up payment
+method row unlocked every paid plan, and a `paid` transaction was recorded without
+anything being charged.
 
 ### Card details never reach this server
 

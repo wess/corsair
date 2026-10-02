@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto"
 import { config } from "../../config/index.ts"
+import { keyFor } from "../../secrets/index.ts"
 
 /**
  * Sender Rewriting Scheme (SRS).
@@ -41,12 +42,22 @@ const timestampAge = (stamp: string): number => {
   return (today - encoded + 1024) % 1024
 }
 
-const sign = (payload: string): string =>
-  createHmac("sha256", config.jwtSecret)
+const hashWith = (key: string | Buffer, payload: string): string =>
+  createHmac("sha256", key)
     .update(payload.toLowerCase())
     .digest("base64")
     .replace(/[^A-Za-z0-9]/g, "")
     .slice(0, HASH_LENGTH)
+
+/** The signature this server issues: a key of its own, not the shared secret. */
+const sign = (payload: string): string => hashWith(keyFor("srs"), payload)
+
+// Addresses issued before per-purpose keys were signed with the shared secret
+// itself, and a bounce can arrive for one up to MAX_AGE_DAYS later. They are
+// accepted until that window has certainly passed and not a day after, so this
+// does not become a permanent second way to forge one.
+const LEGACY_UNTIL = Date.UTC(2026, 10, 3)
+const legacySign = (payload: string): string => hashWith(config.jwtSecret, payload)
 
 /**
  * `me@sender.com` forwarded via `wess.io` becomes
@@ -96,9 +107,11 @@ export const reverse = (address: string): Reversal => {
   const payload = `${stamp}${SEPARATOR}${domain}${SEPARATOR}${original}`
   // Compared case-insensitively: some MTAs lower-case the local part in transit,
   // and losing every bounce to that is not worth the strictness.
-  if (sign(payload).toLowerCase() !== hash.toLowerCase()) {
-    return { ok: false, reason: "bad_signature" }
-  }
+  const given = hash.toLowerCase()
+  const valid =
+    sign(payload).toLowerCase() === given ||
+    (Date.now() < LEGACY_UNTIL && legacySign(payload).toLowerCase() === given)
+  if (!valid) return { ok: false, reason: "bad_signature" }
   if (timestampAge(stamp) > MAX_AGE_DAYS) return { ok: false, reason: "expired" }
 
   return { ok: true, address: `${original}@${domain}` }

@@ -110,6 +110,19 @@ Point the provider's webhook at `/api/webhooks/payments`. That endpoint reads th
 body **verbatim** — the signature covers the exact bytes, so it verifies before
 parsing.
 
+### With a provider, only the provider can start a paid plan
+
+Once `STRIPE_SECRET_KEY` is set, a paid plan is bought on the provider's hosted
+checkout and switched on by its **signed webhook** — nothing a customer's browser
+sends can do it. The panel sends them to checkout for you. The direct routes
+(`POST /api/subscription` for a paid plan, and `POST /api/billing/payment-methods`)
+answer 400 and point at `/api/billing/checkout/subscription` and
+`/api/billing/checkout/setup`. Free plans are unaffected.
+
+This matters because those routes used to trust the client: a made-up payment
+method row unlocked every paid plan, and a `paid` transaction was recorded without
+anything being charged.
+
 ### Card details never reach this server
 
 The customer enters them on the provider's own hosted page. What comes back is a

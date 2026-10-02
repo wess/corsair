@@ -99,7 +99,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <h3 id="alias">Alias<a class="anchor" href="#alias" aria-label="Link to this section">#</a></h3>
 <p><code>hello@example.com</code> → <code>sam@example.com</code>. One destination.</p>
 <p>Use an alias for a role rather than a second mailbox: nobody has to check it, it cannot be compromised, and repointing it later is one edit.</p>
-<p>An alias can forward <strong>outside</strong> the domain. When it does, Corsair rewrites the envelope sender with SRS — the original sender's SPF does not list your server, so without the rewrite the next hop sees a forgery. This is automatic.</p>
+<p>An alias can forward <strong>outside</strong> the domain. When it does, Corsair rewrites the envelope sender with SRS — the original sender's SPF does not list your server, so without the rewrite the next hop sees a forgery. This is automatic, and so is the return trip: a bounce for forwarded mail comes back to the rewritten address, Corsair checks its signature and age (21 days), and routes it to the original sender. One that was not signed by this server, or is too old, is refused as an address that does not exist — which is what stops the rewritten form being an open relay.</p>
 <h3 id="group">Group<a class="anchor" href="#group" aria-label="Link to this section">#</a></h3>
 <p><code>family@example.com</code> → several mailboxes. One message in, one copy to each destination.</p>
 <p>Same SRS handling for outside destinations. No password, so to <em>send</em> as the group you sign in as a real mailbox and set the From address in the client.</p>
@@ -122,6 +122,7 @@ if envelope :localpart :matches &quot;to&quot; &quot;*+receipts&quot; {
 <ol><li>An exact match</li><li>Sub-addressing — <code>user+tag@</code> → <code>user@</code></li><li>The domain's catch-all</li><li>The domain's fallback domain, followed exactly once</li></ol>
 <p>First match wins, so adding a real address always takes precedence over the catch-all that was covering it.</p>
 <p>No match is a <strong>rejection at SMTP time</strong> with a 550, not an accept-then-bounce. A bounce to a forged sender is backscatter.</p>
+<p>The one case that cannot be answered at SMTP time is a message to several recipients where one fails <em>after</em> the data is accepted (over quota, or its filter rejects). That becomes a bounce, and it is sent only if the sender's SPF passed or the message has a verified DKIM signature. Otherwise the failure is logged and nothing is sent, because the sender may be forged.</p>
 <h2 id="folders">Folders<a class="anchor" href="#folders" aria-label="Link to this section">#</a></h2>
 <p>Every mailbox is provisioned with six, each tagged with its IMAP special-use attribute so clients file things correctly without being configured:</p>
 <div class='table-wrap'><table><thead><tr>

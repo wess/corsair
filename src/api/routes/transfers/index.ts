@@ -1,8 +1,6 @@
-import { createCipheriv, createHash, randomBytes } from "node:crypto"
 import { from } from "@atlas/db"
 import { delR, getR, json, postR, type Route } from "@atlas/server"
 import { z } from "zod"
-import { config } from "../../../config/index.ts"
 import { allColumns, db } from "../../../db/index.ts"
 import { invalidParameter, notFound } from "../../../errors/index.ts"
 import { paginate, parsePageQuery } from "../../../pagination/index.ts"
@@ -15,6 +13,7 @@ import {
   type Transfer,
   transfers,
 } from "../../../schema/index.ts"
+import { encryptSecret } from "../../../secrets/index.ts"
 import { transferObject } from "../../../serialize/index.ts"
 import { authed, authedWithPlan, entitlementFrom, principalOf } from "../../pipes/index.ts"
 
@@ -24,13 +23,7 @@ import { authed, authedWithPlan, entitlementFrom, principalOf } from "../../pipe
  * to be replayed at the source server, and cleared the moment the transfer
  * reaches a terminal state.
  */
-const encryptPassword = (plain: string): string => {
-  const key = createHash("sha256").update(config.jwtSecret).digest()
-  const iv = randomBytes(12)
-  const cipher = createCipheriv("aes-256-gcm", key, iv)
-  const payload = cipher.update(plain, "utf8", "base64") + cipher.final("base64")
-  return `${iv.toString("hex")}:${cipher.getAuthTag().toString("hex")}:${payload}`
-}
+const encryptPassword = encryptSecret
 
 const transferParam = z.object({ transfer_id: z.string().uuid() })
 

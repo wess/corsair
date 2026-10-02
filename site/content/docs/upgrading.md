@@ -82,8 +82,10 @@ SRS signatures on bounces for mail forwarded in the last few days, which is
 harmless but noisy.
 :::
 
-- **Webmail sessions are now stored on the server.** Everyone signed in to webmail
-  signs in once more after the upgrade.
+- **Sessions are stored on the server and signed with their own keys.** Everyone
+  signed in — to the panel and to webmail — signs in once more after the upgrade.
+  Forwarded mail already in flight, and transfers already running, keep working:
+  the old signature and encryption are still accepted for them until they age out.
 - **The message size limit defaults to 25 MB** (it was 50 MB). If you set
   `MAX_MESSAGE_BYTES` yourself, nothing changes; if you relied on the default and
   want the old limit, set it, mindful that the pipeline holds several copies of a

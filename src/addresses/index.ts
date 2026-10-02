@@ -14,6 +14,7 @@ import {
   folders,
   users,
 } from "../schema/index.ts"
+import { reverse as srsReverse } from "../smtp/srs/index.ts"
 
 export type AddressType = "standard" | "alias" | "catchall" | "group" | "agent"
 
@@ -455,6 +456,24 @@ export const resolveRecipient = async (recipient: string, depth = 0): Promise<Ro
 
   const domain = await db().one<Domain>(from(domains).where((q) => q("name").equals(domainName)))
   if (!domain) return { kind: "unknown", domain: null }
+
+  // A bounce for mail this server forwarded comes back addressed to the SRS
+  // address it rewrote the sender into. Reversed here, it is routed home to the
+  // original sender; with a bad signature or past its age it is simply an address
+  // that does not exist, which is what keeps the rewritten form from being an open
+  // relay. Ahead of every other rule because no mailbox can be called this — `=`
+  // is not allowed in a local part — so there is nothing for it to shadow.
+  if (/^srs0=/i.test(localPart)) {
+    const reversed = srsReverse(`${recipient.slice(0, at)}@${domain.name}`)
+    if (!reversed.ok) return { kind: "unknown", domain }
+    return {
+      kind: "forward",
+      address: null,
+      localPart,
+      domain,
+      destinations: [reversed.address],
+    }
+  }
 
   const findLocal = (value: string) =>
     db().one<Address>(

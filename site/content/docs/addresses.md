@@ -38,7 +38,12 @@ cannot be compromised, and repointing it later is one edit.
 
 An alias can forward **outside** the domain. When it does, Corsair rewrites the
 envelope sender with SRS — the original sender's SPF does not list your server,
-so without the rewrite the next hop sees a forgery. This is automatic.
+so without the rewrite the next hop sees a forgery. This is automatic, and so is
+the return trip: a bounce for forwarded mail comes back to the rewritten address,
+Corsair checks its signature and age (21 days), and routes it to the original
+sender. One that was not signed by this server, or is too old, is refused as an
+address that does not exist — which is what stops the rewritten form being an open
+relay.
 
 ### Group
 
@@ -97,6 +102,12 @@ catch-all that was covering it.
 
 No match is a **rejection at SMTP time** with a 550, not an accept-then-bounce. A
 bounce to a forged sender is backscatter.
+
+The one case that cannot be answered at SMTP time is a message to several
+recipients where one fails *after* the data is accepted (over quota, or its filter
+rejects). That becomes a bounce, and it is sent only if the sender's SPF passed or
+the message has a verified DKIM signature. Otherwise the failure is logged and
+nothing is sent, because the sender may be forged.
 
 ## Folders
 

@@ -603,62 +603,50 @@ const run = async () => {
   check("and let through again", unsuppressed.status === 200, unsuppressed.body)
 
   section("agent email")
-  const agent = await call("POST", "/api/agents", { name: "smoke agent", domain_id: domainId })
-  const agentToken = String(agent.body?.token ?? "")
+  // An agent mailbox only makes sense on a domain that can receive mail, so a
+  // domain still waiting on DNS is refused. The whole lifecycle — create, read,
+  // wait, send, rotate, delete — needs a verified domain, which nothing here can
+  // make (it would have to publish DNS), so it lives in tests/agents.test.ts
+  // against a real database.
+  const pendingAgent = await call("POST", "/api/agents", {
+    name: "smoke agent",
+    domain_id: domainId,
+  })
   check(
-    "an agent can be created, read-only by default",
-    agent.status === 201 &&
-      agentToken.startsWith("ca_") &&
-      agent.body?.can_send === false &&
-      String(agent.body?.email ?? "").endsWith(`@${domainName}`),
-    agent.body,
+    "an agent cannot be created on a domain that has not finished DNS setup",
+    pendingAgent.status === 400 && /not verified/i.test(String(pendingAgent.body?.message)),
+    pendingAgent.body,
   )
 
   const listedAgents = await call("GET", "/api/agents")
   check(
-    "the agent token is never listed",
-    listedAgents.status === 200 && !JSON.stringify(listedAgents.body).includes(agentToken),
+    "the agents list is empty and has the list shape",
+    listedAgents.status === 200 && Array.isArray(listedAgents.body?.data),
     listedAgents.body,
   )
 
-  const whoami = await bearer("GET", "/api/agent", agentToken)
-  check(
-    "the token reads its own mailbox",
-    whoami.status === 200 && whoami.body?.email === agent.body?.email,
-    whoami.body,
-  )
+  const noToken = await fetch(`${BASE}/api/agent`)
+  check("the agent API wants a token", noToken.status === 401)
 
-  const empty = await bearer("GET", "/api/agent/wait?timeout=1", agentToken)
-  check("waiting with nothing new is not an error", empty.body?.matched === false, empty.body)
+  const badToken = await bearer("GET", "/api/agent", "ca_not-a-real-token")
+  check("a made-up agent token is refused", badToken.status === 403, badToken.body)
 
-  const readOnlySend = await bearer("POST", "/api/agent/send", agentToken, {
-    to: ["someone@far.invalid"],
-    subject: "s",
-    text: "t",
+  // A *live* sending key: the one above was revoked, and a revoked key would be
+  // refused for that reason alone.
+  const liveKey = await call("POST", "/api/api-keys", {
+    name: "smoke agent check",
+    permission: "full_access",
   })
-  check("a read-only agent cannot send", readOnlySend.status === 403, readOnlySend.body)
+  const sendingKeyOnAgent = await bearer("GET", "/api/agent", String(liveKey.body?.token ?? ""))
+  check(
+    "a live full-access key is not an agent token",
+    liveKey.status === 201 && sendingKeyOnAgent.status === 403,
+    sendingKeyOnAgent.body,
+  )
+  await call("DELETE", `/api/api-keys/${liveKey.body?.id}`)
 
-  const agentOnApi = await bearer("POST", "/api/emails", agentToken, message)
+  const agentOnApi = await bearer("POST", "/api/emails", "ca_not-a-real-token", message)
   check("an agent token is not a sending key", agentOnApi.status === 403, agentOnApi.body)
-
-  const enabled = await call("PATCH", `/api/agents/${agent.body?.id}`, { can_send: true })
-  check("sending can be turned on", enabled.status === 200 && enabled.body?.can_send === true)
-
-  const rotatedAgent = await call("POST", `/api/agents/${agent.body?.id}/rotate`)
-  const afterRotate = await bearer("GET", "/api/agent", agentToken)
-  check(
-    "rotating replaces the token at once",
-    rotatedAgent.status === 200 && afterRotate.status === 403,
-    afterRotate.body,
-  )
-
-  const removedAgent = await call("DELETE", `/api/agents/${agent.body?.id}`)
-  const afterDelete = await bearer("GET", "/api/agent", String(rotatedAgent.body?.token ?? ""))
-  check(
-    "deleting removes the mailbox and the token",
-    removedAgent.status === 200 && afterDelete.status === 403,
-    afterDelete.body,
-  )
 
   section("public endpoints")
   const autoconfig = await fetch(`${BASE}/mail/config-v1.1.xml?emailaddress=me@${domainName}`)

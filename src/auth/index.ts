@@ -16,6 +16,7 @@ import {
   type User,
   users,
 } from "../schema/index.ts"
+import { secretFor } from "../secrets/index.ts"
 
 export const hashToken = (value: string): string => createHash("sha256").update(value).digest("hex")
 
@@ -46,7 +47,7 @@ export const issueSession = async (
       expires_at: expiresAt,
     }),
   )
-  const signed = await token.sign({ sub: userId, jti }, config.jwtSecret, {
+  const signed = await token.sign({ sub: userId, jti }, secretFor("session"), {
     expiresIn: SESSION_TTL_SECONDS,
   })
   return { token: signed, jti, expiresAt }
@@ -117,7 +118,7 @@ export const resolveSession = async (cookieHeader: string | null): Promise<Princ
   // signed in", which is not an error worth propagating.
   let payload: Record<string, unknown>
   try {
-    payload = (await token.verify(raw, config.jwtSecret)) as Record<string, unknown>
+    payload = (await token.verify(raw, secretFor("session"))) as Record<string, unknown>
   } catch {
     return null
   }
@@ -411,7 +412,7 @@ export const issueMailSession = async (
       expires_at: new Date(Date.now() + MAIL_SESSION_TTL_SECONDS * 1000),
     }),
   )
-  return token.sign({ sub: addressId, kind: "mailbox", jti }, config.jwtSecret, {
+  return token.sign({ sub: addressId, kind: "mailbox", jti }, secretFor("mailsession"), {
     expiresIn: MAIL_SESSION_TTL_SECONDS,
   })
 }
@@ -425,7 +426,7 @@ export const endMailSession = async (cookieHeader: string | null): Promise<void>
   const raw = readCookie(cookieHeader, MAIL_COOKIE)
   if (!raw) return
   try {
-    const payload = (await token.verify(raw, config.jwtSecret)) as Record<string, unknown>
+    const payload = (await token.verify(raw, secretFor("mailsession"))) as Record<string, unknown>
     if (payload.kind !== "mailbox" || typeof payload.jti !== "string") return
     await db().execute(
       from(mailSessions)
@@ -469,7 +470,7 @@ export const resolveMailSession = async (
 
   let payload: Record<string, unknown>
   try {
-    payload = (await token.verify(raw, config.jwtSecret)) as Record<string, unknown>
+    payload = (await token.verify(raw, secretFor("mailsession"))) as Record<string, unknown>
   } catch {
     return null
   }

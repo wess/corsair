@@ -1,6 +1,6 @@
 {
   "name": "corsair",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Open source email hosting. Mailboxes on your own domains \u2014 SMTP, IMAP, POP3, and a control panel.",
   "license": "MIT",
   "type": "module",
@@ -20,7 +20,7 @@
     "seed": "bun scripts/seed.ts",
     "db:up": "docker compose -f docker/compose.yml up -d",
     "db:down": "docker compose -f docker/compose.yml down",
-    "test": "WEBHOOK_ALLOW_PRIVATE=true bun test --concurrency=1 tests/",
+    "test": "WEBHOOK_ALLOW_PRIVATE=true bun test --concurrency=1 tests/ && STRIPE_SECRET_KEY=sk_test_dummy STRIPE_WEBHOOK_SECRET=whsec_dummy bun test tests/billingstripe.test.ts",
     "test:smoke": "bun tests/smoke.ts",
     "test:resend": "bun tests/resend.ts",
     "test:webmail": "bun tests/webmail.ts",

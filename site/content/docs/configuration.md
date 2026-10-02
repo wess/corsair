@@ -35,9 +35,14 @@ and treat it as a credential:
 `openssl rand -base64 48`
 
 Corsair **refuses to start** with the default, with any value copied from the
-repository, or with fewer than 32 characters. It also keys the SRS signature that
-stops a forwarding address being an open relay, and encrypts stored transfer
-credentials, so one leaked value opens all three. (`bun run dev` is exempt.)
+repository, or with fewer than 32 characters. (`bun run dev` is exempt.)
+
+It is the root of every key Corsair uses, but not used directly: panel sessions,
+webmail sessions, the SRS signature that stops a forwarding address being an open
+relay, and the encryption of stored transfer credentials each get their own key,
+derived with HKDF. Knowing one of those tells you nothing about the others. It also
+means the secret alone cannot mint a session — a token has to name a live row on
+the server.
 
 Changing it invalidates every existing session, which is also how you revoke
 everything at once.

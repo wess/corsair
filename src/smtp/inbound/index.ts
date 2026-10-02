@@ -89,6 +89,21 @@ export const validateRecipient = async (
 
 // authentication
 
+/**
+ * Whether a bounce may be sent to this message's sender.
+ *
+ * A failure after the data is accepted — one of several recipients is over quota,
+ * or its filter rejects, or it was deleted mid-transaction — cannot be reported in
+ * the reply to DATA, so it becomes a bounce to the envelope sender. That sender is
+ * whatever the connection claimed. Bouncing to a forged one mails a stranger about
+ * a message they never sent, and this server's IP gets the blame for it
+ * (backscatter). So a bounce goes only where the evidence supports it: the sender's
+ * SPF passed, or the message carries a DKIM signature that verified. Otherwise the
+ * failure is recorded in the log and nothing is sent.
+ */
+export const mayBounceTo = (results: Pick<AuthResults, "spf" | "dkim">): boolean =>
+  results.spf === "pass" || results.dkim === "pass"
+
 type AuthResults = {
   spf: string
   dkim: string
@@ -515,7 +530,11 @@ export const handleMessage = async (
       lastFailure = outcome
       // A per-recipient failure inside a multi-recipient transaction cannot be
       // reported in the single reply to DATA, so it becomes a bounce.
-      if (envelope.rcptTo.length > 1) {
+      if (envelope.rcptTo.length > 1 && !mayBounceTo(results)) {
+        console.warn(
+          `[corsair] not bouncing to ${envelope.mailFrom}: spf=${results.spf} dkim=${results.dkim}, so the sender may be forged`,
+        )
+      } else if (envelope.rcptTo.length > 1) {
         await sendBounce({
           recipient,
           returnPath: envelope.mailFrom,

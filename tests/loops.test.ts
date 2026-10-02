@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { assertNoSelfLoop } from "../src/addresses/index.ts"
-import { handleMessage } from "../src/smtp/inbound/index.ts"
+import { handleMessage, mayBounceTo } from "../src/smtp/inbound/index.ts"
 import type { Envelope } from "../src/smtp/session/index.ts"
 
 /**
@@ -61,5 +61,19 @@ describe("an alias that forwards to itself", () => {
   test("is allowed to forward anywhere else, including its own domain", () => {
     expect(() => assertNoSelfLoop("sales", "example.com", ["boss@example.com"])).not.toThrow()
     expect(() => assertNoSelfLoop("sales", "example.com", ["sales@other.test"])).not.toThrow()
+  })
+})
+
+describe("who may be bounced to", () => {
+  test("a sender whose SPF passed, or whose DKIM verified", () => {
+    expect(mayBounceTo({ spf: "pass", dkim: "none" })).toBe(true)
+    expect(mayBounceTo({ spf: "fail", dkim: "pass" })).toBe(true)
+  })
+
+  test("not a sender nothing vouches for — that is backscatter to a forged address", () => {
+    for (const spf of ["fail", "softfail", "neutral", "none", "temperror", "permerror"]) {
+      expect(mayBounceTo({ spf, dkim: "none" })).toBe(false)
+    }
+    expect(mayBounceTo({ spf: "none", dkim: "fail" })).toBe(false)
   })
 })

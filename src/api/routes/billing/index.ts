@@ -112,6 +112,17 @@ export const billingRoutes: Route[] = [
       const interval = c.body.interval ?? "yearly"
       const price = interval === "monthly" ? plan.monthly_cents : plan.yearly_cents
 
+      // With a real provider, a paid plan is started at the provider's checkout
+      // and activated by its signed webhook — nothing else. This route used to
+      // activate any plan for anyone holding a payment-method *row*, and the rows
+      // were whatever the client posted, so a fabricated one bought every plan,
+      // and a `paid` transaction was written without anything being charged.
+      if (price > 0 && !config.payments.beta && payments.isConfigured()) {
+        throw invalidParameter(
+          "Paid plans are started through checkout. Use /api/billing/checkout/subscription.",
+        )
+      }
+
       // Anything that costs money needs a payment method on file. A free or
       // trial plan does not, which is what makes a self-hosted instance with no
       // payment provider usable.
@@ -311,6 +322,16 @@ export const billingRoutes: Route[] = [
       assigns: {} as never,
     },
     async (c) => {
+      // Recording a payment method by hand exists for a server with no provider.
+      // With one, a method is whatever the provider's signed webhook says it is —
+      // letting the client post the reference lets it invent one, and a method on
+      // file is what unlocks a paid plan.
+      if (payments.isConfigured()) {
+        throw invalidParameter(
+          "Payment methods are added on the provider's page. Use /api/billing/checkout/setup.",
+        )
+      }
+
       /**
        * Only the display fields a payment provider hands back are accepted —
        * there is no field here that could carry a card number, by design. The
