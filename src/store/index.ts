@@ -381,13 +381,34 @@ export const folderStatus = async (folder: Folder): Promise<FolderStatus> => {
   }
 }
 
+// Everything but the search extract, which is up to 100 KB of decoded body per
+// message. A snapshot is taken on every SELECT and re-taken every five seconds by
+// every client that is idling, so carrying it in each row made a folder's
+// snapshot as large as the folder's text. `search_text` comes back null here and
+// is fetched by `searchTextFor` for the few messages a TEXT/BODY search needs.
+const INDEX_COLUMNS = allColumns(messages).filter((c) => c !== "search_text")
+
 /** Live messages in a folder, in UID order — the order IMAP sequence numbers follow. */
-export const messagesIn = (folderId: string): Promise<Message[]> =>
-  db().all<Message>(
+export const messagesIn = async (folderId: string): Promise<Message[]> => {
+  const rows = await db().all<Omit<Message, "search_text">>(
     from(messages)
+      .select(...INDEX_COLUMNS)
       .where((q) => [q("folder_id").equals(folderId), q("expunged_at").isNull()])
       .orderBy("uid", "ASC"),
   )
+  return rows.map((row) => ({ ...row, search_text: null }) as Message)
+}
+
+/** The search extract for some messages, by id. */
+export const searchTextFor = async (ids: string[]): Promise<Map<string, string | null>> => {
+  if (!ids.length) return new Map()
+  const rows = await db().all<{ id: string; search_text: string | null }>({
+    text: `SELECT id, search_text FROM messages
+            WHERE id = ANY(SELECT jsonb_array_elements_text($1::jsonb)::uuid)`,
+    values: [ids],
+  })
+  return new Map(rows.map((r) => [r.id, r.search_text]))
+}
 
 export const recomputeUsage = async (addressId: string): Promise<number> => {
   const row = await db().one<{ total: string }>({

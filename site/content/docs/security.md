@@ -53,8 +53,10 @@ shared credential a reasonable trade rather than a bad one.
 - Reset and recovery tokens are stored **only as SHA-256 hashes**.
 - A token is redeemed with `used_at IS NULL` **inside the UPDATE**. Checking it in
   a separate read lets two concurrent requests both redeem the same link.
-- Sessions are rows, not just JWTs. The signature alone is not enough — a revoked
-  session stops working immediately, which a stateless token cannot do.
+- Sessions are rows, not just JWTs — the panel's *and* the webmail's. The
+  signature alone is not enough: a token must name a live session, so a revoked
+  one stops working immediately, logging out really logs out, and a token signed
+  with `JWT_SECRET` but naming no session is worthless.
 
 Two-factor is TOTP. Turn it on for the owner account; it controls every domain.
 
@@ -219,9 +221,11 @@ default is public.
 **The bucket.** Objects are written with no ACL and inherit the bucket default.
 Verify that default is private, especially on a bucket you already use.
 
-**`JWT_SECRET`.** Anyone who knows it can mint a session for any account. Generate
-it randomly; changing it invalidates every session, which is also how you revoke
-everything at once.
+**`JWT_SECRET`.** It signs sessions, keys the SRS address rewriting that keeps
+forwarding from being an open relay, and encrypts stored transfer credentials, so
+keep it secret. A session also needs a live server-side row, so the secret alone
+cannot mint one. Generate it randomly; changing it invalidates every session,
+which is also how you revoke everything at once.
 
 **Physical access to mail at rest.** Message bodies are not encrypted at rest by
 Corsair. Use encrypted volumes and an encrypted bucket if your threat model needs

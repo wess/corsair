@@ -6,6 +6,7 @@ import { folderBySpecialUse, setPassword } from "../../../addresses/index.ts"
 import {
   authenticateAddress,
   clearedMailCookie,
+  endMailSession,
   issueMailSession,
   type MailIdentity,
   mailCookie,
@@ -96,7 +97,10 @@ export const webmailRoutes: Route[] = [
         throw unauthorized("Those credentials are not valid.")
       }
 
-      const session = await issueMailSession(identity.address.id)
+      const session = await issueMailSession(identity.address.id, {
+        ip: ipOf(c as never),
+        userAgent: c.headers.get("user-agent"),
+      })
       const response = json(c, 200, {
         object: "mail_session",
         email: identity.email,
@@ -110,6 +114,9 @@ export const webmailRoutes: Route[] = [
   ),
 
   postR("/api/mail/logout", { before: [], assigns: {} as never }, async (c) => {
+    // Revoked on the server, not just cleared in the browser: a copied cookie
+    // must not survive the logout.
+    await endMailSession(c.headers.get("cookie"))
     const response = json(c, 200, { object: "mail_session", ok: true })
     return {
       ...response,
@@ -156,15 +163,13 @@ export const webmailRoutes: Route[] = [
         throw invalidParameter("That is already your password.")
       }
 
-      await setPassword(identity.address.id, c.body.new_password)
+      // Every *other* webmail session ends with the old password; this one stays,
+      // so changing it does not sign you out. IMAP and SMTP clients keep working
+      // until they next authenticate, which is how those protocols behave.
+      await setPassword(identity.address.id, c.body.new_password, {
+        keepSession: identity.sessionId,
+      })
 
-      /**
-       * Other sessions survive this. A webmail session is a signed JWT with no
-       * server-side record, so there is nothing to revoke — `password_changed_at`
-       * is written but never read back on the session path. Anyone already
-       * signed in elsewhere stays signed in for up to `MAIL_SESSION_TTL_SECONDS`,
-       * and IMAP or SMTP clients keep working until they next authenticate.
-       */
       return json(c, 200, { object: "mail_password", changed: true })
     },
   ),

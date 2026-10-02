@@ -1,5 +1,6 @@
 import { clearAuthFailures, isBanned, recordAuthFailure } from "../auth/index.ts"
 import { config } from "../config/index.ts"
+import { createWriter, type SocketWriter } from "../socketio/index.ts"
 import {
   canUpgradeServerSocketToTls,
   upgradeAcceptedSocket,
@@ -38,6 +39,8 @@ type SocketData = {
   upgradeRequested: boolean
   /** Set once STARTTLS succeeds; see the gate in `data`. */
   tlsSocket: Bun.Socket<SocketData> | null
+  /** Every write goes through this; see `src/socketio`. */
+  writer: SocketWriter
 }
 
 /**
@@ -75,6 +78,7 @@ const createListener = (input: {
         secure: input.implicitTls,
         upgradeRequested: false,
         tlsSocket: null,
+        writer: null as never,
       }
 
       data.session = createSession({
@@ -137,6 +141,7 @@ const createListener = (input: {
         },
       })
 
+      data.writer = createWriter(() => data.tlsSocket ?? socket)
       socket.data = data
       socket.timeout(IDLE_SECONDS)
 
@@ -144,11 +149,11 @@ const createListener = (input: {
       // packet; answering properly costs an Argon2 hash per attempt.
       void isBanned(socketIp).then((banned) => {
         if (banned) {
-          socket.write(`421 4.7.0 Too many failed attempts from ${socketIp}.\r\n`)
-          socket.end()
+          data.writer.write(`421 4.7.0 Too many failed attempts from ${socketIp}.\r\n`)
+          data.writer.afterFlush(() => socket.end())
           return
         }
-        socket.write(data.session.greeting())
+        data.writer.write(data.session.greeting())
       })
     },
 
@@ -164,7 +169,7 @@ const createListener = (input: {
       if (state.tlsSocket && socket !== state.tlsSocket) return
 
       const out = await state.session.feed(chunk)
-      if (out) socket.write(out)
+      if (out) state.writer.write(out)
 
       if (state.upgradeRequested) {
         state.upgradeRequested = false
@@ -200,7 +205,11 @@ const createListener = (input: {
         return
       }
 
-      if (state.session.shouldClose()) socket.end()
+      if (state.session.shouldClose()) state.writer.afterFlush(() => socket.end())
+    },
+
+    drain(socket: Bun.Socket<SocketData>) {
+      socket.data?.writer?.drain()
     },
 
     timeout(socket: Bun.Socket<SocketData>) {

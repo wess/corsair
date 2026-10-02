@@ -11,6 +11,7 @@ import {
   bans,
   type Domain,
   domains,
+  mailSessions,
   sessions,
   type User,
   users,
@@ -65,6 +66,15 @@ export const revokeSession = async (jti: string): Promise<void> => {
  * creates one if a stale session survives it.
  */
 export const revokeAllSessions = async (userId: string, except?: string): Promise<void> => {
+  // Mailboxes that sign in with this account's password share its credential, so
+  // changing the password has to end their webmail sessions too. All of them: the
+  // exception is a *panel* session, and keeping it says nothing about a mailbox.
+  await db().execute({
+    text: `UPDATE mail_sessions SET revoked_at = now()
+            WHERE revoked_at IS NULL
+              AND address_id IN (SELECT id FROM addresses WHERE user_id = $1)`,
+    values: [userId],
+  })
   await db().execute(
     from(sessions)
       .where((q) => {
@@ -162,6 +172,8 @@ export type MailIdentity = {
   address: Address
   domain: Domain
   email: string
+  /** The webmail session this identity came from; absent for a password login over a mail protocol. */
+  sessionId?: string
 }
 
 /**
@@ -383,10 +395,64 @@ export const MAIL_SESSION_TTL_SECONDS = 60 * 60 * 12
  * The shorter lifetime is because a webmail session is far more likely to be
  * left open on a machine somebody else can reach.
  */
-export const issueMailSession = async (addressId: string): Promise<string> =>
-  token.sign({ sub: addressId, kind: "mailbox" }, config.jwtSecret, {
+export const issueMailSession = async (
+  addressId: string,
+  ctx: { ip?: string | null; userAgent?: string | null } = {},
+): Promise<string> => {
+  // The id is the session. It is random and unguessable, and the token is only
+  // good while a row with this id is live — see the migration for why.
+  const jti = randomUUID()
+  await db().execute(
+    from(mailSessions).insert({
+      id: jti,
+      address_id: addressId,
+      ip: ctx.ip ?? null,
+      user_agent: ctx.userAgent ?? null,
+      expires_at: new Date(Date.now() + MAIL_SESSION_TTL_SECONDS * 1000),
+    }),
+  )
+  return token.sign({ sub: addressId, kind: "mailbox", jti }, config.jwtSecret, {
     expiresIn: MAIL_SESSION_TTL_SECONDS,
   })
+}
+
+/**
+ * Ends the session a cookie names, so a copied cookie dies with the logout
+ * instead of living until it expires. A cookie that does not verify has nothing
+ * to end.
+ */
+export const endMailSession = async (cookieHeader: string | null): Promise<void> => {
+  const raw = readCookie(cookieHeader, MAIL_COOKIE)
+  if (!raw) return
+  try {
+    const payload = (await token.verify(raw, config.jwtSecret)) as Record<string, unknown>
+    if (payload.kind !== "mailbox" || typeof payload.jti !== "string") return
+    await db().execute(
+      from(mailSessions)
+        .where((q) => [q("id").equals(payload.jti as string), q("revoked_at").isNull()])
+        .update({ revoked_at: new Date() }),
+    )
+  } catch {
+    // Not a valid token: nothing to revoke.
+  }
+}
+
+/**
+ * Ends every webmail session of one address, except the one named. Called when
+ * its credential changes, is linked or unlinked, or the address is disabled — a
+ * session that survives its own password being changed is the stolen cookie the
+ * change was made to get rid of.
+ */
+export const revokeMailSessions = async (addressId: string, except?: string): Promise<void> => {
+  await db().execute(
+    from(mailSessions)
+      .where((q) => {
+        const live = [q("address_id").equals(addressId), q("revoked_at").isNull()]
+        return except ? [...live, q("id").notEquals(except)] : live
+      })
+      .update({ revoked_at: new Date() }),
+  )
+}
 
 export const mailCookie = (value: string, maxAge = MAIL_SESSION_TTL_SECONDS): string => {
   const secure = config.publicUrl.startsWith("https://") ? "; Secure" : ""
@@ -410,6 +476,20 @@ export const resolveMailSession = async (
   // The `kind` claim is what stops a panel session cookie being replayed here
   // and vice versa; both are signed with the same secret.
   if (payload.kind !== "mailbox" || typeof payload.sub !== "string") return null
+  // A token with no session id predates server-side sessions and is not honoured.
+  if (typeof payload.jti !== "string") return null
+
+  const session = await db().one<{ id: string }>(
+    from(mailSessions)
+      .select("id")
+      .where((q) => [
+        q("id").equals(payload.jti as string),
+        q("address_id").equals(payload.sub as string),
+        q("revoked_at").isNull(),
+        q("expires_at").greaterThan(new Date()),
+      ]),
+  )
+  if (!session) return null
 
   const address = await db().one<Address>(
     from(addresses).where((q) => q("id").equals(payload.sub as string)),
@@ -427,7 +507,17 @@ export const resolveMailSession = async (
   )
   if (!domain) return null
 
-  return { address, domain, email: `${address.local_part}@${domain.name}` }
+  // At most once a minute: a busy client should not turn every request into a
+  // write to this row.
+  void db()
+    .execute({
+      text: `UPDATE mail_sessions SET last_used_at = now()
+              WHERE id = $1 AND (last_used_at IS NULL OR last_used_at < now() - interval '1 minute')`,
+      values: [session.id],
+    })
+    .catch(() => {})
+
+  return { address, domain, email: `${address.local_part}@${domain.name}`, sessionId: session.id }
 }
 
 export const requireMailIdentity = async (cookieHeader: string | null): Promise<MailIdentity> => {

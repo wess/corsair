@@ -12,6 +12,7 @@ import {
   parseAddressList,
   parseMessage,
   parseParams,
+  searchTextOf,
   snippetOf,
   stripControls,
 } from "../src/mime/index.ts"
@@ -188,5 +189,47 @@ describe("isSafeAddress", () => {
     expect(safe("@b.test")).toBe(false)
     expect(safe("a@@b.test")).toBe(false)
     expect(safe(`${"a".repeat(320)}@b.test`)).toBe(false)
+  })
+})
+
+describe("normalizeEol", () => {
+  test("rewrites bare LF and bare CR, and leaves CRLF alone", () => {
+    expect(normalizeEol("a\nb\rc\r\nd")).toBe("a\r\nb\r\nc\r\nd")
+    expect(normalizeEol("\nx")).toBe("\r\nx")
+    expect(normalizeEol("x\r")).toBe("x\r\n")
+    expect(normalizeEol("\r\n\r\n")).toBe("\r\n\r\n")
+    expect(normalizeEol("")).toBe("")
+  })
+
+  test("returns the very same string when there is nothing to do", () => {
+    const clean = "Subject: x\r\n\r\nbody\r\nmore\r\n"
+    expect(normalizeEol(clean)).toBe(clean)
+  })
+})
+
+describe("snippetOf and searchTextOf on a large body", () => {
+  const body = "The quick brown fox jumps over the lazy dog.\r\n".repeat(200_000)
+  const raw = `From: a@b.invalid\r\nSubject: Large é\r\nContent-Type: text/plain\r\n\r\n${body}`
+  const parsed = parseMessage(raw)
+
+  test("the snippet is the start of the text, whitespace collapsed", () => {
+    expect(snippetOf(raw, parsed)).toBe(
+      `${"The quick brown fox jumps over the lazy dog. ".repeat(6)}`.trim().slice(0, 240),
+    )
+  })
+
+  test("the search extract is bounded and starts with the headers", () => {
+    const text = searchTextOf(raw, parsed)
+    expect(text.length).toBeLessThanOrEqual(100_000)
+    expect(text.startsWith("Large")).toBe(true)
+    expect(text).toContain("quick brown fox")
+  })
+
+  test("a base64 body is decoded from its start", () => {
+    const encoded = Buffer.from("alpha beta gamma ".repeat(100_000))
+      .toString("base64")
+      .replace(/(.{76})/g, "$1\r\n")
+    const message = `Subject: s\r\nContent-Type: text/plain\r\nContent-Transfer-Encoding: base64\r\n\r\n${encoded}\r\n`
+    expect(snippetOf(message, parseMessage(message))).toStartWith("alpha beta gamma alpha")
   })
 })

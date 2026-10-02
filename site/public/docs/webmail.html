@@ -65,6 +65,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p>With the <strong>mailbox</strong> address and password — not a control-panel login.</p>
 <p>That is the same credential a mail client uses, and it is a deliberately different identity from the panel: a mailbox credential ends up in a phone that gets lost, and it must not also unlock the account that owns every domain.</p>
 <p>The webmail session is its own cookie (<code>corsair_webmail</code>) with a <strong>12-hour</strong> lifetime, shorter than the panel's fourteen days, because a browser session on a shared machine is far more likely to be left open.</p>
+<p>Every webmail session is also a row on the server, so it can be ended before it expires. Logging out revokes it (a copied cookie dies with the logout), changing the mailbox's password ends every <em>other</em> session, and disabling or deleting the address ends them all. A mailbox that signs in with its owner's account password loses its sessions when that password changes.</p>
 <p>Alias and group addresses have no password and cannot sign in. They are routing entries.</p>
 <h2 id="what-it-does">What it does<a class="anchor" href="#what-it-does" aria-label="Link to this section">#</a></h2>
 <ul><li>Read, reply, reply-all, forward</li><li>Compose with attachments</li><li>Move, delete, mark read or unread, flag</li><li>Create and delete folders</li><li>Search</li><li>Drafts, saved server-side so they follow you between devices</li></ul>

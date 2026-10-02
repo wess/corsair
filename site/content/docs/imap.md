@@ -158,6 +158,12 @@ in that path silently changes every offset, and a client asking for
 
 Decoding to real Unicode happens only at the point something displays text.
 
+The same holds on the way out. A socket write must send those strings as latin1,
+not as UTF-8 (which is what a bare `socket.write(string)` does), or every 8-bit
+byte is sent twice over and each literal comes out longer than the `{n}` that
+announced it. Corsair writes through one helper that also queues whatever the
+socket will not take yet, so a large `FETCH` reaches a slow client whole.
+
 ## Testing by hand
 
 ```sh

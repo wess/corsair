@@ -412,12 +412,41 @@ kind of thing that regresses quietly.
   caps idle time, handshake time and connections.
 - **`MAX_MESSAGE_BYTES` defaults to 25 MB**: the pipeline holds several copies of a
   message and one 50 MB message peaked near 900 MB on a 1 GB box.
+- **Never call `socket.write(string)` directly.** Bun encodes a string as UTF-8, so
+  the pipeline's latin1 strings went out double-encoded (`c3 a9` became
+  `c3 83 c2 a9`) and every IMAP literal was longer than its `{n}`; and it writes only
+  what the kernel will take *now*, returning the count and **dropping the rest** (a
+  60 MB write to a slow reader delivered 327 KB). Large FETCH, POP3 RETR and
+  outbound DATA bodies were all affected. Every listener and the outbound client
+  write through `createWriter` (`src/socketio`): latin1, queued, written on `drain`,
+  `settled()` for backpressure, `afterFlush()` before `end()`. Session-level tests
+  cannot see any of this — `tests/wire.test.ts` and `tests/wireimap.test.ts` use
+  real sockets with a slow reader, and that is the only kind of test that will.
+- **IMAP FETCH streams, SEARCH works in slices.** FETCH renders one message at a
+  time through the `stream` hook and waits for the client to keep up (without the
+  hook — tests — it still returns one string). SEARCH tests 200 messages at a time,
+  fetching `search_text` and headers only for those, with at most 4 bodies loading at
+  once. `messagesIn` no longer returns `search_text` (up to 100 KB a row); use
+  `searchTextFor`.
+- **The message path avoids copies.** `normalizeEol` returns the same string when
+  there is nothing to fix (it used to copy 25 MB three times); the snippet and
+  search extract decode only the head of a body; the DKIM body hash streams a line
+  at a time (`bodyHash`, checked against `canonBody` on random input); the outbound
+  client dot-stuffs only when it must and the queue loads a stored body once per
+  batch for all its rows. A 25 MB message now peaks about +57 MB (attachment) to
+  +113 MB (text) through `handleMessage`, down from +113 and +362.
+- **Webmail sessions are rows** (`mail_sessions`), like the panel's. The token names
+  the row; logout revokes it; changing a mailbox's password, its account link, its
+  `disabled` flag, or its owner's account password ends sessions
+  (`revokeMailSessions`, and inside `revokeAllSessions` for linked mailboxes).
+  Tokens with no session id are refused, so every webmail user signed in again once
+  when this shipped.
 - **Known and not yet done:** billing lets any user self-grant a plan with a
-  fabricated payment method when a provider is configured; webmail sessions are a
-  JWT with no server-side row to revoke; the inbound and outbound paths still copy
-  a message several times (parse once and stream is the real fix); IMAP `SEARCH`
-  and `FETCH` hold whole mailboxes in memory; DSNs to unverified senders are
-  backscatter; SRS is never reversed on inbound.
+  fabricated payment method when a provider is configured; DSNs to unverified
+  senders are backscatter; SRS is never reversed on inbound; the per-purpose key
+  derivation (HKDF) the audit suggested is not done — a leaked `JWT_SECRET` no
+  longer mints webmail sessions, but it still signs SRS and keys transfer
+  encryption.
 
 ## Adding an endpoint
 

@@ -176,6 +176,24 @@ export const needsHeaders = (criterion: Criterion): boolean => {
   }
 }
 
+/**
+ * Whether any criterion reads the stored text extract (BODY and TEXT). Only then
+ * does a search have to fetch it, and then only for the messages it is testing.
+ */
+export const needsText = (criterion: Criterion): boolean => {
+  switch (criterion.kind) {
+    case "text":
+      return criterion.field === "body" || criterion.field === "text"
+    case "and":
+    case "or":
+      return criterion.children.some(needsText)
+    case "not":
+      return needsText(criterion.child)
+    default:
+      return false
+  }
+}
+
 // evaluate
 
 export type Candidate = {

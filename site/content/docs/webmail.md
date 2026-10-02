@@ -23,6 +23,12 @@ The webmail session is its own cookie (`corsair_webmail`) with a **12-hour**
 lifetime, shorter than the panel's fourteen days, because a browser session on a
 shared machine is far more likely to be left open.
 
+Every webmail session is also a row on the server, so it can be ended before it
+expires. Logging out revokes it (a copied cookie dies with the logout), changing
+the mailbox's password ends every *other* session, and disabling or deleting the
+address ends them all. A mailbox that signs in with its owner's account password
+loses its sessions when that password changes.
+
 Alias and group addresses have no password and cannot sign in. They are routing
 entries.
 

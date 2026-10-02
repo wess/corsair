@@ -67,6 +67,9 @@ const keywordsOf = (message: Message): Record<string, true> => {
   return out
 }
 
+// Advertised in the session object and enforced by Email/get.
+const MAX_OBJECTS_IN_GET = 500
+
 const flagsOf = (keywords: Record<string, unknown>): string[] =>
   Object.keys(keywords)
     .filter((k) => keywords[k])
@@ -575,15 +578,23 @@ const invoke = async (
 
     case "Email/get": {
       const ids: string[] = Array.isArray(args.ids) ? args.ids.flat().filter(Boolean) : []
+      // The limit the session advertises, enforced (RFC 8620 §5.1). Without it a
+      // client could ask for a whole mailbox in one call.
+      if (ids.length > MAX_OBJECTS_IN_GET) {
+        return ["error", { type: "requestTooLarge", limit: MAX_OBJECTS_IN_GET }]
+      }
       const rows = await ownedMessages(ctx, ids)
-      const list = await Promise.all(
-        rows.map((row) =>
-          emailObject(row, args.properties ?? null, {
+      // One at a time: with body values requested each object downloads its
+      // message, and doing 500 of those at once held 500 bodies in memory.
+      const list: Awaited<ReturnType<typeof emailObject>>[] = []
+      for (const row of rows) {
+        list.push(
+          await emailObject(row, args.properties ?? null, {
             fetchTextBodyValues: Boolean(args.fetchTextBodyValues),
             fetchHTMLBodyValues: Boolean(args.fetchHTMLBodyValues),
           }),
-        ),
-      )
+        )
+      }
       return [
         "Email/get",
         {
@@ -893,7 +904,7 @@ export const jmapRoutes: Route[] = [
           maxSizeRequest: 10_000_000,
           maxConcurrentRequests: 4,
           maxCallsInRequest: 32,
-          maxObjectsInGet: 500,
+          maxObjectsInGet: MAX_OBJECTS_IN_GET,
           maxObjectsInSet: 500,
           collationAlgorithms: ["i;ascii-casemap"],
         },

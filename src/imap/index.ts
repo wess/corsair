@@ -1,5 +1,6 @@
 import { clearAuthFailures, isBanned, recordAuthFailure } from "../auth/index.ts"
 import { config } from "../config/index.ts"
+import { createWriter, type SocketWriter } from "../socketio/index.ts"
 import { canUpgradeServerSocketToTls, upgradeAcceptedSocket } from "../starttls/index.ts"
 import { tlsOptions } from "../tls/index.ts"
 import { createImapSession, type ImapSession } from "./session/index.ts"
@@ -28,6 +29,8 @@ type SocketData = {
   tlsSocket: Bun.Socket<SocketData> | null
   idleTimer: ReturnType<typeof setInterval> | null
   authed: boolean
+  /** Every write goes through this; see `src/socketio`. */
+  writer: SocketWriter
   /** Chains `data` handlers; see the note there. */
   chain: Promise<void>
 }
@@ -41,7 +44,7 @@ const IDLE_POLL_MS = 5000
 const PRE_AUTH_IDLE = 120
 const AUTHED_IDLE = 3600
 
-const createListener = (input: {
+export const createListener = (input: {
   port: number
   implicitTls: boolean
   tls: { cert: string; key: string } | null
@@ -64,7 +67,7 @@ const createListener = (input: {
     if (state.tlsSocket && socket !== state.tlsSocket) return
 
     const out = await state.session.feed(chunk)
-    if (out) socket.write(out)
+    if (out) state.writer.write(out)
 
     if (state.upgradeRequested) {
       state.upgradeRequested = false
@@ -96,7 +99,7 @@ const createListener = (input: {
       return
     }
 
-    if (state.session.shouldClose()) socket.end()
+    if (state.session.shouldClose()) state.writer.afterFlush(() => socket.end())
   }
 
   const handlers = {
@@ -111,12 +114,20 @@ const createListener = (input: {
         idleTimer: null,
         authed: false,
         chain: Promise.resolve(),
+        writer: null as never,
       }
+      data.writer = createWriter(() => data.tlsSocket ?? socket)
 
       data.session = createImapSession({
         isSecure: () => data.secure,
         remoteIp,
-        push: (payload) => socket.write(payload),
+        push: (payload) => data.writer.write(payload),
+        // Used by FETCH to send a large response one message at a time and wait
+        // for the client to keep up, instead of building it all in memory.
+        stream: async (chunk) => {
+          data.writer.write(chunk)
+          await data.writer.settled()
+        },
         ...(canStartTls
           ? {
               startTls: () => {
@@ -139,11 +150,11 @@ const createListener = (input: {
 
       void isBanned(remoteIp).then((banned) => {
         if (banned) {
-          socket.write(`* BYE Too many failed attempts from ${remoteIp}.\r\n`)
-          socket.end()
+          data.writer.write(`* BYE Too many failed attempts from ${remoteIp}.\r\n`)
+          data.writer.afterFlush(() => socket.end())
           return
         }
-        socket.write(data.session.greeting())
+        data.writer.write(data.session.greeting())
       })
 
       // IDLE is a promise to tell the client about changes it did not ask for.
@@ -155,7 +166,7 @@ const createListener = (input: {
         void data.session
           .poll()
           .then((out) => {
-            if (out) socket.write(out)
+            if (out) data.writer.write(out)
           })
           .catch(() => {})
       }, IDLE_POLL_MS)
@@ -180,6 +191,11 @@ const createListener = (input: {
       const next = state.chain.then(() => handleChunk(socket, chunk))
       state.chain = next.catch(() => {})
       return next
+    },
+
+    // The socket has room again: write what it could not take before.
+    drain(socket: Bun.Socket<SocketData>) {
+      socket.data?.writer?.drain()
     },
 
     close(socket: Bun.Socket<SocketData>) {

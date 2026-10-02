@@ -28,9 +28,30 @@ const backoffFor = (attempt: number): Date => {
   return new Date(Date.now() + minutes * 60_000 * jitter)
 }
 
-const bodyOf = async (row: Delivery): Promise<string | null> => {
-  if (row.storage_key?.startsWith("inline:")) return inlineBody(row.storage_key)
-  return getRaw({ storageKey: row.storage_key })
+/**
+ * The stored body for a row, shared by every row in the batch that points at the
+ * same object.
+ *
+ * A message to fifty recipients is one stored body and fifty rows, but each row
+ * used to load its own copy — eight rows claimed together was eight 25 MB strings
+ * in memory at once for one message. Loading is cached by key for the duration of
+ * one batch, as a promise so rows that arrive while the first is still reading
+ * wait for it rather than starting another, and the cache is dropped with the
+ * batch.
+ */
+const bodyOf = (
+  row: Delivery,
+  loaded: Map<string, Promise<string | null>>,
+): Promise<string | null> => {
+  if (row.storage_key?.startsWith("inline:")) return Promise.resolve(inlineBody(row.storage_key))
+  const key = row.storage_key
+  if (!key) return getRaw({ storageKey: null })
+  let body = loaded.get(key)
+  if (!body) {
+    body = getRaw({ storageKey: key })
+    loaded.set(key, body)
+  }
+  return body
 }
 
 /**
@@ -62,13 +83,14 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
   const result: DrainResult = { attempted: rows.length, sent: 0, deferred: 0, failed: 0 }
   if (!rows.length) return result
 
+  const loaded = new Map<string, Promise<string | null>>()
   const outcomes = await Promise.allSettled(
     rows.map(async (row) => {
       // A canceled or suppressed API send is settled without an attempt. It is
       // neither sent nor failed, so it counts toward neither.
       if (row.email_id && !(await beforeAttempt(row).catch(logged(true)))) return
 
-      const raw = await bodyOf(row)
+      const raw = await bodyOf(row, loaded)
       if (!raw) {
         const reason = "The queued message body is no longer available."
         await fail(row, 550, reason)

@@ -272,6 +272,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p>The session, the MIME parser, and the storage layer all handle messages as latin1 strings, so one character is exactly one byte.</p>
 <p>IMAP literals and <code>RFC822.SIZE</code> are <strong>octet</strong> counts. Decoding to UTF-8 anywhere in that path silently changes every offset, and a client asking for <code>BODY[]&lt;0.1000&gt;</code> gets the wrong thousand bytes.</p>
 <p>Decoding to real Unicode happens only at the point something displays text.</p>
+<p>The same holds on the way out. A socket write must send those strings as latin1, not as UTF-8 (which is what a bare <code>socket.write(string)</code> does), or every 8-bit byte is sent twice over and each literal comes out longer than the <code>{n}</code> that announced it. Corsair writes through one helper that also queues whatever the socket will not take yet, so a large <code>FETCH</code> reaches a slow client whole.</p>
 <h2 id="testing-by-hand">Testing by hand<a class="anchor" href="#testing-by-hand" aria-label="Link to this section">#</a></h2>
 <figure class="code"><span class="code-lang">sh</span><pre><code>openssl s_client -connect mail.example.com:993 -crlf</code></pre></figure>
 <figure class="code"><pre><code>a LOGIN you@example.com your-password

@@ -77,8 +77,28 @@ export const stripControls = (value: string): string =>
   // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping controls is the point
   value.replace(/[\x00-\x1f\x7f]/g, " ").trim()
 
-/** Messages arriving over SMTP are already CRLF; anything hand-built may not be. */
-export const normalizeEol = (raw: string): string => raw.replace(/\r\n|\r|\n/g, CRLF)
+// Whether anything needs rewriting: a bare LF, or a CR not followed by LF. Two
+// `indexOf` passes rather than a lookbehind regex, which was ten times slower on
+// a large message.
+const needsNormalizing = (raw: string): boolean => {
+  for (let i = raw.indexOf("\n"); i !== -1; i = raw.indexOf("\n", i + 1)) {
+    if (i === 0 || raw.charCodeAt(i - 1) !== 13) return true
+  }
+  for (let i = raw.indexOf("\r"); i !== -1; i = raw.indexOf("\r", i + 1)) {
+    if (raw.charCodeAt(i + 1) !== 10) return true
+  }
+  return false
+}
+
+/**
+ * Messages arriving over SMTP are already CRLF; anything hand-built may not be.
+ *
+ * The common case is a message that needs nothing, and `replace` copies the whole
+ * string even then — 59 MB of extra memory for a 25 MB message, and this runs
+ * three times on the way in. Testing first costs a scan and no allocation.
+ */
+export const normalizeEol = (raw: string): string =>
+  needsNormalizing(raw) ? raw.replace(/\r\n|\r|\n/g, CRLF) : raw
 
 // headers
 
@@ -652,11 +672,38 @@ export const stripHtml = (input: string): string =>
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
 
-export const snippetOf = (raw: string, message: ParsedMessage, length = 240): string => {
-  const { text, html } = bodyText(raw, message)
-  const source = text || stripHtml(html)
-  return source.replace(/\s+/g, " ").trim().slice(0, length)
+/**
+ * The start of a message's readable text, decoded from only the start of its
+ * part.
+ *
+ * A snippet is 240 characters and the search extract 100,000, but both used to
+ * decode the *whole* body first — a copy of it, then a whitespace-collapsing copy
+ * of that — to keep a sliver. Here a bounded slice of the raw part is decoded
+ * instead. Four raw characters per wanted one is generous for every encoding in
+ * use: base64 is 4:3, quoted-printable at worst 3:1, and 8-bit text is 1:1 or
+ * better.
+ */
+const textHead = (raw: string, message: ParsedMessage, wanted: number): string => {
+  const limit = wanted * 4 + 4096
+  let text = ""
+  let html = ""
+  walk(message.root, (p) => {
+    if (p.type !== "text" || p.disposition?.type === "attachment") return
+    if (p.subtype !== "plain" && p.subtype !== "html") return
+    if (p.subtype === "plain" ? text : html) return
+    const head = decodeBody(
+      raw.slice(p.bodyStart, Math.min(p.end, p.bodyStart + limit)),
+      p.encoding,
+      p.params.charset ?? "utf-8",
+    )
+    if (p.subtype === "plain") text = head
+    else html = head
+  })
+  return text || stripHtml(html)
 }
+
+export const snippetOf = (raw: string, message: ParsedMessage, length = 240): string =>
+  textHead(raw, message, length).replace(/\s+/g, " ").trim().slice(0, length)
 
 /**
  * What IMAP SEARCH TEXT and the panel's search box match against: every header
@@ -668,8 +715,7 @@ export const searchTextOf = (raw: string, message: ParsedMessage, limit = 100_00
     const v = headerValue(message.headers, name)
     if (v) chunks.push(decodeWords(v))
   }
-  const { text, html } = bodyText(raw, message)
-  chunks.push(text || stripHtml(html))
+  chunks.push(textHead(raw, message, limit))
   return chunks.join(" ").replace(/\s+/g, " ").trim().slice(0, limit)
 }
 

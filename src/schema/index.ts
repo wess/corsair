@@ -68,6 +68,21 @@ export const sessions = defineSchema("sessions", {
   revoked_at: column.timestamp().nullable(),
 })
 
+/**
+ * A webmail session. The token names a row here, so a session can be ended
+ * before it expires and cannot be minted from the signing secret alone.
+ */
+export const mailSessions = defineSchema("mail_sessions", {
+  id: column.text().primaryKey(),
+  address_id: column.uuid().ref("addresses", "id"),
+  ip: column.text().nullable(),
+  user_agent: column.text().nullable(),
+  created_at: now(),
+  last_used_at: column.timestamp().nullable(),
+  expires_at: column.timestamp(),
+  revoked_at: column.timestamp().nullable(),
+})
+
 // A referral is recorded at signup and rewarded when the referred user first
 // pays, which is why the two timestamps are separate columns rather than one
 // status.
@@ -896,6 +911,7 @@ export const allSchemas = [
   idempotencyKeys,
   jobs,
   mailLog,
+  mailSessions,
   messageBlobs,
   messageTombstones,
   messages,

@@ -1,5 +1,5 @@
 import { from } from "@atlas/db"
-import { hashPassword } from "../auth/index.ts"
+import { hashPassword, revokeMailSessions } from "../auth/index.ts"
 import { allColumns, db, num } from "../db/index.ts"
 import { conflict, invalidParameter, notFound } from "../errors/index.ts"
 import { uidValidity } from "../ids/index.ts"
@@ -303,7 +303,11 @@ export const destinationsOf = (addressId: string): Promise<AddressDestination[]>
  * account password would keep working, the new one would not, and nothing would
  * say why. The account password is the one to change.
  */
-export const setPassword = async (addressId: string, password: string): Promise<void> => {
+export const setPassword = async (
+  addressId: string,
+  password: string,
+  options: { keepSession?: string } = {},
+): Promise<void> => {
   const address = await db().one<Address>(from(addresses).where((q) => q("id").equals(addressId)))
   if (!address) throw notFound("That address does not exist.")
   if (address.user_id) {
@@ -321,6 +325,9 @@ export const setPassword = async (addressId: string, password: string): Promise<
         updated_at: new Date(),
       }),
   )
+  // A session that outlives the password it was opened with is the stolen cookie
+  // the change was made to get rid of.
+  await revokeMailSessions(addressId, options.keepSession)
 }
 
 /**
@@ -379,6 +386,7 @@ export const linkToAccount = async (addressId: string, userId: string): Promise<
         updated_at: new Date(),
       }),
   )
+  await revokeMailSessions(addressId)
 }
 
 /**
@@ -404,6 +412,7 @@ export const unlinkFromAccount = async (addressId: string, password: string): Pr
         updated_at: new Date(),
       }),
   )
+  await revokeMailSessions(addressId)
 }
 
 // route

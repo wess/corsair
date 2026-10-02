@@ -77,10 +77,58 @@ export const canonBody = (body: string): string => {
   return trimmed === "" ? "" : trimmed + CRLF
 }
 
-const bodyHash = (body: string): string =>
-  createHash("sha256")
-    .update(Buffer.from(canonBody(body), "latin1"))
-    .digest("base64")
+/**
+ * The base64 SHA-256 of the relaxed-canonical body, computed a line at a time.
+ *
+ * `canonBody` splits the body into an array of lines, maps each to a new string,
+ * and joins them: three copies and a few hundred thousand small strings for a
+ * large message — 81 MB on top of a 25 MB body. This walks the string with
+ * `indexOf`, canonicalises one line, and hands the hash a batch at a time, so the
+ * only thing held is the batch. The output is byte-identical to hashing
+ * `canonBody`'s result, which `tests/dkim.test.ts` checks against it on random
+ * input, because a signer and a verifier that disagree by one byte fail every
+ * message and say nothing.
+ */
+const BATCH = 64 * 1024
+
+export const bodyHash = (body: string): string => {
+  const hash = createHash("sha256")
+  let batch = ""
+  // Empty lines are held back: they only count if a non-empty line follows,
+  // because trailing empty lines are dropped.
+  let pendingEmpty = 0
+  let wrote = false
+
+  const flush = () => {
+    if (batch) hash.update(Buffer.from(batch, "latin1"))
+    batch = ""
+  }
+
+  let start = 0
+  while (start <= body.length) {
+    const end = body.indexOf(CRLF, start)
+    const line = end === -1 ? body.slice(start) : body.slice(start, end)
+    start = end === -1 ? body.length + 1 : end + CRLF.length
+
+    const canon = line.replace(/[ \t]+/g, " ").replace(/[ \t]+$/, "")
+    if (canon === "") {
+      pendingEmpty++
+      continue
+    }
+    if (pendingEmpty) {
+      batch += CRLF.repeat(pendingEmpty)
+      pendingEmpty = 0
+    }
+    batch += canon + CRLF
+    wrote = true
+    if (batch.length >= BATCH) flush()
+  }
+  flush()
+
+  // An empty (or all-blank) body canonicalises to the empty string, not to CRLF.
+  if (!wrote) return createHash("sha256").update("").digest("base64")
+  return hash.digest("base64")
+}
 
 // sign
 

@@ -1,5 +1,6 @@
 import { resolveMx } from "node:dns/promises"
 import { config } from "../../config/index.ts"
+import { createWriter, type SocketWriter } from "../../socketio/index.ts"
 
 /**
  * An SMTP client, used to hand a message to somebody else's server.
@@ -133,10 +134,19 @@ const connect = async (input: {
     notify?.()
   }
 
+  // Every write goes through this, so what the socket will not take now is
+  // queued and sent on `drain` instead of being dropped, and strings go out as
+  // latin1 instead of being re-encoded as UTF-8. See `src/socketio`.
+  let writer!: SocketWriter
+
   const handlers = {
     data(_socket: unknown, data: Uint8Array) {
       if (upgraded) return
       onData(data)
+    },
+    drain() {
+      if (upgraded) return
+      writer.drain()
     },
     close() {
       if (upgraded) return
@@ -154,6 +164,7 @@ const connect = async (input: {
     ...(input.tls ? { tls: true } : {}),
     socket: handlers as never,
   })
+  writer = createWriter(() => socket)
 
   const read = async (expect?: number): Promise<{ code: number; text: string }> => {
     const deadline = Date.now() + input.timeoutMs
@@ -182,7 +193,7 @@ const connect = async (input: {
   return {
     read,
     write: (line) => {
-      socket.write(line)
+      writer.write(line)
     },
     upgrade: async () => {
       let settle!: () => void
@@ -216,7 +227,9 @@ const connect = async (input: {
             settle()
           },
           open() {},
-          drain() {},
+          drain() {
+            writer.drain()
+          },
         },
         // A mail server's certificate is very often self-signed or expired, and
         // refusing to deliver on that basis loses real mail. Opportunistic TLS
@@ -258,12 +271,23 @@ const connect = async (input: {
   }
 }
 
-/** Dot-stuffs the body and appends the terminator. */
-const dataPayload = (raw: string): string => {
-  const normalized = raw.replace(/\r\n|\r|\n/g, CRLF)
-  const stuffed = normalized.replace(/(^|\r\n)\./g, "$1..")
-  const trailing = stuffed.endsWith(CRLF) ? "" : CRLF
-  return `${stuffed}${trailing}.${CRLF}`
+/**
+ * Dot-stuffs the body and writes it with the terminator.
+ *
+ * Each rewrite happens only when the body needs it. Queued mail is already CRLF
+ * and almost never has a line starting with a dot, so a message is normally sent
+ * as the very string that was read from storage — the unconditional `replace`
+ * calls made two more full copies of every message, which on a 25 MB one is
+ * most of what the delivery worker holds. The terminator is a separate write for
+ * the same reason: concatenating it would copy the body again.
+ */
+const writeData = (write: (data: string) => void, raw: string): void => {
+  const normalized = /(?<!\r)\n|\r(?!\n)/.test(raw) ? raw.replace(/\r\n|\r|\n/g, CRLF) : raw
+  const stuffed = /(^|\r\n)\./.test(normalized)
+    ? normalized.replace(/(^|\r\n)\./g, "$1..")
+    : normalized
+  write(stuffed)
+  write(stuffed.endsWith(CRLF) ? `.${CRLF}` : `${CRLF}.${CRLF}`)
 }
 
 export const sendMessage = async (input: SendInput): Promise<SendResult> => {
@@ -313,7 +337,7 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
     conn.write(`DATA${CRLF}`)
     await conn.read(354)
 
-    conn.write(dataPayload(input.raw))
+    writeData(conn.write, input.raw)
     const accepted = await conn.read(250)
 
     conn.write(`QUIT${CRLF}`)

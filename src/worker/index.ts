@@ -197,6 +197,10 @@ const runJob = async (job: Job): Promise<void> => {
         values: [],
       })
       await db().execute({
+        text: "DELETE FROM mail_sessions WHERE expires_at < now() - interval '7 days'",
+        values: [],
+      })
+      await db().execute({
         text: "DELETE FROM tokens WHERE expires_at < now() - interval '7 days'",
         values: [],
       })

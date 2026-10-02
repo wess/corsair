@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test"
+import { createHash } from "node:crypto"
 import {
+  bodyHash,
   canonBody,
   dkimRecord,
   generateKeyPair,
@@ -181,5 +183,53 @@ describe("resolver shape and malformed keys", () => {
     const junk = async () => "v=DKIM1; k=rsa; p=!!!!not base64!!!!"
     const result = await verifySignature(signed, undefined, { lookup: junk })
     expect(result.result).toBe("permerror")
+  })
+})
+
+describe("bodyHash", () => {
+  const reference = (body: string): string =>
+    createHash("sha256")
+      .update(Buffer.from(canonBody(body), "latin1"))
+      .digest("base64")
+
+  test("is the hash of the canonical body, for the awkward cases", () => {
+    for (const body of [
+      "",
+      "\r\n",
+      "\r\n\r\n",
+      "a",
+      "a\r\n",
+      "a\r\n\r\n\r\n",
+      "\r\n\r\na",
+      "a\r\n\r\nb",
+      "  \r\n \t \r\na b  \r\n  \r\n",
+      "line with   many \t spaces   \r\nsecond\r\n",
+      "no trailing newline",
+      " \r\n",
+    ]) {
+      expect(bodyHash(body)).toBe(reference(body))
+    }
+  })
+
+  test("agrees with canonBody on random bodies", () => {
+    const pieces = ["a", "b c", "  ", "\t", "x  y", "", "line", "\u00e9"]
+    let seed = 12345
+    const next = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff
+      return seed
+    }
+    for (let round = 0; round < 500; round++) {
+      let body = ""
+      const lines = next() % 12
+      for (let i = 0; i < lines; i++) {
+        body += pieces[next() % pieces.length]! + (next() % 5 === 0 ? "" : "\r\n")
+      }
+      expect(bodyHash(body)).toBe(reference(body))
+    }
+  })
+
+  test("agrees on a body larger than one batch", () => {
+    const body = "The quick brown fox   jumps \r\n\r\nover the lazy dog.  \r\n".repeat(20_000)
+    expect(bodyHash(body)).toBe(reference(body))
   })
 })

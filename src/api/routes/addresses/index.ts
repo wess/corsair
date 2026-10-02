@@ -11,6 +11,7 @@ import {
   setPassword,
   unlinkFromAccount,
 } from "../../../addresses/index.ts"
+import { revokeMailSessions } from "../../../auth/index.ts"
 import { allColumns, db } from "../../../db/index.ts"
 import { conflict, invalidParameter, notFound } from "../../../errors/index.ts"
 import { emit } from "../../../events/index.ts"
@@ -268,6 +269,9 @@ export const addressRoutes: Route[] = [
       if (c.body.name !== undefined) patch.name = c.body.name
       if (c.body.filter_id !== undefined) patch.filter_id = c.body.filter_id
       if (c.body.disabled !== undefined) patch.disabled = c.body.disabled
+      // Disabling ends its sessions for good. Merely refusing them while it is
+      // disabled would let every old cookie come back to life on re-enabling.
+      if (c.body.disabled === true) await revokeMailSessions(address.id)
       if (c.body.daily_out_limit !== undefined) patch.daily_out_limit = c.body.daily_out_limit
 
       const updated = await db().one<Address>(

@@ -13,6 +13,7 @@ import {
   folderStatus,
   messagesIn,
   moveTo,
+  searchTextFor,
   setFlags,
 } from "../../store/index.ts"
 import { loadRaw, needsBody, parseFetchItems, renderFetch, setsSeen } from "../fetch/index.ts"
@@ -31,10 +32,34 @@ import {
   parseSearch,
   parseSortKeys,
   needsHeaders as searchNeedsHeaders,
+  needsText as searchNeedsText,
   sortCandidates,
 } from "../search/index.ts"
 
 const CRLF = "\r\n"
+
+// How many messages a SEARCH tests at once, and how many bodies it may download at
+// once to read their headers.
+const SEARCH_SLICE = 200
+const BODY_LOADS = 4
+
+/** `map` with at most `limit` calls in flight, results in order. */
+const mapLimited = async <T, R>(
+  items: readonly T[],
+  limit: number,
+  work: (item: T) => Promise<R>,
+): Promise<R[]> => {
+  const results = new Array<R>(items.length)
+  let next = 0
+  const lanes = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next++
+      results[index] = await work(items[index]!)
+    }
+  })
+  await Promise.all(lanes)
+  return results
+}
 
 // Longest single command line, and the most an unauthenticated connection may
 // make us buffer for one command (line plus literals). Dovecot's line limit is
@@ -68,6 +93,12 @@ export type ImapHooks = {
   onAuthFailure?: (username: string) => void
   /** Pushes an unsolicited response, used by IDLE. */
   push: (data: string) => void
+  /**
+   * Sends part of a response now and resolves when the peer has caught up. FETCH
+   * uses it to emit one message at a time. Without it (tests, which read the
+   * return value of `feed`) the whole response is returned instead.
+   */
+  stream?: (chunk: string) => Promise<void>
 }
 
 export type ImapSession = {
@@ -264,8 +295,22 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
     )
   }
 
-  const sequenceOf = (message: Message): number =>
-    (selected?.snapshot.findIndex((m) => m.id === message.id) ?? -1) + 1
+  // Sequence numbers by message id. `findIndex` per message made FETCH 1:* and
+  // every search quadratic in the folder size. Rebuilt when the snapshot is
+  // replaced (it always is, never edited in place) or changes length.
+  let sequences: { of: Message[]; length: number; byId: Map<string, number> } | null = null
+  const sequenceOf = (message: Message): number => {
+    const snapshot = selected?.snapshot
+    if (!snapshot) return 0
+    if (!sequences || sequences.of !== snapshot || sequences.length !== snapshot.length) {
+      sequences = {
+        of: snapshot,
+        length: snapshot.length,
+        byId: new Map(snapshot.map((m, index) => [m.id, index + 1])),
+      }
+    }
+    return sequences.byId.get(message.id) ?? 0
+  }
 
   // commands
 
@@ -319,6 +364,10 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
     const wantsBody = needsBody(items)
     const marksSeen = setsSeen(items) && !selected.readOnly
 
+    // One message at a time. `FETCH 1:* RFC822` used to build the whole mailbox as
+    // one string before sending any of it; with a stream hook each message is
+    // rendered, written, and released, and the loop waits for a slow client to
+    // catch up between messages. Without one (tests) it accumulates as before.
     let out = ""
     for (const message of targets) {
       const raw = wantsBody ? await loadRaw(message) : null
@@ -331,7 +380,9 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
         message.flags = next
       }
 
-      out += renderFetch({ sequence, message, raw }, items)
+      const rendered = renderFetch({ sequence, message, raw }, items)
+      if (hooks.stream) await hooks.stream(rendered)
+      else out += rendered
     }
 
     return out + ok(tag, `${uid ? "UID " : ""}FETCH completed.`)
@@ -430,25 +481,52 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
     const snapshot = selected.snapshot
     const maxUid = snapshot.length ? num(snapshot[snapshot.length - 1]!.uid) : 0
 
-    let candidates: Candidate[] = snapshot.map((message, index) => ({
-      message,
-      sequence: index + 1,
-    }))
+    const wantsHeaders = searchNeedsHeaders(parsed.criterion)
+    const wantsText = searchNeedsText(parsed.criterion)
+    const ctx = { maxSequence: snapshot.length, maxUid }
 
-    // Headers are only loaded when a criterion actually needs them, and only
-    // for the messages that reach that point.
-    if (searchNeedsHeaders(parsed.criterion)) {
-      candidates = await Promise.all(
-        candidates.map(async (candidate) => {
+    // Evaluated a slice at a time. Loading every candidate's headers up front
+    // meant every body in the folder was downloaded and held at once (Thunderbird
+    // sends `SEARCH HEADER Message-ID` routinely), and the TEXT extract was
+    // carried on every row. Now each slice fetches what it needs, is tested,
+    // and is dropped; only the hits are kept, and only as light as a hit can be.
+    let hits: Candidate[] = []
+    for (let start = 0; start < snapshot.length; start += SEARCH_SLICE) {
+      let slice: Candidate[] = snapshot.slice(start, start + SEARCH_SLICE).map((message, i) => ({
+        message,
+        sequence: start + i + 1,
+      }))
+
+      if (wantsText) {
+        const text = await searchTextFor(slice.map((c) => c.message.id))
+        slice = slice.map((c) => ({
+          ...c,
+          message: { ...c.message, search_text: text.get(c.message.id) ?? null },
+        }))
+      }
+
+      if (wantsHeaders) {
+        slice = await mapLimited(slice, BODY_LOADS, async (candidate) => {
           const raw = await loadRaw(candidate.message)
           return raw ? { ...candidate, headers: mime.parseMessage(raw).headers } : candidate
-        }),
-      )
-    }
+        })
+      }
 
-    let hits = candidates.filter((c) =>
-      matches(parsed.criterion, c, { maxSequence: snapshot.length, maxUid }),
-    )
+      for (const candidate of slice) {
+        if (matches(parsed.criterion, candidate, ctx)) {
+          // SORT may need the headers again; nothing else does, and neither the
+          // extract nor the headers should outlive the slice.
+          hits.push(
+            sort
+              ? { ...candidate, message: { ...candidate.message, search_text: null } }
+              : {
+                  message: { ...candidate.message, search_text: null },
+                  sequence: candidate.sequence,
+                },
+          )
+        }
+      }
+    }
     if (sort && sortKeys.length) hits = sortCandidates(hits, sortKeys)
 
     const values = hits.map((c) => (uid ? num(c.message.uid) : c.sequence))
@@ -930,6 +1008,13 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
 
         if (command.trim()) {
           try {
+            // Whatever earlier commands in this chunk produced goes out before a
+            // command that streams its own output, or a pipelined FETCH would
+            // overtake the replies to the commands in front of it.
+            if (hooks.stream && out) {
+              await hooks.stream(out)
+              out = ""
+            }
             out += await dispatch(command)
           } catch (e) {
             console.error("[corsair] imap command failed:", e)
