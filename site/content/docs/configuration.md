@@ -222,6 +222,12 @@ Card details never reach this server. The customer enters them on the provider's
 hosted page; a brand, four digits, and an opaque reference come back. There is no
 code path here that could accept a card number.
 
+## Mailbox transfers
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `TRANSFER_ALLOW_PRIVATE` | `false` | Allow transfer sources on a trusted private network; verified TLS is still required |
+
 ## Webhooks
 
 | Variable | Default | What it does |

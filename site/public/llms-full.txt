@@ -2766,6 +2766,12 @@ Card details never reach this server. The customer enters them on the provider's
 hosted page; a brand, four digits, and an opaque reference come back. There is no
 code path here that could accept a card number.
 
+## Mailbox transfers
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `TRANSFER_ALLOW_PRIVATE` | `false` | Allow transfer sources on a trusted private network; verified TLS is still required |
+
 ## Webhooks
 
 | Variable | Default | What it does |
@@ -4814,11 +4820,21 @@ decoration.
 
 A webhook URL is attacker-supplied and this server fetches it. That is an SSRF
 primitive, so endpoints on private, loopback, and link-local addresses are
-refused at creation.
+refused at creation and delivery. Delivery connects to the checked IP address, preserves the original HTTP Host and TLS hostname, and does not follow redirects. A changed DNS answer cannot redirect that connection inside the network.
 
 `WEBHOOK_ALLOW_PRIVATE=true` exists for an operator whose consumers are on the
 same private network. It is off by default because the safe case is the rarer
 one. Turning it on means a customer can point a webhook at your metadata service.
+
+Mailbox transfer sources use the same address checks, with a separate `TRANSFER_ALLOW_PRIVATE` switch that defaults to `false`. Transfers require verified TLS before credentials are sent. An authenticated SMTP relay also requires verified TLS; unauthenticated delivery to recipient MX servers retains opportunistic TLS for compatibility.
+
+## Browser sessions and resource limits
+
+Browser mutations require the page's own origin. Sibling custom webmail domains cannot submit changes using another host's session cookie. API and JMAP responses carry `Cache-Control: no-store`, including message downloads and errors.
+
+Login failures share the IP ban across HTTP and mail protocols. Password hashing and verification share four work slots and a bounded waiting queue. Backup codes are consumed atomically, so concurrent logins cannot redeem one twice. Rotating an agent key revokes its webmail sessions.
+
+MIME parsing stops expanding after 32 nested levels or 1,000 parts, preserving the raw message. HTTP bodies and queued protocol input are bounded. Socket producers stop retaining queued mail when a client disconnects. Session activity timestamps are updated at most once a minute to avoid a database write on every request.
 
 ## Content sanitisation
 
@@ -5943,7 +5959,7 @@ Source: https://wess.io/corsair/docs/transfers.html
 # Transfers
 
 A transfer copies an existing mailbox into Corsair over IMAP, folder structure
-intact, from any host that speaks it.
+intact. The source must support implicit TLS with a valid certificate for its IMAP hostname. Plaintext connections and unverified certificates are refused.
 
 ## Before you start
 
@@ -5961,8 +5977,7 @@ Every selectable folder. Common names are mapped onto the local special-use
 folders — `[Gmail]/Sent Mail` becomes `Sent`, `Deleted Items` becomes `Trash` —
 so you do not end up with two of each.
 
-Flags are preserved. Message dates are preserved, so a transferred mailbox sorts
-correctly rather than showing everything as arriving today.
+Message bodies and their headers are copied. Read flags and the source IMAP internal dates are not currently preserved.
 
 ## Limits
 
@@ -5975,7 +5990,9 @@ correctly rather than showing everything as arriving today.
 
 The source password is encrypted at rest and erased the moment the transfer
 reaches a terminal state. It is someone else's credential and there is no reason
-to keep it once the copy is done.
+to keep it once the copy is done. Cancellation stops copying between messages; a message already being saved may finish. Copied messages remain in the destination.
+
+Private, loopback, and link-local source addresses are refused. An operator migrating from a trusted private server can explicitly set `TRANSFER_ALLOW_PRIVATE=true`. The worker checks DNS again and connects to the checked address while verifying the original hostname.
 
 If the source requires an app-specific password — Gmail and Fastmail both do —
 generate one there and use it here.

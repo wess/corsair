@@ -1,5 +1,6 @@
 import { resolveMx } from "node:dns/promises"
 import { config } from "../../config/index.ts"
+import { peerError } from "../../tlsverify/index.ts"
 import { createWriter, type SocketWriter } from "../../socketio/index.ts"
 
 /**
@@ -106,6 +107,7 @@ const connect = async (input: {
   port: number
   tls: boolean
   timeoutMs: number
+  verifyTls: boolean
 }): Promise<Conn> => {
   let buffer = ""
   let closed = false
@@ -126,11 +128,19 @@ const connect = async (input: {
   let upgraded = false
 
   const onData = (data: Uint8Array) => {
+    if (closed) return
+    if (buffer.length + data.byteLength > 64 * 1024) {
+      onClosed()
+      socket.end()
+      return
+    }
     buffer += Buffer.from(data).toString("latin1")
     notify?.()
   }
   const onClosed = () => {
     closed = true
+    buffer = ""
+    writer?.close()
     notify?.()
   }
 
@@ -140,6 +150,12 @@ const connect = async (input: {
   let writer!: SocketWriter
 
   const handlers = {
+    handshake(socket: Bun.Socket<unknown>, success: boolean, error: Error | null) {
+      if (!success || (input.verifyTls && peerError(socket, input.host, error))) {
+        onClosed()
+        socket.end()
+      }
+    },
     data(_socket: unknown, data: Uint8Array) {
       if (upgraded) return
       onData(data)
@@ -222,8 +238,10 @@ const connect = async (input: {
           error() {
             onClosed()
           },
-          handshake(_socket: unknown, success: boolean, error?: Error) {
-            if (!success) outcome.error = error ?? new Error("TLS handshake failed")
+          handshake(socket: Bun.Socket<unknown>, success: boolean, error: Error | null) {
+            const invalid = input.verifyTls ? peerError(socket, input.host, error) : null
+            if (!success || invalid)
+              outcome.error = invalid ?? error ?? new Error("TLS handshake failed")
             settle()
           },
           open() {},
@@ -235,7 +253,7 @@ const connect = async (input: {
         // refusing to deliver on that basis loses real mail. Opportunistic TLS
         // is about passive eavesdropping, not authentication, so the connection
         // is encrypted but the certificate is not enforced.
-        tls: { rejectUnauthorized: false, serverName: input.host },
+        tls: { rejectUnauthorized: input.verifyTls, serverName: input.host },
       } as never)
 
       socket = tls as never
@@ -305,6 +323,7 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
       port,
       tls: Boolean(input.implicitTls),
       timeoutMs,
+      verifyTls: Boolean(input.auth),
     })
 
     await conn.read(220)
@@ -321,6 +340,7 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
     }
 
     if (input.auth) {
+      if (!conn.secure()) throw new Error("The relay must offer TLS before authentication.")
       const payload = Buffer.from(`\0${input.auth.user}\0${input.auth.pass}`).toString("base64")
       conn.write(`AUTH PLAIN ${payload}${CRLF}`)
       await conn.read(235)

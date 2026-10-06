@@ -574,3 +574,12 @@ bun run dev
 
 Postgres runs in Docker on port 55433 to stay clear of a system install and of
 outbox's 55432.
+
+## Security follow-up (2026-10)
+
+- Browser mutations pass `checkOrigin` before routing, including custom webmail hosts. API and JMAP responses use `no-store`.
+- Transfer and authenticated relay credentials require verified TLS. Bun can report a successful handshake with an authorization error: check `socket.authorized`, the authorization error, and the peer certificate hostname explicitly, even with `rejectUnauthorized` enabled. `tests/transfersecurity.test.ts` and `tests/relaysecurity.test.ts` use real certificates and sockets.
+- `safeFetch` connects to its checked IP with the original Host and TLS server name. Transfer sources use the same resolver; the private-network override is separate from the webhook override.
+- A storage read outage is a deferral, never evidence that a queued body was deleted. Only a 404 means missing. Downloads have an abort deadline through the body; queue retries retain the object and do not spend a delivery attempt.
+- Protocol input goes through `createReader` to serialize and bound pending packets. Its copy owns Bun's callback bytes across awaits. Close both reader and writer when the active socket closes; ignore the obsolete cleartext socket after a TLS upgrade.
+- Remote-image permission belongs to one message. Keep the webmail reader keyed by message id so enabling images cannot carry into the next message.

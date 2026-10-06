@@ -222,6 +222,8 @@ export const useLoad = <T,>(
   useEffect(() => {
     let cancelled = false
     setLoading(true)
+    setData(null)
+    setError(null)
     loader()
       .then((value) => {
         if (!cancelled) {

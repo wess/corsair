@@ -30,6 +30,7 @@ const CRLF = "\r\n"
 export type Pop3Hooks = {
   isSecure: () => boolean
   startTls?: () => void
+  stream?: (response: string) => Promise<void>
   remoteIp: string
   onAuthSuccess?: () => void
   onAuthFailure?: (username: string) => void
@@ -76,7 +77,7 @@ export const createPop3Session = (hooks: Pop3Hooks): Pop3Session => {
   }
 
   const finishAuth = async (username: string, password: string): Promise<string> => {
-    const result = await authenticateAddress(username, password)
+    const result = await authenticateAddress(username, password, hooks.remoteIp)
     if (!result) {
       hooks.onAuthFailure?.(username)
       return err("Invalid credentials.")
@@ -265,7 +266,9 @@ export const createPop3Session = (hooks: Pop3Hooks): Pop3Session => {
         buffer = buffer.slice(at + (useBare ? 1 : 2))
         if (!line.trim()) continue
 
-        out += await handle(line.trim())
+        const response = await handle(line.trim())
+        if (hooks.stream) await hooks.stream(response)
+        else out += response
         if (closing) break
       }
 

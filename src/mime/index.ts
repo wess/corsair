@@ -454,11 +454,12 @@ export const decodeTransfer = (raw: string, encoding: string): Buffer => {
 }
 
 const decodeQuotedPrintable = (raw: string): Buffer => {
-  const out: number[] = []
+  const out = Buffer.allocUnsafe(raw.length)
+  let length = 0
   for (let i = 0; i < raw.length; i++) {
     const c = raw[i]!
     if (c !== "=") {
-      out.push(c.charCodeAt(0) & 0xff)
+      out[length++] = c.charCodeAt(0) & 0xff
       continue
     }
     // Soft line break: "=" at end of line means "no break here".
@@ -469,11 +470,11 @@ const decodeQuotedPrintable = (raw: string): Buffer => {
     const hex = raw.slice(i + 1, i + 3)
     const n = Number.parseInt(hex, 16)
     if (/^[0-9a-fA-F]{2}$/.test(hex) && !Number.isNaN(n)) {
-      out.push(n)
+      out[length++] = n
       i += 2
-    } else out.push(0x3d)
+    } else out[length++] = 0x3d
   }
-  return Buffer.from(out)
+  return out.subarray(0, length)
 }
 
 export const encodeQuotedPrintable = (input: string): string => {
@@ -536,12 +537,21 @@ const findBoundaries = (raw: string, start: number, end: number, boundary: strin
     // A boundary is only a boundary at the start of a line.
     const atLineStart = at === start || raw.startsWith(CRLF, at - 2)
     if (atLineStart) offsets.push(at)
+    if (offsets.length >= 1001) break
     i = at + marker.length
   }
   return offsets
 }
 
-const parsePart = (raw: string, start: number, end: number, section: string): Part => {
+const parsePart = (
+  raw: string,
+  start: number,
+  end: number,
+  section: string,
+  budget: { parts: number },
+  depth: number,
+): Part => {
+  budget.parts++
   const { headers, bodyStart } = splitHeaders(raw, start, end)
 
   const ct = parseParams(headerValue(headers, "content-type") ?? "text/plain")
@@ -576,9 +586,12 @@ const parsePart = (raw: string, start: number, end: number, section: string): Pa
     child: null,
   }
 
+  // excessive nesting stays opaque, so one hostile message cannot exhaust the stack
+  if (depth >= 32 || budget.parts >= 1000) return part
   if (type === "multipart" && ct.params.boundary) {
     const offsets = findBoundaries(raw, bodyStart, end, ct.params.boundary)
     for (let i = 0; i < offsets.length - 1; i++) {
+      if (budget.parts >= 1000) break
       const open = offsets[i]!
       const close = offsets[i + 1]!
       // Skip past the boundary line itself to reach the child's headers.
@@ -590,10 +603,10 @@ const parsePart = (raw: string, start: number, end: number, section: string): Pa
       const childSection = section
         ? `${section}.${part.parts.length + 1}`
         : `${part.parts.length + 1}`
-      part.parts.push(parsePart(raw, childStart, childEnd, childSection))
+      part.parts.push(parsePart(raw, childStart, childEnd, childSection, budget, depth + 1))
     }
   } else if (type === "message" && subtype === "rfc822") {
-    part.child = parseMessageRange(raw, bodyStart, end, section)
+    part.child = parseMessageRange(raw, bodyStart, end, section, budget, depth + 1)
   }
 
   return part
@@ -604,8 +617,10 @@ const parseMessageRange = (
   start: number,
   end: number,
   section: string,
+  budget: { parts: number },
+  depth: number,
 ): ParsedMessage => {
-  const root = parsePart(raw, start, end, section)
+  const root = parsePart(raw, start, end, section, budget, depth)
   return { headers: root.headers, headerStart: start, bodyStart: root.bodyStart, end, root }
 }
 
@@ -614,7 +629,7 @@ const parseMessageRange = (
  * CRLF-terminated; `normalizeEol` gets you there if it came from a file.
  */
 export const parseMessage = (raw: string): ParsedMessage =>
-  parseMessageRange(raw, 0, raw.length, "")
+  parseMessageRange(raw, 0, raw.length, "", { parts: 0 }, 0)
 
 // extraction
 

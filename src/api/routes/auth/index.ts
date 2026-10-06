@@ -13,6 +13,8 @@ import {
   sessionCookie,
   spendVerifyTime,
   verifyPassword,
+  recordAuthFailure,
+  clearAuthFailures,
 } from "../../../auth/index.ts"
 import { config } from "../../../config/index.ts"
 import { db } from "../../../db/index.ts"
@@ -182,12 +184,16 @@ export const authRoutes: Route[] = [
       // The same reply whether the address is unknown or the password is wrong,
       // so the endpoint cannot be used to enumerate accounts.
       const failed = unauthorized("Those credentials are not valid.")
+      const fail = async () => {
+        await recordAuthFailure(ipOf(c as never), "panel", c.body.email).catch(() => {})
+        throw failed
+      }
       if (!user?.password_hash) {
         // Same time as a wrong password; see `spendVerifyTime`.
         await spendVerifyTime(c.body.password)
-        throw failed
+        return fail()
       }
-      if (!(await verifyPassword(c.body.password, user.password_hash))) throw failed
+      if (!(await verifyPassword(c.body.password, user.password_hash))) return fail()
       if (user.status === "terminated") throw forbidden("This account has been terminated.")
 
       if (user.totp_enabled) {
@@ -202,18 +208,22 @@ export const authRoutes: Route[] = [
           (user.backup_codes ?? []).some((stored) =>
             safeEqual(stored, createHash("sha256").update(c.body.code!.trim()).digest("hex")),
           )
-        if (!ok && !backup) throw unauthorized("That two-factor code is not valid.")
+        if (!ok && !backup) return fail()
 
         if (backup) {
           const used = createHash("sha256").update(c.body.code!.trim()).digest("hex")
-          await db().execute(
-            from(users)
-              .where((q) => q("id").equals(user.id))
-              .update({ backup_codes: (user.backup_codes ?? []).filter((c2) => c2 !== used) }),
-          )
+          const consumed = await db().one({
+            text: `UPDATE users SET backup_codes = (
+                     SELECT coalesce(jsonb_agg(code), '[]'::jsonb)
+                     FROM jsonb_array_elements_text(backup_codes) AS code WHERE code <> $2
+                   ) WHERE id = $1 AND backup_codes @> jsonb_build_array($2::text) RETURNING id`,
+            values: [user.id, used],
+          })
+          if (!consumed) return fail()
         }
       }
 
+      await clearAuthFailures(ipOf(c as never)).catch(() => {})
       const session = await issueSession(user.id, {
         ip: ipOf(c as never),
         userAgent: c.headers.get("user-agent"),
@@ -275,6 +285,7 @@ export const authRoutes: Route[] = [
     { body: z.object({ code: z.string().min(6).max(10) }), before: authed, assigns: {} as never },
     async (c) => {
       const user = await userById(principalOf(c).userId)
+      if (user.totp_enabled) throw conflict("Two-factor authentication is already enabled.")
       if (!user.totp_secret) throw invalidParameter("Start the setup first.")
       if (!verifyTotp(user.totp_secret, c.body.code.replace(/\s/g, ""), { window: 1 })) {
         throw invalidParameter("That code is not valid. Check your device's clock.")

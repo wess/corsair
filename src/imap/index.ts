@@ -1,6 +1,6 @@
 import { clearAuthFailures, isBanned, recordAuthFailure } from "../auth/index.ts"
 import { config } from "../config/index.ts"
-import { createWriter, type SocketWriter } from "../socketio/index.ts"
+import { createReader, createWriter, type SocketWriter } from "../socketio/index.ts"
 import { canUpgradeServerSocketToTls, upgradeAcceptedSocket } from "../starttls/index.ts"
 import { tlsOptions } from "../tls/index.ts"
 import { createImapSession, type ImapSession } from "./session/index.ts"
@@ -32,7 +32,7 @@ type SocketData = {
   /** Every write goes through this; see `src/socketio`. */
   writer: SocketWriter
   /** Chains `data` handlers; see the note there. */
-  chain: Promise<void>
+  reader: ReturnType<typeof createReader>
 }
 
 const IDLE_POLL_MS = 5000
@@ -113,7 +113,7 @@ export const createListener = (input: {
         tlsSocket: null,
         idleTimer: null,
         authed: false,
-        chain: Promise.resolve(),
+        reader: null as never,
         writer: null as never,
       }
       data.writer = createWriter(() => data.tlsSocket ?? socket)
@@ -125,6 +125,8 @@ export const createListener = (input: {
         // Used by FETCH to send a large response one message at a time and wait
         // for the client to keep up, instead of building it all in memory.
         stream: async (chunk) => {
+          if ((data.tlsSocket ?? socket).readyState <= 0)
+            throw new Error("The client disconnected.")
           data.writer.write(chunk)
           await data.writer.settled()
         },
@@ -145,17 +147,30 @@ export const createListener = (input: {
         },
       })
 
+      data.reader = createReader(
+        async (chunk) => {
+          if (await ready) await handleChunk(data.tlsSocket ?? socket, chunk)
+        },
+        () => socket.end(),
+        config.maxMessageBytes + 64 * 1024,
+      )
       socket.data = data
       socket.timeout(PRE_AUTH_IDLE)
 
-      void isBanned(remoteIp).then((banned) => {
-        if (banned) {
-          data.writer.write(`* BYE Too many failed attempts from ${remoteIp}.\r\n`)
-          data.writer.afterFlush(() => socket.end())
-          return
-        }
-        data.writer.write(data.session.greeting())
-      })
+      const ready = isBanned(remoteIp)
+        .then((banned) => {
+          if (banned) {
+            data.writer.write(`* BYE Too many failed attempts from ${remoteIp}.\r\n`)
+            data.writer.afterFlush(() => socket.end())
+            return false
+          }
+          data.writer.write(data.session.greeting())
+          return true
+        })
+        .catch(() => {
+          socket.end()
+          return false
+        })
 
       // IDLE is a promise to tell the client about changes it did not ask for.
       // Polling is the honest implementation on top of Postgres: LISTEN/NOTIFY
@@ -188,9 +203,8 @@ export const createListener = (input: {
     data(socket: Bun.Socket<SocketData>, chunk: Uint8Array) {
       const state = socket.data
       if (!state?.session) return
-      const next = state.chain.then(() => handleChunk(socket, chunk))
-      state.chain = next.catch(() => {})
-      return next
+      if (state.tlsSocket && socket !== state.tlsSocket) return
+      return state.reader.feed(chunk)
     },
 
     // The socket has room again: write what it could not take before.
@@ -199,6 +213,9 @@ export const createListener = (input: {
     },
 
     close(socket: Bun.Socket<SocketData>) {
+      if (socket.data?.tlsSocket && socket !== socket.data.tlsSocket) return
+      socket.data?.reader?.close()
+      socket.data?.writer?.close()
       if (socket.data?.idleTimer) clearInterval(socket.data.idleTimer)
       socket.data?.session?.close()
     },

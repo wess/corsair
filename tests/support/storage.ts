@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test"
 
 const objects = new Map<string, Buffer>()
 let failUpload = false
+let failRead = false
 const server = Bun.serve({
   hostname: "127.0.0.1",
   port: 0,
@@ -16,6 +17,7 @@ const server = Bun.serve({
       objects.delete(key)
       return new Response(null, { status: 204 })
     }
+    if (failRead) return new Response("unavailable", { status: 503 })
     const body = objects.get(key)
     return body ? new Response(new Uint8Array(body)) : new Response(null, { status: 404 })
   },
@@ -190,4 +192,40 @@ test("COPYUID pairs stay aligned when input ids are out of UID order", async () 
   for (const [i, uid] of copy.targetUids.entries()) {
     expect(rows.find((row) => num(row.uid) === uid)!.subject).toBe(originals[i]!.subject)
   }
+})
+
+test("storage read outages defer queued mail without spending a delivery attempt", async () => {
+  const { enqueue } = await import("../../src/outbound/index.ts")
+  const { drain } = await import("../../src/smtp/queue/index.ts")
+  const [delivery] = await enqueue({
+    mailFrom: "sender@example.test",
+    recipients: ["recipient@example.test"],
+    raw,
+  })
+  await db().execute({
+    text: "UPDATE deliveries SET run_at = now() - interval '100 years' WHERE id = $1",
+    values: [delivery!.id],
+  })
+  failRead = true
+  try {
+    await expect(getRaw({ storageKey: delivery!.storage_key })).rejects.toThrow(
+      "temporarily unavailable",
+    )
+    const result = await drain(1)
+    expect(result.deferred).toBe(1)
+    expect(result.failed).toBe(0)
+    const row = await db().one<{ status: string; attempts: number; last_code: number }>({
+      text: "SELECT status, attempts, last_code FROM deliveries WHERE id = $1",
+      values: [delivery!.id],
+    })
+    expect(row).toEqual({ status: "deferred", attempts: 0, last_code: 451 })
+    expect(objects.has(`/test/${delivery!.storage_key}`)).toBe(true)
+  } finally {
+    failRead = false
+    await db().execute({ text: "DELETE FROM deliveries WHERE id = $1", values: [delivery!.id] })
+  }
+})
+
+test("only a confirmed missing object is treated as missing mail", async () => {
+  expect(await getRaw({ storageKey: "missing.eml" })).toBeNull()
 })

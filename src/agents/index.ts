@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto"
 import { from } from "@atlas/db"
 import { createAddress } from "../addresses/index.ts"
-import { hashToken } from "../auth/index.ts"
+import { hashToken, revokeMailSessions } from "../auth/index.ts"
 import { allColumns, db } from "../db/index.ts"
 import { conflict } from "../errors/index.ts"
 import { type Address, type Agent, agents, type Domain } from "../schema/index.ts"
@@ -119,6 +119,7 @@ export const rotateAgentToken = async (agent: Agent): Promise<{ agent: Agent; to
       .update(credentialOf(token))
       .returning(...allColumns(agents)),
   ))!
+  await revokeMailSessions(agent.address_id)
   return { agent: updated, token }
 }
 

@@ -144,7 +144,7 @@ export const deliverEvent = async (eventId: string): Promise<DeliveryResult> => 
  */
 export const drainWebhooks = async (limit = 16): Promise<{ attempted: number }> => {
   const rows = await db().all<{ id: string }>({
-    text: `UPDATE webhook_events SET status = 'sending'
+    text: `UPDATE webhook_events SET status = 'sending', next_attempt_at = now()
             WHERE id IN (
               SELECT id FROM webhook_events
                WHERE status = 'pending' AND next_attempt_at <= now()
@@ -177,7 +177,7 @@ export const replayEvent = async (eventId: string): Promise<void> => {
 export const releaseStaleWebhooks = async (olderThanMinutes = 15): Promise<number> => {
   const rows = await db().all<{ id: string }>({
     text: `UPDATE webhook_events SET status = 'pending'
-            WHERE status = 'sending' AND created_at < now() - ($1 || ' minutes')::interval
+            WHERE status = 'sending' AND next_attempt_at < now() - ($1 || ' minutes')::interval
         RETURNING id`,
     values: [String(olderThanMinutes)],
   })

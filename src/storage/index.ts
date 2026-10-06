@@ -1,5 +1,5 @@
 import { from } from "@atlas/db"
-import { createStore, download, remove, type Store, upload } from "@atlas/storage"
+import { createStore, presign, remove, type Store, upload } from "@atlas/storage"
 import { config } from "../config/index.ts"
 import { type Connection, db } from "../db/index.ts"
 import { messageBlobs } from "../schema/index.ts"
@@ -98,16 +98,20 @@ export const getRaw = async (input: {
 }): Promise<string | null> => {
   if (input.storageKey) {
     const s = objectStore()
-    if (!s) return null
+    if (!s) throw new Error("Message storage is not configured.")
     try {
-      const response = await withDeadline(download(s, input.storageKey), "download")
-      // latin1, not UTF-8: the rest of the pipeline counts octets, and decoding
-      // as UTF-8 here would silently change every offset. See core/mime.
+      const response = await fetch(presign(s, input.storageKey, { expires: 60 }), {
+        signal: AbortSignal.timeout(OBJECT_STORE_TIMEOUT_MS),
+        redirect: "error",
+      })
+      if (!response.ok) {
+        await response.body?.cancel()
+        if (response.status === 404) return null
+        throw new Error("Message storage is temporarily unavailable.")
+      }
       return Buffer.from(await response.arrayBuffer()).toString("latin1")
     } catch {
-      // A missing object is a real state — a body deleted out from under a row
-      // — not an exception the caller can do anything with.
-      return null
+      throw new Error("Message storage is temporarily unavailable.")
     }
   }
   if (!input.messageId) return null

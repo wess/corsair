@@ -233,3 +233,23 @@ describe("snippetOf and searchTextOf on a large body", () => {
     expect(snippetOf(message, parseMessage(message))).toStartWith("alpha beta gamma alpha")
   })
 })
+
+test("deeply nested attached messages stay within the parser depth budget", () => {
+  const raw = `${"Content-Type: message/rfc822\r\n\r\n".repeat(5000)}Subject: leaf\r\n\r\nbody`
+  let part = parseMessage(raw).root
+  let depth = 0
+  while (part.child) {
+    depth++
+    part = part.child.root
+  }
+  expect(depth).toBeLessThanOrEqual(32)
+  expect(part.size).toBeGreaterThan(0)
+})
+
+test("a multipart message cannot allocate an unlimited part tree", () => {
+  const raw =
+    'Content-Type: multipart/mixed; boundary="b"\r\n\r\n' +
+    "--b\r\nContent-Type: text/plain\r\n\r\nx\r\n".repeat(5000) +
+    "--b--\r\n"
+  expect(parseMessage(raw).root.parts.length).toBeLessThan(1000)
+})

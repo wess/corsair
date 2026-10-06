@@ -9,6 +9,7 @@ import {
   requireMailIdentity,
   requirePrincipal,
   resolveSession,
+  isBanned,
 } from "../../auth/index.ts"
 import { config } from "../../config/index.ts"
 import { db } from "../../db/index.ts"
@@ -126,6 +127,7 @@ export const rateLimit: PipeFn = async (conn) => {
 
 /** Sign-in and sign-up are rate limited by IP, since there is no principal yet. */
 export const publicLimit: PipeFn = async (conn) => {
+  if (await isBanned(ipOf(conn))) throw rateLimitExceeded(60, 5)
   const { ok, retryAfterSeconds } = await limiter.check(`auth:ip:${ipOf(conn)}`, 5, 1)
   if (!ok) throw rateLimitExceeded(retryAfterSeconds ?? 1, 5)
   return conn
@@ -164,7 +166,14 @@ const mailAuth: PipeFn = async (conn) => {
   return assign(conn, { identity })
 }
 
-export const mailed: readonly PipeFn[] = [mailAuth]
+const mailLimit: PipeFn = async (conn) => {
+  const identity = identityOf(conn)
+  const { ok, retryAfterSeconds } = await limiter.check(`api:mail:${identity.address.id}`, 30, 1)
+  if (!ok) throw rateLimitExceeded(retryAfterSeconds ?? 1, 30)
+  return conn
+}
+
+export const mailed: readonly PipeFn[] = [mailAuth, mailLimit]
 
 export const identityOf = (conn: { assigns: unknown }): MailIdentity =>
   (conn.assigns as { identity: MailIdentity }).identity

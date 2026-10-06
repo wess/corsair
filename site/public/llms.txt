@@ -44,7 +44,7 @@ Corsair is a Bun and PostgreSQL application. Mail for every protocol is stored o
 - [Client settings](https://wess.io/corsair/docs/client-setup.html): Hostnames, ports, and per-client notes for every mail client worth naming.
 - [Webmail](https://wess.io/corsair/docs/webmail.html): The built-in three-pane client, how it signs in, and why message rendering is sanitised on the server.
 - [Filters](https://wess.io/corsair/docs/filters.html): The Sieve subset Corsair implements, and why filtering is a real language rather than a rules builder.
-- [Transfers](https://wess.io/corsair/docs/transfers.html): Copying an existing mailbox in over IMAP, folder structure and flags intact.
+- [Transfers](https://wess.io/corsair/docs/transfers.html): Copying an existing mailbox over verified TLS, with its folder structure.
 - [Deliverability](https://wess.io/corsair/docs/deliverability.html): Getting mail accepted is a reputation problem, not a software problem. What to do about it.
 - [Sending API](https://wess.io/corsair/docs/sending.html): Send transactional mail as your domains over HTTP, over a plain JSON API.
 - [Event hooks](https://wess.io/corsair/docs/webhooks.html): Signed JSON delivered to your endpoint when mail arrives, bounces, or is filed as spam.

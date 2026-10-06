@@ -3,7 +3,7 @@ import { hash, token, verify } from "@atlas/auth"
 import { from } from "@atlas/db"
 import { config } from "../config/index.ts"
 import { db } from "../db/index.ts"
-import { forbidden, unauthorized } from "../errors/index.ts"
+import { forbidden, rateLimitExceeded, unauthorized } from "../errors/index.ts"
 import {
   type Address,
   addresses,
@@ -136,7 +136,7 @@ export const resolveSession = async (cookieHeader: string | null): Promise<Princ
         q("expires_at").greaterThan(new Date()),
       ]),
   )
-  if (!row) return null
+  if (!row || row.user_id !== claims.sub) return null
 
   const user = await db().one<Pick<User, "id" | "is_owner" | "status">>(
     from(users)
@@ -146,11 +146,10 @@ export const resolveSession = async (cookieHeader: string | null): Promise<Princ
   if (!user || user.status === "terminated") return null
 
   void db()
-    .execute(
-      from(sessions)
-        .where((q) => q("id").equals(row.id))
-        .update({ last_used_at: new Date() }),
-    )
+    .execute({
+      text: "UPDATE sessions SET last_used_at = now() WHERE id = $1 AND (last_used_at IS NULL OR last_used_at < now() - interval '1 minute')",
+      values: [row.id],
+    })
     .catch(() => {})
 
   return { userId: row.user_id, jti: row.id, isOwner: user.is_owner }
@@ -295,9 +294,15 @@ const authenticateResolved = async (
   address: Address,
   password: string,
 ): Promise<MailIdentity | null> => {
-  if (address.disabled) return null
+  if (address.disabled) {
+    await spendVerifyTime(password)
+    return null
+  }
   if (address.type === "agent") return authenticateAgent(address, password)
-  if (address.type !== "standard" && address.type !== "catchall") return null
+  if (address.type !== "standard" && address.type !== "catchall") {
+    await spendVerifyTime(password)
+    return null
+  }
 
   /**
    * One credential, where the mailbox and the panel account are the same
@@ -313,7 +318,10 @@ const authenticateResolved = async (
    * the webmail cannot disagree about it.
    */
   const expected = await mailboxHash(address)
-  if (!expected) return null
+  if (!expected) {
+    await spendVerifyTime(password)
+    return null
+  }
   if (!(await verifyPassword(password, expected))) return null
 
   const domain = await db().one<Domain>(
@@ -355,9 +363,14 @@ export const verifyMailboxPassword = async (
 export const authenticateAddress = async (
   username: string,
   password: string,
+  ip?: string,
 ): Promise<MailIdentity | null> => {
+  if (ip && (await isBanned(ip))) return null
   const at = username.lastIndexOf("@")
-  if (at <= 0) return null
+  if (at <= 0) {
+    await spendVerifyTime(password)
+    return null
+  }
   const localPart = username.slice(0, at).toLowerCase()
   const domainName = username.slice(at + 1).toLowerCase()
 
@@ -366,7 +379,9 @@ export const authenticateAddress = async (
     // Not a hosted domain — but it may still be somebody's panel sign-in
     // address, which opens the one mailbox linked to that account.
     const viaAccount = await mailboxForAccountEmail(username.toLowerCase())
-    return viaAccount ? authenticateResolved(viaAccount, password) : null
+    if (viaAccount) return authenticateResolved(viaAccount, password)
+    await spendVerifyTime(password)
+    return null
   }
 
   const address = await db().one<Address>(
@@ -375,7 +390,10 @@ export const authenticateAddress = async (
       q("local_part").equals(localPart),
     ]),
   )
-  if (!address) return null
+  if (!address) {
+    await spendVerifyTime(password)
+    return null
+  }
   return authenticateResolved(address, password)
 }
 
@@ -501,7 +519,13 @@ export const resolveMailSession = async (
   // to your mailbox first". `mailboxHash` asks the real question, and still
   // ends the session if the owning account is terminated.
   if (!address || address.disabled) return null
-  if (!(await mailboxHash(address))) return null
+  if (address.type === "agent") {
+    const agent = await db().one({
+      text: "SELECT g.id FROM agents g JOIN users u ON u.id = g.user_id WHERE g.address_id = $1 AND u.status <> 'terminated'",
+      values: [address.id],
+    })
+    if (!agent) return null
+  } else if (!(await mailboxHash(address))) return null
 
   const domain = await db().one<Domain>(
     from(domains).where((q) => q("id").equals(address.domain_id)),
@@ -577,7 +601,7 @@ export const clearAuthFailures = async (ip: string): Promise<void> => {
 
 // helpers
 
-export const hashPassword = (plain: string): Promise<string> => hash(plain)
+export const hashPassword = (plain: string): Promise<string> => gated(() => hash(plain))
 
 /**
  * Argon2id holds tens of megabytes while it runs, and every login path funnels
@@ -587,17 +611,21 @@ export const hashPassword = (plain: string): Promise<string> => hash(plain)
  * tries are in flight.
  */
 const MAX_VERIFIES = 4
+const MAX_WAITING = 32
 let verifying = 0
 const waiting: (() => void)[] = []
 
 const gated = async <T>(work: () => Promise<T>): Promise<T> => {
-  if (verifying >= MAX_VERIFIES) await new Promise<void>((resolve) => waiting.push(resolve))
-  verifying++
+  if (verifying >= MAX_VERIFIES) {
+    if (waiting.length >= MAX_WAITING) throw rateLimitExceeded(1, MAX_VERIFIES)
+    await new Promise<void>((resolve) => waiting.push(resolve))
+  } else verifying++
   try {
     return await work()
   } finally {
-    verifying--
-    waiting.shift()?.()
+    const next = waiting.shift()
+    if (next) next()
+    else verifying--
   }
 }
 
@@ -608,7 +636,10 @@ export const verifyPassword = (plain: string, hashed: string): Promise<boolean> 
 // address costs the same time as a wrong password rather than answering early.
 let decoy: Promise<string> | null = null
 export const spendVerifyTime = async (plain: string): Promise<void> => {
-  decoy ??= hash("corsair-decoy-password")
+  decoy ??= hashPassword("corsair-decoy-password").catch((error) => {
+    decoy = null
+    throw error
+  })
   await verifyPassword(plain, await decoy)
 }
 

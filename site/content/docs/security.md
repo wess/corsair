@@ -103,11 +103,21 @@ decoration.
 
 A webhook URL is attacker-supplied and this server fetches it. That is an SSRF
 primitive, so endpoints on private, loopback, and link-local addresses are
-refused at creation.
+refused at creation and delivery. Delivery connects to the checked IP address, preserves the original HTTP Host and TLS hostname, and does not follow redirects. A changed DNS answer cannot redirect that connection inside the network.
 
 `WEBHOOK_ALLOW_PRIVATE=true` exists for an operator whose consumers are on the
 same private network. It is off by default because the safe case is the rarer
 one. Turning it on means a customer can point a webhook at your metadata service.
+
+Mailbox transfer sources use the same address checks, with a separate `TRANSFER_ALLOW_PRIVATE` switch that defaults to `false`. Transfers require verified TLS before credentials are sent. An authenticated SMTP relay also requires verified TLS; unauthenticated delivery to recipient MX servers retains opportunistic TLS for compatibility.
+
+## Browser sessions and resource limits
+
+Browser mutations require the page's own origin. Sibling custom webmail domains cannot submit changes using another host's session cookie. API and JMAP responses carry `Cache-Control: no-store`, including message downloads and errors.
+
+Login failures share the IP ban across HTTP and mail protocols. Password hashing and verification share four work slots and a bounded waiting queue. Backup codes are consumed atomically, so concurrent logins cannot redeem one twice. Rotating an agent key revokes its webmail sessions.
+
+MIME parsing stops expanding after 32 nested levels or 1,000 parts, preserving the raw message. HTTP bodies and queued protocol input are bounded. Socket producers stop retaining queued mail when a client disconnects. Session activity timestamps are updated at most once a minute to avoid a database write on every request.
 
 ## Content sanitisation
 

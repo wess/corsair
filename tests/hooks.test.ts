@@ -10,7 +10,7 @@ import {
   webhookEvents,
   webhooks,
 } from "../src/schema/index.ts"
-import { deliverEvent, drainWebhooks } from "../src/worker/webhook/index.ts"
+import { deliverEvent, drainWebhooks, releaseStaleWebhooks } from "../src/worker/webhook/index.ts"
 
 /**
  * The delivery pipeline against a real receiver: emission, signing, retry, and
@@ -356,4 +356,22 @@ describe("draining", () => {
     expect(event!.status).toBe("pending")
     expect(event!.attempts).toBe(0)
   })
+})
+
+test("stale webhook recovery uses the claim time, not the event's age", async () => {
+  const hook = await createWebhook({ userId, url, events: ["quota.warning"] })
+  await emit({ userId, type: "quota.warning", data: {} })
+  const [event] = await eventsFor(hook.id)
+  await db().execute({
+    text: "UPDATE webhook_events SET status = 'sending', created_at = now() - interval '2 days', next_attempt_at = now() WHERE id = $1",
+    values: [event!.id],
+  })
+  await releaseStaleWebhooks()
+  expect((await eventsFor(hook.id))[0]!.status).toBe("sending")
+  await db().execute({
+    text: "UPDATE webhook_events SET next_attempt_at = now() - interval '20 minutes' WHERE id = $1",
+    values: [event!.id],
+  })
+  await releaseStaleWebhooks()
+  expect((await eventsFor(hook.id))[0]!.status).toBe("pending")
 })

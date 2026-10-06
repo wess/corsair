@@ -1,6 +1,6 @@
 ---
 title: Transfers
-description: Copying an existing mailbox in over IMAP, folder structure and flags intact.
+description: Copying an existing mailbox over verified TLS, with its folder structure.
 section: using
 order: 7
 short: Transfers
@@ -10,7 +10,7 @@ eyebrow: Using Corsair
 # Transfers
 
 A transfer copies an existing mailbox into Corsair over IMAP, folder structure
-intact, from any host that speaks it.
+intact. The source must support implicit TLS with a valid certificate for its IMAP hostname. Plaintext connections and unverified certificates are refused.
 
 ## Before you start
 
@@ -28,8 +28,7 @@ Every selectable folder. Common names are mapped onto the local special-use
 folders — `[Gmail]/Sent Mail` becomes `Sent`, `Deleted Items` becomes `Trash` —
 so you do not end up with two of each.
 
-Flags are preserved. Message dates are preserved, so a transferred mailbox sorts
-correctly rather than showing everything as arriving today.
+Message bodies and their headers are copied. Read flags and the source IMAP internal dates are not currently preserved.
 
 ## Limits
 
@@ -42,7 +41,9 @@ correctly rather than showing everything as arriving today.
 
 The source password is encrypted at rest and erased the moment the transfer
 reaches a terminal state. It is someone else's credential and there is no reason
-to keep it once the copy is done.
+to keep it once the copy is done. Cancellation stops copying between messages; a message already being saved may finish. Copied messages remain in the destination.
+
+Private, loopback, and link-local source addresses are refused. An operator migrating from a trusted private server can explicitly set `TRANSFER_ALLOW_PRIVATE=true`. The worker checks DNS again and connects to the checked address while verifying the original hostname.
 
 If the source requires an app-specific password — Gmail and Fastmail both do —
 generate one there and use it here.

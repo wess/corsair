@@ -952,14 +952,24 @@ const Compose = ({
           <button
             type="button"
             className="btn"
+            disabled={busy}
             onClick={async () => {
-              await post("/api/mail/drafts", {
-                to: list(draft.to),
-                cc: list(draft.cc),
-                subject: draft.subject,
-                text: draft.text,
-              })
-              setSaved(true)
+              setBusy(true)
+              setError(null)
+              setSaved(false)
+              try {
+                await post("/api/mail/drafts", {
+                  to: list(draft.to),
+                  cc: list(draft.cc),
+                  subject: draft.subject,
+                  text: draft.text,
+                })
+                setSaved(true)
+              } catch (error) {
+                setError(error)
+              } finally {
+                setBusy(false)
+              }
             }}
           >
             Save draft
@@ -975,6 +985,8 @@ const Compose = ({
 const App = () => {
   const [mailbox, setMailbox] = useState<Mailbox | null>(null)
   const [ready, setReady] = useState(false)
+  const [actionError, setActionError] = useState<unknown>(null)
+  const actionPending = useRef(false)
   const [folderId, setFolderId] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [search, setSearch] = useState("")
@@ -1070,9 +1082,18 @@ const App = () => {
   }
 
   const act = async (path: string, body: unknown) => {
-    await post(path, body)
-    setSelected(null)
-    refresh()
+    if (actionPending.current) return
+    actionPending.current = true
+    setActionError(null)
+    try {
+      await post(path, body)
+      setSelected(null)
+      refresh()
+    } catch (error) {
+      setActionError(error)
+    } finally {
+      actionPending.current = false
+    }
   }
 
   if (!ready) return <Loading />
@@ -1091,8 +1112,10 @@ const App = () => {
           setSettings(true)
         }}
       />
+      <ErrorText error={actionError} />
       <div className={`mail${selected ? " reading" : ""}`}>
         <aside className="mail-folders">
+          <ErrorText error={folders.error} />
           <div className="brand" style={{ padding: "4px 8px 14px" }}>
             ✉️ Webmail
           </div>
@@ -1126,7 +1149,14 @@ const App = () => {
           ))}
 
           <div className="sidebar-footer">
-            <button type="button" className="nav-item" onClick={() => setCreating(true)}>
+            <button
+              type="button"
+              className="nav-item"
+              onClick={() => {
+                setActionError(null)
+                setCreating(true)
+              }}
+            >
               <Icon path={icons.plus} />
               New folder
             </button>
@@ -1154,8 +1184,15 @@ const App = () => {
               type="button"
               className="nav-item"
               onClick={async () => {
-                await post("/api/mail/logout").catch(() => {})
-                setMailbox(null)
+                try {
+                  await post("/api/mail/logout")
+                  setMailbox(null)
+                  setSelected(null)
+                  setFolderId(null)
+                  setActionError(null)
+                } catch (error) {
+                  setActionError(error)
+                }
               }}
             >
               <Icon path={icons.logout} />
@@ -1185,7 +1222,8 @@ const App = () => {
                 <Spinner />
               </div>
             )}
-            {!messages.loading && !messages.data?.data.length && (
+            <ErrorText error={messages.error} />
+            {!messages.loading && !messages.error && !messages.data?.data.length && (
               <div className="empty">{search ? "Nothing matches that." : "Nothing here yet."}</div>
             )}
             {messages.data?.data.map((message) => (
@@ -1300,6 +1338,7 @@ const App = () => {
               </div>
 
               <Reader
+                key={selected}
                 id={selected}
                 onChanged={refresh}
                 onClose={() => setSelected(null)}
@@ -1351,14 +1390,20 @@ const App = () => {
             onSubmit={async (e) => {
               e.preventDefault()
               const form = new FormData(e.currentTarget)
-              await post("/api/mail/folders", { name: String(form.get("name") ?? "") })
-              setCreating(false)
-              refresh()
+              setActionError(null)
+              try {
+                await post("/api/mail/folders", { name: String(form.get("name") ?? "") })
+                setCreating(false)
+                refresh()
+              } catch (error) {
+                setActionError(error)
+              }
             }}
           >
             <Field label="Name">
               <input name="name" required autoFocus />
             </Field>
+            <ErrorText error={actionError} />
             <button type="submit" className="btn btn-primary">
               Create folder
             </button>

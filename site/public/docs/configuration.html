@@ -377,6 +377,18 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tbody></table></div>
 <p>Leave both empty and Corsair runs unmetered: plans still gate features and an operator can record payment methods by hand, but nothing is charged. That is the right default for hosting mail for yourself.</p>
 <p>Card details never reach this server. The customer enters them on the provider's hosted page; a brand, four digits, and an opaque reference come back. There is no code path here that could accept a card number.</p>
+<h2 id="mailbox-transfers">Mailbox transfers<a class="anchor" href="#mailbox-transfers" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Purpose</th>
+</tr></thead><tbody>
+<tr>
+<td><code>TRANSFER_ALLOW_PRIVATE</code></td>
+<td><code>false</code></td>
+<td>Allow transfer sources on a trusted private network; verified TLS is still required</td>
+</tr>
+</tbody></table></div>
 <h2 id="webhooks">Webhooks<a class="anchor" href="#webhooks" aria-label="Link to this section">#</a></h2>
 <div class='table-wrap'><table><thead><tr>
 <th>Variable</th>
@@ -466,7 +478,7 @@ STORAGE_SECRET_ACCESS_KEY=...</code></pre></figure>
 # or
 docker compose up -d</code></pre></figure>
 <p>There is no reload signal. A mail server that reconfigures itself mid-connection is a source of bugs nobody enjoys.</p><nav class="pager"><a class="pager-prev" href="./installation.html"><span>Previous</span><strong>Installation</strong></a><a class="pager-next" href="./dns-setup.html"><span>Next</span><strong>DNS setup</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#core">Core</a></li><li class="toc-h2"><a href="#mail-identity">Mail identity</a></li><li class="toc-h2"><a href="#listeners">Listeners</a></li><li class="toc-h3"><a href="#starttls-on-25-and-587">STARTTLS on 25 and 587</a></li><li class="toc-h2"><a href="#tls">TLS</a></li><li class="toc-h2"><a href="#delivery">Delivery</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#workers">Workers</a></li><li class="toc-h2"><a href="#payments">Payments</a></li><li class="toc-h2"><a href="#webhooks">Webhooks</a></li><li class="toc-h2"><a href="#limits">Limits</a></li><li class="toc-h2"><a href="#seeding">Seeding</a></li><li class="toc-h2"><a href="#a-production-starting-point">A production starting point</a></li><li class="toc-h2"><a href="#changing-configuration">Changing configuration</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#core">Core</a></li><li class="toc-h2"><a href="#mail-identity">Mail identity</a></li><li class="toc-h2"><a href="#listeners">Listeners</a></li><li class="toc-h3"><a href="#starttls-on-25-and-587">STARTTLS on 25 and 587</a></li><li class="toc-h2"><a href="#tls">TLS</a></li><li class="toc-h2"><a href="#delivery">Delivery</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#workers">Workers</a></li><li class="toc-h2"><a href="#payments">Payments</a></li><li class="toc-h2"><a href="#mailbox-transfers">Mailbox transfers</a></li><li class="toc-h2"><a href="#webhooks">Webhooks</a></li><li class="toc-h2"><a href="#limits">Limits</a></li><li class="toc-h2"><a href="#seeding">Seeding</a></li><li class="toc-h2"><a href="#a-production-starting-point">A production starting point</a></li><li class="toc-h2"><a href="#changing-configuration">Changing configuration</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

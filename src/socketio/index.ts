@@ -26,6 +26,7 @@ export type SocketWriter = {
   /** Queues `data`. Strings are latin1: one character, one byte. */
   write: (data: string | Uint8Array) => void
   /** Call from the socket's `drain` handler. */
+  close: () => void
   drain: () => void
   /** Bytes accepted but not yet taken by the socket. */
   backlog: () => number
@@ -51,6 +52,7 @@ type Pending = { data: string | Uint8Array; offset: number }
 export const createWriter = (current: () => Writable): SocketWriter => {
   const queue: Pending[] = []
   let queued = 0
+  let closed = false
   const waiters: (() => void)[] = []
   const flushed: (() => void)[] = []
 
@@ -61,8 +63,17 @@ export const createWriter = (current: () => Writable): SocketWriter => {
     while (waiters.length) waiters.shift()!()
   }
 
+  const close = () => {
+    closed = true
+    queue.length = 0
+    queued = 0
+    flushed.length = 0
+    release()
+  }
+
   /** Writes from the front of the queue until the socket stops taking bytes. */
   const flush = () => {
+    if (closed) return
     const socket = current()
     while (queue.length) {
       const head = queue[0]!
@@ -73,7 +84,10 @@ export const createWriter = (current: () => Writable): SocketWriter => {
           : head.data.subarray(head.offset, end)
 
       const taken = socket.write(bytes)
-      if (taken < 0) return // a closed socket reports -1; keep the queue for `drain`
+      if (taken < 0) {
+        close()
+        return
+      }
       head.offset += taken
       queued -= taken
 
@@ -91,14 +105,16 @@ export const createWriter = (current: () => Writable): SocketWriter => {
 
   return {
     write(data) {
-      if (!lengthOf(data)) return
+      if (closed || !lengthOf(data)) return
       queue.push({ data, offset: 0 })
       queued += lengthOf(data)
       flush()
     },
+    close,
     drain: flush,
     backlog: () => queued,
     afterFlush(then) {
+      if (closed) return
       if (!queue.length) then()
       else flushed.push(then)
     },
@@ -108,5 +124,42 @@ export const createWriter = (current: () => Writable): SocketWriter => {
         : new Promise<void>((resolve) => {
             waiters.push(resolve)
           }),
+  }
+}
+
+export const createReader = (
+  handle: (chunk: Uint8Array) => Promise<void>,
+  stop: () => void,
+  limit: number,
+) => {
+  let chain = Promise.resolve()
+  let queued = 0
+  let closed = false
+  return {
+    close: () => {
+      closed = true
+    },
+    feed(chunk: Uint8Array) {
+      if (closed) return
+      if (queued + chunk.byteLength > limit) {
+        closed = true
+        stop()
+        return
+      }
+      const owned = new Uint8Array(chunk)
+      queued += owned.byteLength
+      chain = chain
+        .then(async () => {
+          if (!closed) await handle(owned)
+        })
+        .catch(() => {
+          closed = true
+          stop()
+        })
+        .finally(() => {
+          queued -= owned.byteLength
+        })
+      return chain
+    },
   }
 }

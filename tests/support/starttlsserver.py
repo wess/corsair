@@ -42,7 +42,7 @@ srv = socket.socket()
 srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 srv.bind(("127.0.0.1", PORT))
 srv.listen(1)
-print("READY", flush=True)
+print("READY", srv.getsockname()[1], flush=True)
 
 conn, _ = srv.accept()
 conn.settimeout(8)

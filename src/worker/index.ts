@@ -128,7 +128,7 @@ const runJob = async (job: Job): Promise<void> => {
       } catch (e) {
         await db().execute(
           from(transfers)
-            .where((q) => q("id").equals(transfer.id))
+            .where((q) => [q("id").equals(transfer.id), q("status").notEquals("cancelled")])
             .update({
               status: "failed",
               // Someone else's credential, kept only to run the transfer. A failed

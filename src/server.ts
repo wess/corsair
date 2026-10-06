@@ -3,6 +3,7 @@ import { config } from "./config/index.ts"
 import { installCrashGuards } from "./resilience/index.ts"
 import { probeServerStartTls } from "./starttls/index.ts"
 import { tlsOptions } from "./tls/index.ts"
+import { assertSecret } from "./secrets/index.ts"
 
 /**
  * The HTTP server on its own: the API, the control panel, the webmail, and
@@ -13,6 +14,7 @@ import { tlsOptions } from "./tls/index.ts"
  * `start.ts` runs everything in one process, which is what a single box wants.
  */
 installCrashGuards()
+assertSecret(config.jwtSecret)
 
 // The web tier serves autoconfig and the MTA-STS policy, both of which name
 // what the mail listeners can do — even when those listeners are in another

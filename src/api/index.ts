@@ -3,6 +3,7 @@ import { type Route, router } from "@atlas/server"
 import { assetResponse, buildClients, type ClientBundle } from "../bundle/index.ts"
 import { config } from "../config/index.ts"
 import { errorBody, notFound } from "../errors/index.ts"
+import { checkOrigin, privateResponse } from "../httpguard/index.ts"
 import webmail from "../mail/index.html"
 import panel from "../web/index.html"
 import { allowsWebmailHost, webmailDomain } from "../webmailhost/index.ts"
@@ -125,7 +126,9 @@ const serveClient = (clients: ClientBundle, pathname: string, req: Request): Res
 
 export const buildFetch = (clients: ClientBundle | null): ((req: Request) => Promise<Response>) => {
   const handle = router(...allRoutes())
-  return async (req: Request): Promise<Response> => {
+  const fetch = async (req: Request): Promise<Response> => {
+    const rejected = checkOrigin(req)
+    if (rejected) return rejected
     const url = new URL(req.url)
     const pathname = url.pathname
     if (url.hostname !== new URL(config.publicUrl).hostname && webmailDomain(url.hostname)) {
@@ -174,6 +177,7 @@ export const buildFetch = (clients: ClientBundle | null): ((req: Request) => Pro
     }
     return res
   }
+  return async (req) => privateResponse(req, await fetch(req))
 }
 
 /**
@@ -198,6 +202,7 @@ export const startApi = async (port = config.port, options: { hmr?: boolean } = 
     port,
     hostname: config.host,
     idleTimeout: 60,
+    maxRequestBodySize: Math.ceil((config.maxMessageBytes * 4) / 3) + 1024 * 1024,
     ...(options.hmr
       ? {
           routes: {

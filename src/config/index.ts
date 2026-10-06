@@ -154,6 +154,7 @@ export const config = defineConfig({
   // server-side request forgery primitive. An operator running Corsair and its
   // consumers on the same private network can opt back in.
   webhookAllowPrivate: env("WEBHOOK_ALLOW_PRIVATE", { parse: bool, default: "false" }),
+  transferAllowPrivate: env("TRANSFER_ALLOW_PRIVATE", { parse: bool, default: "false" }),
 
   rateLimitPerSecond: env("RATE_LIMIT_PER_SECOND", { parse: Number, default: "10" }),
   // 25 MB, the limit the large providers apply to what they will accept. The

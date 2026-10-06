@@ -13,11 +13,8 @@ import { config } from "../config/index.ts"
  * So this resolves the name, judges every address it resolves to, and refuses to
  * follow redirects.
  *
- * What it does not do is pin the connection to the address it checked, so a
- * resolver that answers differently the second time (DNS rebinding) can still
- * win a race. Closing that needs the socket opened to the checked IP, which a
- * plain `fetch` cannot be told to do; the redirect and literal-address holes,
- * which are the cheap ones, are closed.
+ * The connection uses that checked address, with the original Host and TLS
+ * server name, so a second DNS answer cannot redirect it inside the network.
  */
 
 const octets = (ip: string): number[] | null => {
@@ -112,7 +109,8 @@ const publicV6 = (ip: string): boolean => {
   if ((g0 & 0xffc0) === 0xfec0) return false // site-local, deprecated
   if ((g0 & 0xff00) === 0xff00) return false // multicast
   if (g0 === 0x2001 && g1 === 0x0db8) return false // documentation
-  return true
+  if (g0 === 0x2002 || (g0 === 0x2001 && g1 === 0)) return false // transition tunnels
+  return (g0 & 0xe000) === 0x2000 // global unicast only
 }
 
 /** Whether an IP literal is somewhere on the public internet. */
@@ -130,20 +128,19 @@ export const isPublicAddress = (ip: string): boolean => {
  * *Every* address, not the first: a name with one public and one private record
  * is answered with either, and the attacker chooses which by timing.
  */
-export const assertPublicHost = async (
+export const resolvePublicHost = async (
   hostname: string,
   allowPrivate: boolean = config.webhookAllowPrivate,
-): Promise<void> => {
-  if (allowPrivate) return
-
+): Promise<string> => {
   const host = hostname.replace(/^\[|\]$/g, "").toLowerCase()
-  if (host === "localhost" || host.endsWith(".localhost")) {
+  if (!allowPrivate && (host === "localhost" || host.endsWith(".localhost"))) {
     throw new Error("That address is on a private or loopback network.")
   }
 
   if (isIP(host)) {
-    if (!isPublicAddress(host)) throw new Error("That address is on a private or loopback network.")
-    return
+    if (!allowPrivate && !isPublicAddress(host))
+      throw new Error("That address is on a private or loopback network.")
+    return host
   }
 
   let addresses: { address: string }[]
@@ -152,9 +149,17 @@ export const assertPublicHost = async (
   } catch {
     throw new Error("That host name does not resolve.")
   }
-  if (!addresses.length || !addresses.every((a) => isPublicAddress(a.address))) {
+  if (!addresses.length || (!allowPrivate && !addresses.every((a) => isPublicAddress(a.address)))) {
     throw new Error("That host resolves to a private or loopback network.")
   }
+  return addresses.find((a) => isIP(a.address) === 4)?.address ?? addresses[0]!.address
+}
+
+export const assertPublicHost = async (
+  hostname: string,
+  allowPrivate = config.webhookAllowPrivate,
+): Promise<void> => {
+  await resolvePublicHost(hostname, allowPrivate)
 }
 
 /**
@@ -168,6 +173,20 @@ export const safeFetch = async (
   init: RequestInit = {},
   allowPrivate: boolean = config.webhookAllowPrivate,
 ): Promise<Response> => {
-  await assertPublicHost(new URL(url).hostname, allowPrivate)
-  return fetch(url, { ...init, redirect: "manual" })
+  const original = new URL(url)
+  if (!["http:", "https:"].includes(original.protocol) || original.username || original.password)
+    throw new Error("Only HTTP and HTTPS URLs without embedded credentials are allowed.")
+  const address = await resolvePublicHost(original.hostname, allowPrivate)
+  const target = new URL(original)
+  target.hostname = isIP(address) === 6 ? `[${address}]` : address
+  const headers = new Headers(init.headers)
+  headers.set("host", original.host)
+  return fetch(target, {
+    ...init,
+    headers,
+    tls: { serverName: original.hostname.replace(/^\[|\]$/g, ""), rejectUnauthorized: true },
+    // the runtime accepts false; the pinned type package omits it
+    proxy: false as never,
+    redirect: "manual",
+  })
 }

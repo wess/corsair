@@ -90,7 +90,27 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
       // neither sent nor failed, so it counts toward neither.
       if (row.email_id && !(await beforeAttempt(row).catch(logged(true)))) return
 
-      const raw = await bodyOf(row, loaded)
+      let raw: string | null
+      try {
+        raw = await bodyOf(row, loaded)
+      } catch {
+        await db().execute(
+          from(deliveries)
+            .where((q) => q("id").equals(row.id))
+            .update({
+              status: "deferred",
+              attempts: Math.max(0, row.attempts - 1),
+              run_at: backoffFor(1),
+              last_code: 451,
+              last_error: "Message storage is temporarily unavailable.",
+              locked_at: null,
+              locked_by: null,
+              updated_at: new Date(),
+            }),
+        )
+        result.deferred++
+        return
+      }
       if (!raw) {
         const reason = "The queued message body is no longer available."
         await fail(row, 550, reason)

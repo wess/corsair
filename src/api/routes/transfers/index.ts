@@ -14,6 +14,8 @@ import {
   transfers,
 } from "../../../schema/index.ts"
 import { encryptSecret } from "../../../secrets/index.ts"
+import { assertPublicHost } from "../../../safefetch/index.ts"
+import { config } from "../../../config/index.ts"
 import { transferObject } from "../../../serialize/index.ts"
 import { authed, authedWithPlan, entitlementFrom, principalOf } from "../../pipes/index.ts"
 
@@ -63,7 +65,7 @@ export const transferRoutes: Route[] = [
       body: z.object({
         server: z.string().min(1).max(253),
         port: z.number().int().min(1).max(65535).optional(),
-        secure: z.boolean().optional(),
+        secure: z.literal(true).optional(),
         username: z.string().min(1).max(320),
         password: z.string().min(1).max(500),
         destination_address_id: z.string().uuid(),
@@ -76,6 +78,13 @@ export const transferRoutes: Route[] = [
       assigns: {} as never,
     },
     async (c) => {
+      await assertPublicHost(c.body.server.trim(), config.transferAllowPrivate).catch(
+        (e: Error) => {
+          throw invalidParameter(e.message)
+        },
+      )
+      if (/[\r\n\0]/.test(c.body.username) || /[\r\n\0]/.test(c.body.password))
+        throw invalidParameter("Transfer credentials cannot contain control characters.")
       requireFeature(entitlementFrom(c), "transfers", "mailbox transfers")
       if (!c.body.accepted_policy) {
         throw invalidParameter("The transfer policy has to be accepted before a transfer starts.")
@@ -120,6 +129,18 @@ export const transferRoutes: Route[] = [
     },
   ),
 
+  /** Mailboxes a transfer can target, for the destination picker. */
+  getR("/api/transfers/destinations", { before: authed, assigns: {} as never }, async (c) => {
+    const rows = await db().all<{ id: string; email: string }>({
+      text: `SELECT a.id, a.local_part || '@' || d.name AS email
+               FROM addresses a JOIN domains d ON d.id = a.domain_id
+              WHERE d.user_id = $1 AND a.type IN ('standard', 'catchall')
+              ORDER BY email`,
+      values: [principalOf(c).userId],
+    })
+    return json(c, 200, { object: "list", data: rows })
+  }),
+
   getR(
     "/api/transfers/:transfer_id",
     { params: transferParam, before: authed, assigns: {} as never },
@@ -163,18 +184,6 @@ export const transferRoutes: Route[] = [
       return json(c, 200, { object: "transfer", id: row.id, cancelled: true })
     },
   ),
-
-  /** Mailboxes a transfer can target, for the destination picker. */
-  getR("/api/transfers/destinations", { before: authed, assigns: {} as never }, async (c) => {
-    const rows = await db().all<{ id: string; email: string }>({
-      text: `SELECT a.id, a.local_part || '@' || d.name AS email
-               FROM addresses a JOIN domains d ON d.id = a.domain_id
-              WHERE d.user_id = $1 AND a.type IN ('standard', 'catchall')
-              ORDER BY email`,
-      values: [principalOf(c).userId],
-    })
-    return json(c, 200, { object: "list", data: rows })
-  }),
 ]
 
 export const transferTables = { transfers, addresses, domains }

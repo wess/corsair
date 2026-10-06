@@ -98,3 +98,46 @@ describe("safeFetch", () => {
     }
   })
 })
+
+test("pins a resolved host while preserving its HTTP identity and request", async () => {
+  const server = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: async (req) =>
+      Response.json({
+        host: req.headers.get("host"),
+        path: new URL(req.url).pathname,
+        method: req.method,
+        body: await req.text(),
+      }),
+  })
+  try {
+    const res = await safeFetch(
+      `http://localhost:${server.port}/hook`,
+      { method: "POST", body: "payload" },
+      true,
+    )
+    expect(await res.json()).toEqual({
+      host: `localhost:${server.port}`,
+      path: "/hook",
+      method: "POST",
+      body: "payload",
+    })
+  } finally {
+    server.stop(true)
+  }
+})
+
+test("refuses alternate protocols and embedded credentials even on private deployments", async () => {
+  for (const url of [
+    "file:///etc/passwd",
+    "ftp://example.com/mail",
+    "http://user:password@localhost/",
+  ])
+    await expect(safeFetch(url, {}, true)).rejects.toThrow(/HTTP/)
+})
+
+test("refuses transition tunnels and non-global IPv6 ranges", () => {
+  for (const ip of ["2002:7f00:1::1", "2001:0::1", "64:ff9b:1::7f00:1", "100::1"])
+    expect(isPublicAddress(ip)).toBe(false)
+})

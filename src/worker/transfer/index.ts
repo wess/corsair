@@ -1,6 +1,10 @@
 import { from } from "@atlas/db"
 import { folderBySpecialUse } from "../../addresses/index.ts"
 import { db } from "../../db/index.ts"
+import { config } from "../../config/index.ts"
+import { resolvePublicHost } from "../../safefetch/index.ts"
+import { peerError } from "../../tlsverify/index.ts"
+import { createWriter } from "../../socketio/index.ts"
 import { uidValidity } from "../../ids/index.ts"
 import {
   type Address,
@@ -30,7 +34,7 @@ type Client = {
   close: () => void
 }
 
-const connect = async (input: {
+export const connectSource = async (input: {
   host: string
   port: number
   secure: boolean
@@ -39,26 +43,60 @@ const connect = async (input: {
   let buffer = ""
   let closed = false
   let notify: (() => void) | null = null
+  if (!input.secure) throw new Error("Mailbox transfers require TLS.")
+  const address = await resolvePublicHost(input.host, config.transferAllowPrivate)
+  let failure: Error | null = null
+  let writer: ReturnType<typeof createWriter>
 
   const socket = await Bun.connect({
-    hostname: input.host,
+    hostname: address,
     port: input.port,
-    ...(input.secure ? { tls: { rejectUnauthorized: false } } : {}),
+    tls: { rejectUnauthorized: true, serverName: input.host },
     socket: {
-      data(_s: unknown, data: Uint8Array) {
+      handshake(socket: Bun.Socket<unknown>, success: boolean, error: Error | null) {
+        const invalid = peerError(socket, input.host, error)
+        if (!success || invalid) {
+          failure = invalid ?? new Error("The source TLS handshake failed.")
+          closed = true
+          socket.end()
+          notify?.()
+        }
+      },
+      data(_s: { end: () => void }, data: Uint8Array) {
+        if (closed) return
+        if (buffer.length + data.byteLength > config.maxMessageBytes + 64 * 1024) {
+          failure = new Error("The source response exceeds the message size limit.")
+          closed = true
+          _s.end()
+          notify?.()
+          return
+        }
         buffer += Buffer.from(data).toString("latin1")
         notify?.()
       },
-      close() {
+      drain() {
+        writer?.drain()
+      },
+      timeout(s: { end: () => void }) {
+        failure = new Error("The source connection timed out.")
+        s.end()
         closed = true
         notify?.()
       },
-      error() {
+      close() {
+        writer?.close()
+        closed = true
+        notify?.()
+      },
+      error(_s: unknown, error: Error) {
+        failure = error
         closed = true
         notify?.()
       },
     } as never,
   })
+  writer = createWriter(() => socket)
+  socket.timeout(Math.ceil(input.timeoutMs / 1000))
 
   let counter = 0
 
@@ -71,16 +109,27 @@ const connect = async (input: {
    */
   const readUntil = async (tag: string): Promise<string> => {
     const deadline = Date.now() + input.timeoutMs
-    const pattern = new RegExp(`^${tag} (OK|NO|BAD)[^\\r\\n]*\\r\\n`, "m")
+    const pattern = new RegExp(`^${tag} (OK|NO|BAD)(?: |$)`)
+    let position = 0
     while (true) {
-      const match = buffer.match(pattern)
-      if (match) {
-        const end = (match.index ?? 0) + match[0].length
-        const out = buffer.slice(0, end)
-        buffer = buffer.slice(end)
-        return out
+      while (true) {
+        const end = buffer.indexOf(CRLF, position)
+        if (end === -1) break
+        const line = buffer.slice(position, end)
+        if (pattern.test(line)) {
+          const out = buffer.slice(0, end + 2)
+          buffer = buffer.slice(end + 2)
+          return out
+        }
+        const literal = line.match(/\{(\d+)\}$/)
+        const size = literal ? Number(literal[1]) : 0
+        if (!Number.isSafeInteger(size) || size > config.maxMessageBytes)
+          throw new Error("The source literal exceeds the message size limit.")
+        const next = end + 2 + size
+        if (buffer.length < next) break
+        position = next
       }
-      if (closed) throw new Error("the remote server closed the connection")
+      if (closed) throw failure ?? new Error("the remote server closed the connection")
       if (Date.now() > deadline) throw new Error("timed out waiting for the remote server")
       await new Promise<void>((resolve) => {
         notify = resolve
@@ -90,24 +139,26 @@ const connect = async (input: {
     }
   }
 
-  // Consume the greeting before the first command.
-  await new Promise<void>((resolve) => {
-    const start = Date.now()
-    const check = () => {
-      if (buffer.includes(CRLF) || closed || Date.now() - start > input.timeoutMs) {
-        buffer = ""
-        resolve()
-        return
-      }
-      setTimeout(check, 50)
+  try {
+    const deadline = Date.now() + input.timeoutMs
+    while (!buffer.includes(CRLF)) {
+      if (closed) throw failure ?? new Error("The source closed before its greeting.")
+      if (Date.now() > deadline) throw new Error("The source greeting timed out.")
+      await Bun.sleep(50)
     }
-    check()
-  })
+    if (closed) throw failure ?? new Error("The source closed the connection.")
+    if (!/^\* OK(?: |\r\n)/i.test(buffer))
+      throw new Error("The source refused the IMAP connection.")
+    buffer = ""
+  } catch (error) {
+    socket.end()
+    throw error
+  }
 
   return {
     send: async (command) => {
       const tag = `c${++counter}`
-      socket.write(`${tag} ${command}${CRLF}`)
+      writer.write(`${tag} ${command}${CRLF}`)
       return readUntil(tag)
     },
     close: () => {
@@ -120,7 +171,10 @@ const connect = async (input: {
   }
 }
 
-const quote = (value: string) => `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
+const quote = (value: string) => {
+  if (/[\r\n\0]/.test(value)) throw new Error("An IMAP argument contains control characters.")
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
+}
 
 const parseFolderList = (response: string): string[] => {
   const out: string[] = []
@@ -210,7 +264,7 @@ const localFolderFor = async (addressId: string, remoteName: string): Promise<Fo
   ))!
 }
 
-const BATCH = 20
+const BATCH = 1
 
 export const runTransfer = async (transfer: Transfer): Promise<void> => {
   const address = await db().one<Address>(
@@ -224,13 +278,17 @@ export const runTransfer = async (transfer: Transfer): Promise<void> => {
   const update = (patch: Record<string, unknown>) =>
     db().execute(
       from(transfers)
-        .where((q) => q("id").equals(transfer.id))
+        .where((q) => [q("id").equals(transfer.id), q("status").notEquals("cancelled")])
         .update({ ...patch, updated_at: new Date() }),
     )
 
-  await update({ status: "running", started_at: new Date(), last_error: null })
+  const begun = await db().one<{ id: string }>({
+    text: "UPDATE transfers SET status = 'running', started_at = now(), last_error = NULL, updated_at = now() WHERE id = $1 AND status = 'queued' RETURNING id",
+    values: [transfer.id],
+  })
+  if (!begun) return
 
-  const client = await connect({
+  const client = await connectSource({
     host: transfer.server,
     port: transfer.port,
     secure: transfer.secure,
@@ -248,7 +306,15 @@ export const runTransfer = async (transfer: Transfer): Promise<void> => {
     let bytes = 0
     let foldersDone = 0
 
-    for (const remote of remoteFolders) {
+    const cancelled = async () => {
+      const row = await db().one<{ status: string }>({
+        text: "SELECT status FROM transfers WHERE id = $1",
+        values: [transfer.id],
+      })
+      return !row || row.status === "cancelled"
+    }
+    copy: for (const remote of remoteFolders) {
+      if (await cancelled()) return
       const selected = await client.send(`EXAMINE ${quote(remote)}`)
       const exists = Number(selected.match(/\* (\d+) EXISTS/)?.[1] ?? "0")
       if (!exists) {
@@ -295,13 +361,15 @@ export const runTransfer = async (transfer: Transfer): Promise<void> => {
       }
 
       for (let i = 0; i < uids.length; i += BATCH) {
-        if (transfer.message_limit && copied >= transfer.message_limit) break
+        if (transfer.message_limit && copied >= transfer.message_limit) break copy
+        if (await cancelled()) return
         const batch = uids.slice(i, i + BATCH)
         const response = await client.send(`UID FETCH ${batch.join(",")} (BODY.PEEK[])`)
 
+        if (await cancelled()) return
         for (const raw of parseFetchedMessages(response)) {
-          if (transfer.message_limit && copied >= transfer.message_limit) break
-          if (transfer.size_limit && BigInt(bytes + raw.length) > transfer.size_limit) break
+          if (transfer.message_limit && copied >= transfer.message_limit) break copy
+          if (transfer.size_limit && BigInt(bytes + raw.length) > transfer.size_limit) break copy
 
           await deliver({ addressId: address.id, folderId: target.id, raw })
           copied++

@@ -3,7 +3,13 @@ import { createAddress } from "../src/addresses/index.ts"
 import { createAgent, reserveSends, resolveAgent, rotateAgentToken } from "../src/agents/index.ts"
 import { buildFetch } from "../src/api/index.ts"
 import { createApiKey } from "../src/apikeys/index.ts"
-import { authenticateAddress, hashToken } from "../src/auth/index.ts"
+import {
+  authenticateAddress,
+  hashToken,
+  issueMailSession,
+  MAIL_COOKIE,
+  resolveMailSession,
+} from "../src/auth/index.ts"
 import { db } from "../src/db/index.ts"
 import type { Address, Agent, Domain } from "../src/schema/index.ts"
 import { handleMessage } from "../src/smtp/inbound/index.ts"
@@ -459,4 +465,12 @@ describe("the panel's routes", () => {
     expect((await call("/api/agents", one.token)).status).toBe(401)
     expect((await call("/api/agents", one.token, { method: "POST", body: "{}" })).status).toBe(401)
   })
+})
+
+test("agent webmail sessions work and token rotation revokes them", async () => {
+  const agent = await make("webmail rotation")
+  const cookie = `${MAIL_COOKIE}=${await issueMailSession(agent.id)}`
+  expect((await resolveMailSession(cookie))?.address.id).toBe(agent.id)
+  await rotateAgentToken(agent.agent)
+  expect(await resolveMailSession(cookie)).toBeNull()
 })

@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light dark" />
 <title>Transfers · Corsair</title>
-<meta name="description" content="Copying an existing mailbox in over IMAP, folder structure and flags intact." />
+<meta name="description" content="Copying an existing mailbox over verified TLS, with its folder structure." />
 <link rel="canonical" href="https://wess.io/corsair/docs/transfers.html" />
 <meta property="og:title" content="Transfers" />
 <meta property="og:site_name" content="Corsair" />
-<meta property="og:description" content="Copying an existing mailbox in over IMAP, folder structure and flags intact." />
+<meta property="og:description" content="Copying an existing mailbox over verified TLS, with its folder structure." />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://wess.io/corsair/docs/transfers.html" />
 <meta name="twitter:card" content="summary" />
@@ -60,16 +60,17 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
 </div></nav>
 <main class="prose"><div class="page-head"><p class="eyebrow">Using Corsair</p></div><h1 id="transfers">Transfers</h1>
-<p>A transfer copies an existing mailbox into Corsair over IMAP, folder structure intact, from any host that speaks it.</p>
+<p>A transfer copies an existing mailbox into Corsair over IMAP, folder structure intact. The source must support implicit TLS with a valid certificate for its IMAP hostname. Plaintext connections and unverified certificates are refused.</p>
 <h2 id="before-you-start">Before you start<a class="anchor" href="#before-you-start" aria-label="Link to this section">#</a></h2>
 <ol><li><strong>Create the destination mailbox first.</strong> A transfer copies <em>into</em> an existing address.</li><li><strong>Do not move the MX yet.</strong> Transfer, verify, then cut over. New mail keeps arriving at the old host while the copy runs and is picked up by a second pass.</li><li><strong>Find the source IMAP hostname.</strong> Not the webmail address — the IMAP one. Usually <code>imap.&lt;provider&gt;</code> on port 993.</li></ol>
 <h2 id="what-gets-copied">What gets copied<a class="anchor" href="#what-gets-copied" aria-label="Link to this section">#</a></h2>
 <p>Every selectable folder. Common names are mapped onto the local special-use folders — <code>[Gmail]/Sent Mail</code> becomes <code>Sent</code>, <code>Deleted Items</code> becomes <code>Trash</code> — so you do not end up with two of each.</p>
-<p>Flags are preserved. Message dates are preserved, so a transferred mailbox sorts correctly rather than showing everything as arriving today.</p>
+<p>Message bodies and their headers are copied. Read flags and the source IMAP internal dates are not currently preserved.</p>
 <h2 id="limits">Limits<a class="anchor" href="#limits" aria-label="Link to this section">#</a></h2>
 <ul><li><strong>Message limit</strong> — stop after this many messages.</li><li><strong>Size limit</strong> — stop once this many megabytes have been copied.</li><li><strong>Newer than</strong> — only messages at or after this date. Applied by the <em>source</em> server, so old mail is never transferred and discarded.</li></ul>
 <h2 id="credentials">Credentials<a class="anchor" href="#credentials" aria-label="Link to this section">#</a></h2>
-<p>The source password is encrypted at rest and erased the moment the transfer reaches a terminal state. It is someone else's credential and there is no reason to keep it once the copy is done.</p>
+<p>The source password is encrypted at rest and erased the moment the transfer reaches a terminal state. It is someone else's credential and there is no reason to keep it once the copy is done. Cancellation stops copying between messages; a message already being saved may finish. Copied messages remain in the destination.</p>
+<p>Private, loopback, and link-local source addresses are refused. An operator migrating from a trusted private server can explicitly set <code>TRANSFER_ALLOW_PRIVATE=true</code>. The worker checks DNS again and connects to the checked address while verifying the original hostname.</p>
 <p>If the source requires an app-specific password — Gmail and Fastmail both do — generate one there and use it here.</p>
 <h2 id="cutting-over">Cutting over<a class="anchor" href="#cutting-over" aria-label="Link to this section">#</a></h2>
 <ol><li>Run the transfer and check the message counts.</li><li>Change the MX record to point at Corsair.</li><li>Wait for the old TTL to expire. Mail may arrive at either host during this window; that is unavoidable and is why step 4 exists.</li><li>Run the transfer again. Already-copied messages are re-copied, so the second pass is best run with a <code>newer than</code> date set to the day of the cutover.</li></ol><nav class="pager"><a class="pager-prev" href="./filters.html"><span>Previous</span><strong>Filters</strong></a><a class="pager-next" href="./deliverability.html"><span>Next</span><strong>Deliverability</strong></a></nav></main>
