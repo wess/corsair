@@ -259,6 +259,7 @@ export const webmailRoutes: Route[] = [
       // account's, so changing it here is refused and has to happen in the
       // panel. The client needs to know that before it offers the form.
       uses_account_password: identity.address.user_id !== null,
+      account_url: `${config.publicUrl.replace(/\/$/, "")}/app/account`,
       // Non-empty only for a delegate, and it is what makes the Users section
       // appear. The routes re-check on every call; this is presentation.
       administers: (await domainsAdministeredByAddress(identity.address.id)).map((d) => ({

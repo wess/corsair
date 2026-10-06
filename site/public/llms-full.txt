@@ -2571,6 +2571,7 @@ Defaults below are what the shipped code uses, not suggestions.
 | `PORT` | `3000` | HTTP listener |
 | `HOST` | `0.0.0.0` | Interface the HTTP listener binds |
 | `PUBLIC_URL` | `http://localhost:3000` | Base URL in emails and redirects |
+| `MAIL_WEBMAIL_HOST` | *(empty)* | Optional CNAME target for customer webmail URLs; requires [HTTPS proxy setup](webmail.html#for-operators) |
 | `SIGNUPS` | `open` | `open` lets anyone sign up; `closed` allows only the first account |
 | `TRUSTED_PROXIES` | *(empty)* | Proxies whose `X-Forwarded-For` is believed |
 
@@ -5676,6 +5677,57 @@ Source: https://wess.io/corsair/docs/webmail.html
 
 Corsair ships a three-pane mail client at `/webmail`. Folders, message list,
 reading pane.
+
+## Your own webmail URL
+
+Each hosted domain can use `https://webmail.example.com` instead of the
+installation's shared URL. The root opens webmail directly, and the browser
+keeps that hostname while reading and sending mail.
+
+In the domain's **DNS setup**, publish the optional `webmail` CNAME. Then check
+DNS and open the URL shown in **Client configuration**. Sign in with your full
+mailbox address and its usual password. Sessions are separate on each hostname.
+
+### For operators
+
+Set `MAIL_WEBMAIL_HOST` to a public hostname pointing at your HTTPS proxy, such
+as `mail.example.net`. This adds the optional CNAME to new and existing domains
+when their DNS setup is opened or checked. Leave it empty to disable customer
+webmail URLs. `PUBLIC_URL` remains the installation's shared URL for the panel
+and account emails.
+
+A CNAME alone does not provide HTTPS: the proxy must obtain a certificate for
+each customer's `webmail` hostname. With Caddy, add this global option and
+catch-all HTTPS site alongside your existing shared-host configuration:
+
+```caddyfile
+{
+  on_demand_tls {
+    ask http://127.0.0.1:3000/api/webmail/host
+  }
+}
+
+https:// {
+  tls {
+    on_demand
+  }
+  request_body {
+    max_size 40MB
+  }
+  reverse_proxy 127.0.0.1:3000
+}
+```
+
+Merge the global option into your existing `{ ... }` block. Caddy obtains and
+renews customer certificates on demand; it only receives approval for
+`webmail.<domain>` where the domain is active on this installation. Unknown,
+pending, and deleted domains are refused. The lookup does not fetch customer
+URLs or issue certificates itself. See [Caddy's on-demand HTTPS guide](https://caddyserver.com/on-demand-tls).
+
+Allow ACME validation to reach the proxy on ports 80 or 443. Customer webmail
+certificates belong to the HTTP proxy; mail-protocol certificates are separate.
+Custom webmail hosts serve the webmail client and its API; the control panel
+stays at the shared hostname.
 
 ## Signing in
 

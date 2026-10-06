@@ -44,6 +44,7 @@ type Domain = {
   address_count?: number
   records?: DomainRecord[]
   last_checked_at?: string | null
+  webmail_url?: string | null
 }
 
 type DomainRecord = {
@@ -257,7 +258,7 @@ export const DomainDetailPage = ({ id }: { id: string }) => {
       {tab === "admins" && <DomainAdminsTab domainId={data.id} />}
       {tab === "fallback" && <FallbackTab domain={data} onSaved={reload} />}
       {tab === "dns" && <DnsTab domain={data} onChecked={reload} />}
-      {tab === "client" && <ClientConfigTab />}
+      {tab === "client" && <ClientConfigTab domain={data} />}
       {tab === "self-service" && <SelfServiceTab domain={data} onSaved={reload} />}
     </div>
   )
@@ -638,6 +639,7 @@ const PURPOSE_LABEL: Record<string, string> = {
   mta_sts: "MTA-STS",
   autoconfig: "Thunderbird autoconfig",
   autodiscover: "Outlook autodiscover",
+  webmail: "Webmail URL",
   mx: "Mail exchange",
 }
 
@@ -907,12 +909,13 @@ const AutomaticSetup = ({ domain, onPublished }: { domain: Domain; onPublished: 
 
 // client config
 
-const ClientConfigTab = () => {
+const ClientConfigTab = ({ domain }: { domain: Domain }) => {
   const { data, loading, error } = useLoad(() =>
     get<{
       servers: { protocol: string; host: string; port: number; security: string }[]
       username_hint: string
       password_hint: string
+      webmail_url: string
     }>("/api/client-config"),
   )
 
@@ -927,6 +930,21 @@ const ClientConfigTab = () => {
           <strong>{data?.username_hint.toLowerCase()}</strong>.
         </p>
         <p className="muted">{data?.password_hint}</p>
+        <p>
+          Webmail: <Copyable value={domain.webmail_url ?? data?.webmail_url ?? ""} />
+        </p>
+        {domain.webmail_url && (
+          <p className="muted">
+            {domain.status === "active" &&
+            domain.records?.some((r) => r.purpose === "webmail" && r.status === "ok") ? (
+              <a href={domain.webmail_url} target="_blank" rel="noreferrer">
+                Open webmail
+              </a>
+            ) : (
+              "Add the optional webmail CNAME in DNS setup, then check DNS to use this URL."
+            )}
+          </p>
+        )}
         <p className="muted">
           Most clients find these on their own — enter the address and let it configure itself. Only
           the ports listed here will accept a connection.

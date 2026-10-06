@@ -185,7 +185,7 @@ export const domainRoutes: Route[] = [
     { params: domainParam, before: authed, assigns: {} as never },
     async (c) => {
       const domain = await administeredDomain(principalOf(c).userId, c.params.domain_id)
-      const records = await recordsOf(domain.id)
+      const records = await syncRecords(domain)
       return json(c, 200, {
         object: "dns_setup",
         domain: domain.name,

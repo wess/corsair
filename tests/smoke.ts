@@ -105,6 +105,8 @@ const run = async () => {
   check("a short password is rejected", weak.status === 422, weak.body)
 
   section("client configuration")
+  const unknownWebmail = await call("GET", "/api/webmail/host?domain=webmail.unhosted.invalid")
+  check("unknown webmail hosts cannot obtain certificates", unknownWebmail.status === 403)
   const clientConfig = await call("GET", "/api/client-config")
   check("client config loads", clientConfig.status === 200, clientConfig.body)
   {
@@ -145,6 +147,8 @@ const run = async () => {
   const domainId = created.body?.id
 
   check("it starts pending", created.body?.status === "pending")
+  const pendingWebmail = await call("GET", `/api/webmail/host?domain=webmail.${domainName}`)
+  check("pending domains cannot obtain webmail certificates", pendingWebmail.status === 403)
   check(
     "the DNS records are generated",
     Array.isArray(created.body?.records) && created.body.records.length >= 8,

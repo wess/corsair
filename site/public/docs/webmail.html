@@ -61,6 +61,29 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </div></nav>
 <main class="prose"><div class="page-head"><p class="eyebrow">Using Corsair</p></div><h1 id="webmail">Webmail</h1>
 <p>Corsair ships a three-pane mail client at <code>/webmail</code>. Folders, message list, reading pane.</p>
+<h2 id="your-own-webmail-url">Your own webmail URL<a class="anchor" href="#your-own-webmail-url" aria-label="Link to this section">#</a></h2>
+<p>Each hosted domain can use <code>https://webmail.example.com</code> instead of the installation's shared URL. The root opens webmail directly, and the browser keeps that hostname while reading and sending mail.</p>
+<p>In the domain's <strong>DNS setup</strong>, publish the optional <code>webmail</code> CNAME. Then check DNS and open the URL shown in <strong>Client configuration</strong>. Sign in with your full mailbox address and its usual password. Sessions are separate on each hostname.</p>
+<h3 id="for-operators">For operators<a class="anchor" href="#for-operators" aria-label="Link to this section">#</a></h3>
+<p>Set <code>MAIL_WEBMAIL_HOST</code> to a public hostname pointing at your HTTPS proxy, such as <code>mail.example.net</code>. This adds the optional CNAME to new and existing domains when their DNS setup is opened or checked. Leave it empty to disable customer webmail URLs. <code>PUBLIC_URL</code> remains the installation's shared URL for the panel and account emails.</p>
+<p>A CNAME alone does not provide HTTPS: the proxy must obtain a certificate for each customer's <code>webmail</code> hostname. With Caddy, add this global option and catch-all HTTPS site alongside your existing shared-host configuration:</p>
+<figure class="code"><span class="code-lang">caddyfile</span><pre><code>{
+  on_demand_tls {
+    ask http://127.0.0.1:3000/api/webmail/host
+  }
+}
+
+https:// {
+  tls {
+    on_demand
+  }
+  request_body {
+    max_size 40MB
+  }
+  reverse_proxy 127.0.0.1:3000
+}</code></pre></figure>
+<p>Merge the global option into your existing <code>{ ... }</code> block. Caddy obtains and renews customer certificates on demand; it only receives approval for <code>webmail.&lt;domain&gt;</code> where the domain is active on this installation. Unknown, pending, and deleted domains are refused. The lookup does not fetch customer URLs or issue certificates itself. See <a href="https://caddyserver.com/on-demand-tls" class="external" rel="noopener">Caddy's on-demand HTTPS guide</a>.</p>
+<p>Allow ACME validation to reach the proxy on ports 80 or 443. Customer webmail certificates belong to the HTTP proxy; mail-protocol certificates are separate. Custom webmail hosts serve the webmail client and its API; the control panel stays at the shared hostname.</p>
 <h2 id="signing-in">Signing in<a class="anchor" href="#signing-in" aria-label="Link to this section">#</a></h2>
 <p>With the <strong>mailbox</strong> address and password — not a control-panel login.</p>
 <p>That is the same credential a mail client uses, and it is a deliberately different identity from the panel: a mailbox credential ends up in a phone that gets lost, and it must not also unlock the account that owns every domain.</p>
@@ -121,7 +144,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tr>
 </tbody></table></div>
 <p>The last one catches people: nginx defaults to 1 MB, which silently rejects almost every attachment. Set it above <code>MAX_MESSAGE_BYTES</code>.</p><nav class="pager"><a class="pager-prev" href="./client-setup.html"><span>Previous</span><strong>Client settings</strong></a><a class="pager-next" href="./filters.html"><span>Next</span><strong>Filters</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#signing-in">Signing in</a></li><li class="toc-h2"><a href="#what-it-does">What it does</a></li><li class="toc-h2"><a href="#sanitisation">Sanitisation</a></li><li class="toc-h2"><a href="#remote-images">Remote images</a></li><li class="toc-h2"><a href="#search">Search</a></li><li class="toc-h2"><a href="#attachments">Attachments</a></li><li class="toc-h2"><a href="#using-something-else-instead">Using something else instead</a></li><li class="toc-h2"><a href="#what-it-deliberately-does-not-have">What it deliberately does not have</a></li><li class="toc-h2"><a href="#troubleshooting">Troubleshooting</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#your-own-webmail-url">Your own webmail URL</a></li><li class="toc-h3"><a href="#for-operators">For operators</a></li><li class="toc-h2"><a href="#signing-in">Signing in</a></li><li class="toc-h2"><a href="#what-it-does">What it does</a></li><li class="toc-h2"><a href="#sanitisation">Sanitisation</a></li><li class="toc-h2"><a href="#remote-images">Remote images</a></li><li class="toc-h2"><a href="#search">Search</a></li><li class="toc-h2"><a href="#attachments">Attachments</a></li><li class="toc-h2"><a href="#using-something-else-instead">Using something else instead</a></li><li class="toc-h2"><a href="#what-it-deliberately-does-not-have">What it deliberately does not have</a></li><li class="toc-h2"><a href="#troubleshooting">Troubleshooting</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

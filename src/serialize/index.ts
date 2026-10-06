@@ -1,4 +1,5 @@
 import { num } from "../db/index.ts"
+import { webmailUrl } from "../webmailhost/index.ts"
 import type { Entitlement, Usage } from "../plans/index.ts"
 import type {
   Address,
@@ -109,6 +110,7 @@ export const domainObject = (
   verified_at: domain.verified_at?.toISOString() ?? null,
   last_checked_at: domain.last_checked_at?.toISOString() ?? null,
   records: records.map(domainRecordObject),
+  webmail_url: webmailUrl(domain.name),
 })
 
 export const addressObject = (

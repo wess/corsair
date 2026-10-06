@@ -30,6 +30,7 @@ type Mailbox = {
   recovery_address: string | null
   recovery_enabled: boolean
   uses_account_password: boolean
+  account_url: string
   /** Domains this mailbox may manage. Empty for almost everybody. */
   administers: { id: string; name: string }[]
 }
@@ -300,7 +301,7 @@ const Settings = ({
           <Icon path={icons.account} size={15} />
           <span>
             This mailbox signs in with your account password. Change it at{" "}
-            <a href="/app/account">Account settings</a> and it changes here too.
+            <a href={mailbox.account_url}>Account settings</a> and it changes here too.
           </span>
         </Banner>
       ) : done ? (

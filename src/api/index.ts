@@ -5,6 +5,7 @@ import { config } from "../config/index.ts"
 import { errorBody, notFound } from "../errors/index.ts"
 import webmail from "../mail/index.html"
 import panel from "../web/index.html"
+import { allowsWebmailHost, webmailDomain } from "../webmailhost/index.ts"
 import { wrapAll } from "./pipes/index.ts"
 import { accountRoutes } from "./routes/account/index.ts"
 import { addressRoutes } from "./routes/addresses/index.ts"
@@ -27,6 +28,7 @@ import { suppressionRoutes } from "./routes/suppressions/index.ts"
 import { transferRoutes } from "./routes/transfers/index.ts"
 import { webhookRoutes } from "./routes/webhooks/index.ts"
 import { webmailRoutes } from "./routes/webmail/index.ts"
+import { webmailHostRoutes } from "./routes/webmailhost/index.ts"
 
 /**
  * Route order matters: @atlas/server matches in registration order and
@@ -65,6 +67,7 @@ export const allRoutes = (): Route[] => [
   // shadowed by anything matching `/api/mail/:something`.
   ...wrapAll(mailAdminRoutes),
   ...wrapAll(webmailRoutes),
+  ...wrapAll(webmailHostRoutes),
   ...wrapAll(jmapRoutes),
   ...wrapAll(autoconfigRoutes),
 ]
@@ -123,10 +126,32 @@ const serveClient = (clients: ClientBundle, pathname: string, req: Request): Res
 export const buildFetch = (clients: ClientBundle | null): ((req: Request) => Promise<Response>) => {
   const handle = router(...allRoutes())
   return async (req: Request): Promise<Response> => {
+    const url = new URL(req.url)
+    const pathname = url.pathname
+    if (url.hostname !== new URL(config.publicUrl).hostname && webmailDomain(url.hostname)) {
+      if (!(await allowsWebmailHost(url.hostname)))
+        return new Response(notFoundBody, {
+          status: 404,
+          headers: { "content-type": "application/json" },
+        })
+      if (pathname === "/") {
+        return clients
+          ? assetResponse(clients.webmail, req)
+          : new Response(null, { status: 302, headers: { location: "/webmail" } })
+      }
+      if (
+        !pathname.startsWith("/api/mail/") &&
+        !/^\/webmail(\/|$)/.test(pathname) &&
+        !clients?.assets.has(pathname)
+      )
+        return new Response(notFoundBody, {
+          status: 404,
+          headers: { "content-type": "application/json" },
+        })
+    }
     const res = await handle(req)
     if (res.status !== 404) return res
 
-    const pathname = new URL(req.url).pathname
     if (!pathname.startsWith("/api/")) {
       // Ahead of the docs site: `/app` must not be answered by an `app.html`
       // that happens to exist under `site/public`.

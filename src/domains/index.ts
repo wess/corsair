@@ -139,6 +139,18 @@ export const recordSpec = (input: {
     },
   )
 
+  if (config.mail.webmail) {
+    rows.push({
+      purpose: "webmail",
+      type: "CNAME",
+      host: "webmail",
+      value: config.mail.webmail,
+      priority: null,
+      required: false,
+      position: 14,
+    })
+  }
+
   return rows
 }
 
@@ -379,11 +391,7 @@ export type CheckResult = {
  * somebody has to look at it.
  */
 export const checkDomain = async (domain: Domain): Promise<CheckResult> => {
-  const records = await db().all<DomainRecord>(
-    from(domainRecords)
-      .where((q) => q("domain_id").equals(domain.id))
-      .orderBy("position", "ASC"),
-  )
+  const records = await syncRecords(domain)
 
   const now = new Date()
   const checked: DomainRecord[] = []

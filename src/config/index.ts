@@ -39,6 +39,8 @@ export const config = defineConfig({
     spf: env("MAIL_SPF_HOST", { default: "spf.corsair.local" }),
     autoconfig: env("MAIL_AUTOCONFIG_HOST", { default: "autoconfig.corsair.local" }),
     autodiscover: env("MAIL_AUTODISCOVER_HOST", { default: "autodiscover.corsair.local" }),
+    // enable only after the HTTPS proxy can serve customer webmail names
+    webmail: env("MAIL_WEBMAIL_HOST", { default: "" }),
     dkimHosts: env("MAIL_DKIM_HOSTS", {
       parse: list,
       default: "dkim-1.corsair.local,dkim-2.corsair.local,dkim-3.corsair.local",

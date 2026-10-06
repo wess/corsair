@@ -25,6 +25,7 @@ Defaults below are what the shipped code uses, not suggestions.
 | `PORT` | `3000` | HTTP listener |
 | `HOST` | `0.0.0.0` | Interface the HTTP listener binds |
 | `PUBLIC_URL` | `http://localhost:3000` | Base URL in emails and redirects |
+| `MAIL_WEBMAIL_HOST` | *(empty)* | Optional CNAME target for customer webmail URLs; requires [HTTPS proxy setup](webmail.html#for-operators) |
 | `SIGNUPS` | `open` | `open` lets anyone sign up; `closed` allows only the first account |
 | `TRUSTED_PROXIES` | *(empty)* | Proxies whose `X-Forwarded-For` is believed |
 
