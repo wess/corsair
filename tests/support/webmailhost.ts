@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, expect, test } from "bun:test"
-import { startApi } from "../../src/api/index.ts"
 import { createAddress } from "../../src/addresses/index.ts"
+import { startApi } from "../../src/api/index.ts"
 import { config } from "../../src/config/index.ts"
 import { db } from "../../src/db/index.ts"
 import { recordSpec, syncRecords } from "../../src/domains/index.ts"
-import { domainObject } from "../../src/serialize/index.ts"
 import type { Domain } from "../../src/schema/index.ts"
+import { domainObject } from "../../src/serialize/index.ts"
 import { allowsWebmailHost, webmailDomain } from "../../src/webmailhost/index.ts"
 
 const enabled = Boolean(config.mail.webmail)

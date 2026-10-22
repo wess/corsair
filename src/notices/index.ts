@@ -1,4 +1,4 @@
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { db } from "../db/index.ts"
 import { type Address, addresses, type Domain, domains, type User, users } from "../schema/index.ts"
 

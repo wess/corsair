@@ -1,4 +1,4 @@
-import type { Conn } from "@atlas/server"
+import type { Conn } from "@wess/atlas/server"
 import { notFound } from "../errors/index.ts"
 import * as mime from "../mime/index.ts"
 

@@ -1,4 +1,4 @@
-import { delR, getR, json, postR, type Route } from "@atlas/server"
+import { delR, getR, json, postR, type Route } from "@wess/atlas/server"
 import { z } from "zod"
 import { db } from "../../../db/index.ts"
 import { notFound } from "../../../errors/index.ts"
@@ -19,7 +19,7 @@ import { authed, principalOf } from "../../pipes/index.ts"
 export const suppressionRoutes: Route[] = [
   getR(
     "/api/suppressions",
-    { query: z.record(z.string()).optional(), before: authed, assigns: {} as never },
+    { query: z.record(z.string(), z.string()).optional(), before: authed, assigns: {} as never },
     async (c) => {
       const page = await paginate<Suppression>({
         source: "suppressions",

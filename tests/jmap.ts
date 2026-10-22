@@ -8,7 +8,7 @@
  * step.
  */
 
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { createAddress } from "../src/addresses/index.ts"
 import { closeDb, db } from "../src/db/index.ts"
 import { type Domain, users } from "../src/schema/index.ts"

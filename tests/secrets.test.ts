@@ -24,7 +24,7 @@ describe("the signing secret", () => {
 })
 
 import { createCipheriv, createHash, createHmac, randomBytes } from "node:crypto"
-import { token } from "@atlas/auth"
+import * as token from "@wess/atlas/auth/token"
 import { config } from "../src/config/index.ts"
 import { decryptSecret, encryptSecret, keyFor, secretFor } from "../src/secrets/index.ts"
 import { reverse, rewrite } from "../src/smtp/srs/index.ts"

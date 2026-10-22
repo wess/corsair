@@ -1,4 +1,4 @@
-import { getR, json, patchR, postR, type Route } from "@atlas/server"
+import { getR, json, patchR, postR, type Route } from "@wess/atlas/server"
 import { z } from "zod"
 import { invalidParameter } from "../../../errors/index.ts"
 import { withIdempotency } from "../../../idempotency/index.ts"
@@ -36,7 +36,7 @@ const sendSchema = z.object({
   subject: z.string().optional(),
   html: z.string().nullish(),
   text: z.string().nullish(),
-  headers: z.record(z.string()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   tags: z
     .array(z.object({ name: z.string(), value: z.string() }))
     .max(50)
@@ -114,7 +114,11 @@ export const emailRoutes: Route[] = [
 
   getR(
     "/api/emails",
-    { query: z.record(z.string()).optional(), before: sendingFull, assigns: {} as never },
+    {
+      query: z.record(z.string(), z.string()).optional(),
+      before: sendingFull,
+      assigns: {} as never,
+    },
     async (c) => {
       const page = await listEmails(
         senderOf(c).userId,

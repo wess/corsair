@@ -1,4 +1,4 @@
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { authenticateAddress, type MailIdentity } from "../../auth/index.ts"
 import { config } from "../../config/index.ts"
 import { db, num } from "../../db/index.ts"

@@ -1,4 +1,4 @@
-import { type HttpError, httpError } from "@atlas/server"
+import { type HttpError, httpError } from "@wess/atlas/server"
 
 // { statusCode, name, message } — `name` is the machine-readable slug clients
 // switch on, and stays stable even when the message is reworded.

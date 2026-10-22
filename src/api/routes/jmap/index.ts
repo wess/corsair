@@ -1,5 +1,5 @@
-import { from } from "@atlas/db"
-import { get, json, post, type Route, text } from "@atlas/server"
+import { from } from "@wess/atlas/db/query"
+import { get, json, post, type Route, text } from "@wess/atlas/server"
 import { ownerOfDomain } from "../../../addresses/index.ts"
 import { reserveSends } from "../../../agents/index.ts"
 import {

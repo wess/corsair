@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { allColumns, type Connection, db, num } from "../db/index.ts"
 import {
   attachmentParts,

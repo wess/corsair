@@ -1,4 +1,4 @@
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { db } from "../../db/index.ts"
 import { recordFailure, recordSuccess, signatureHeaders } from "../../events/index.ts"
 import { safeFetch } from "../../safefetch/index.ts"

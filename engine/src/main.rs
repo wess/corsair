@@ -26,7 +26,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 
-use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+use rustls::pki_types::{pem::PemObject, CertificateDer, PrivateKeyDer};
 use rustls::ServerConfig;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
 use tokio::net::{TcpListener, TcpStream};
@@ -423,21 +423,17 @@ fn load_tls(cert_path: &str, key_path: &str) -> std::io::Result<Arc<ServerConfig
     let cert_file = std::fs::read(cert_path)?;
     let key_file = std::fs::read(key_path)?;
 
-    let certs: Vec<CertificateDer<'static>> =
-        rustls_pemfile::certs(&mut cert_file.as_slice()).collect::<Result<_, _>>()?;
+    let certs: Vec<CertificateDer<'static>> = CertificateDer::pem_slice_iter(&cert_file)
+        .collect::<Result<_, _>>()
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
     if certs.is_empty() {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
             format!("no certificate in {cert_path}"),
         ));
     }
-    let key: PrivateKeyDer<'static> = rustls_pemfile::private_key(&mut key_file.as_slice())?
-        .ok_or_else(|| {
-            std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                format!("no private key in {key_path}"),
-            )
-        })?;
+    let key = PrivateKeyDer::from_pem_slice(&key_file)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
 
     let config = ServerConfig::builder()
         .with_no_client_auth()

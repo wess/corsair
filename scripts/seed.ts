@@ -1,4 +1,4 @@
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { hashPassword } from "../src/auth/index.ts"
 import { config } from "../src/config/index.ts"
 import { allColumns, db } from "../src/db/index.ts"

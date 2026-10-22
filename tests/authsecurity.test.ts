@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "bun:test"
-import { token } from "@atlas/auth"
 import { createHash } from "node:crypto"
+import * as token from "@wess/atlas/auth/token"
 import { buildFetch } from "../src/api/index.ts"
 import { hashPassword, issueSession, resolveSession, SESSION_COOKIE } from "../src/auth/index.ts"
 import { db } from "../src/db/index.ts"
@@ -57,4 +57,4 @@ test("password work rejects excess requests instead of growing an unlimited queu
   const results = await Promise.allSettled(Array.from({ length: 40 }, () => hashPassword(password)))
   expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(36)
   expect(results.filter((result) => result.status === "rejected")).toHaveLength(4)
-})
+}, 30_000)

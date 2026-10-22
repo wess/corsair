@@ -1,9 +1,9 @@
 import { startApi } from "./api/index.ts"
 import { config } from "./config/index.ts"
 import { installCrashGuards } from "./resilience/index.ts"
+import { assertSecret } from "./secrets/index.ts"
 import { probeServerStartTls } from "./starttls/index.ts"
 import { tlsOptions } from "./tls/index.ts"
-import { assertSecret } from "./secrets/index.ts"
 
 /**
  * The HTTP server on its own: the API, the control panel, the webmail, and

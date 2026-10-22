@@ -1,7 +1,7 @@
 import { resolveMx } from "node:dns/promises"
 import { config } from "../../config/index.ts"
-import { peerError } from "../../tlsverify/index.ts"
 import { createWriter, type SocketWriter } from "../../socketio/index.ts"
+import { peerError } from "../../tlsverify/index.ts"
 
 /**
  * An SMTP client, used to hand a message to somebody else's server.

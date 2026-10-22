@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { createAddress, inboxOf } from "../src/addresses/index.ts"
 import { db, num } from "../src/db/index.ts"
 import { createImapSession, type ImapSession } from "../src/imap/session/index.ts"

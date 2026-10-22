@@ -1,20 +1,20 @@
 import { createHash } from "node:crypto"
-import { from } from "@atlas/db"
-import { generateBackupCodes, generateSecret, otpauthUrl, verifyTotp } from "@atlas/security"
-import { getR, json, postR, type Route } from "@atlas/server"
+import { from } from "@wess/atlas/db/query"
+import { generateBackupCodes, generateSecret, otpauthUrl, verifyTotp } from "@wess/atlas/security"
+import { getR, json, postR, type Route } from "@wess/atlas/server"
 import { z } from "zod"
 import {
+  clearAuthFailures,
   clearedCookie,
   hashPassword,
   issueSession,
+  recordAuthFailure,
   revokeAllSessions,
   revokeSession,
   safeEqual,
   sessionCookie,
   spendVerifyTime,
   verifyPassword,
-  recordAuthFailure,
-  clearAuthFailures,
 } from "../../../auth/index.ts"
 import { config } from "../../../config/index.ts"
 import { db } from "../../../db/index.ts"

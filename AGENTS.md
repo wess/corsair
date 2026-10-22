@@ -7,8 +7,8 @@ before changing anything.
 
 Inherited from Atlas — see `../atlas/SOUL.md` if it is checked out beside this
 repo. The layout matches `../stohr` and `../devpipe`, which is the house
-pattern: a flat `src/<feature>/index.ts`, no workspaces, `@atlas/*` resolved
-through tsconfig paths, and `src/server.ts` assembling the router.
+pattern: a flat `src/<feature>/index.ts`, no workspaces, public Atlas library
+imports, and `src/server.ts` assembling the router.
 
 - Filenames are lowercase, no dashes or underscores. Hierarchy comes from
   directories: `src/<feature>/<part>/index.ts`.
@@ -18,8 +18,8 @@ through tsconfig paths, and `src/server.ts` assembling the router.
 - Bun APIs over `node:*` when both exist (`Bun.serve`, `Bun.listen`,
   `Bun.connect`). `node:crypto` and `node:dns/promises` have no Bun equivalent
   and are used directly.
-- Imports come from `@wess/atlas/<pkg>` — Atlas is a git dependency, not a
-  workspace member.
+- Imports come from `@wess/atlas/<pkg>` — Atlas libraries use versioned GitHub release assets, not a
+  workspace member or source alias.
 
 ## Things that will bite you
 
@@ -34,7 +34,7 @@ array itself and expand it with `jsonb_array_elements_text`. Do **not**
 `JSON.stringify` it first — that produces a jsonb *scalar* and Postgres answers
 `cannot extract elements from a scalar`. See `expunge()` in `core/store`.
 
-**`@atlas/db` has no `RETURNING *`.** `returning()` is typed over the schema's
+**`@wess/atlas/db` has no `RETURNING *`.** `returning()` is typed over the schema's
 column keys and emits nothing when given none. Use `...allColumns(schema)` from
 `src/db`.
 

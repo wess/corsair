@@ -1,5 +1,5 @@
-import { from } from "@atlas/db"
-import { delR, getR, json, postR, type Route, text } from "@atlas/server"
+import { from } from "@wess/atlas/db/query"
+import { delR, getR, json, postR, type Route, text } from "@wess/atlas/server"
 import { z } from "zod"
 import { domainsAdministeredByAddress } from "../../../access/index.ts"
 import { folderBySpecialUse, setPassword } from "../../../addresses/index.ts"
@@ -365,7 +365,7 @@ export const webmailRoutes: Route[] = [
   getR(
     "/api/mail/messages",
     {
-      query: z.record(z.string()).optional(),
+      query: z.record(z.string(), z.string()).optional(),
       before: mailed,
       assigns: {} as never,
     },
@@ -424,7 +424,7 @@ export const webmailRoutes: Route[] = [
     "/api/mail/messages/:message_id",
     {
       params: z.object({ message_id: z.string().uuid() }),
-      query: z.record(z.string()).optional(),
+      query: z.record(z.string(), z.string()).optional(),
       before: mailed,
       assigns: {} as never,
     },

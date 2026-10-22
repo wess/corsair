@@ -1,5 +1,5 @@
-import { from } from "@atlas/db"
-import { delR, getR, json, postR, putR, type Route } from "@atlas/server"
+import { from } from "@wess/atlas/db/query"
+import { delR, getR, json, postR, putR, type Route } from "@wess/atlas/server"
 import { z } from "zod"
 import { config } from "../../../config/index.ts"
 import { allColumns, db } from "../../../db/index.ts"

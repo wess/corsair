@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "bun:test"
 import { mkdtemp, rm } from "node:fs/promises"
-import { connectSource } from "../src/worker/transfer/index.ts"
 import { createWriter } from "../src/socketio/index.ts"
+import { connectSource } from "../src/worker/transfer/index.ts"
 
 let dir = ""
 beforeAll(async () => {

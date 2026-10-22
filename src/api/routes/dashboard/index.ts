@@ -1,4 +1,4 @@
-import { getR, json, type Route } from "@atlas/server"
+import { getR, json, type Route } from "@wess/atlas/server"
 import { config } from "../../../config/index.ts"
 import { db } from "../../../db/index.ts"
 import { accountNotices } from "../../../notices/index.ts"

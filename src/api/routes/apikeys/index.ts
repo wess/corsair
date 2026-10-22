@@ -1,4 +1,4 @@
-import { delR, getR, json, postR, type Route } from "@atlas/server"
+import { delR, getR, json, postR, type Route } from "@wess/atlas/server"
 import { z } from "zod"
 import { createApiKey, deleteApiKey, listApiKeys } from "../../../apikeys/index.ts"
 import { db } from "../../../db/index.ts"

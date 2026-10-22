@@ -1,4 +1,4 @@
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { db, num } from "../db/index.ts"
 import { planRequired, quotaExceeded } from "../errors/index.ts"
 import {

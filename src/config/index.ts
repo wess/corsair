@@ -1,4 +1,4 @@
-import { defineConfig, env } from "@atlas/config"
+import { defineConfig, env } from "@wess/atlas/config"
 
 const bool = (v: string) => v === "true" || v === "1" || v === "yes"
 const list = (v: string) =>

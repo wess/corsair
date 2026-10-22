@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto"
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { config } from "../config/index.ts"
 import { allColumns, db } from "../db/index.ts"
 import { rfcMessageId } from "../ids/index.ts"

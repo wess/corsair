@@ -1,4 +1,4 @@
-import { migrate } from "@atlas/migrate"
+import { migrate } from "@wess/atlas/migrate"
 import { closeDb, db } from "../src/db/index.ts"
 import { allSchemas } from "../src/schema/index.ts"
 

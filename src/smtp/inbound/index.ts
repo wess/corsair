@@ -1,5 +1,5 @@
 import { reverse as reverseDns } from "node:dns/promises"
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import {
   folderBySpecialUse,
   inboxOf,

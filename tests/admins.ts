@@ -9,7 +9,7 @@
  * grant that would otherwise hand somebody else's domain to a delegate, and a
  * mistake in wiring — not in the helper — is how that happens.
  */
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { createAddress } from "../src/addresses/index.ts"
 import { hashPassword } from "../src/auth/index.ts"
 import { closeDb, db } from "../src/db/index.ts"

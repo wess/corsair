@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { ownerOfDomain } from "../../addresses/index.ts"
 import { config } from "../../config/index.ts"
 import { db } from "../../db/index.ts"
