@@ -1,4 +1,4 @@
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { folderBySpecialUse, ownerOfDomain } from "../addresses/index.ts"
 import { AGENT_DAILY_SENDS, reserveSends } from "../agents/index.ts"
 import { db } from "../db/index.ts"

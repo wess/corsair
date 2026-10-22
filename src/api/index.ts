@@ -1,5 +1,5 @@
-import { withSecurityHeaders } from "@atlas/security"
-import { type Route, router } from "@atlas/server"
+import { withSecurityHeaders } from "@wess/atlas/security"
+import { type Route, router } from "@wess/atlas/server"
 import { assetResponse, buildClients, type ClientBundle } from "../bundle/index.ts"
 import { config } from "../config/index.ts"
 import { errorBody, notFound } from "../errors/index.ts"

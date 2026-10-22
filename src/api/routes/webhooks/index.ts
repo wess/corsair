@@ -1,5 +1,5 @@
-import { from } from "@atlas/db"
-import { post, type Route, text } from "@atlas/server"
+import { from } from "@wess/atlas/db/query"
+import { post, type Route, text } from "@wess/atlas/server"
 import { allColumns, db } from "../../../db/index.ts"
 import * as payments from "../../../payments/index.ts"
 import {

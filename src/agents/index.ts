@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto"
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { createAddress } from "../addresses/index.ts"
 import { hashToken, revokeMailSessions } from "../auth/index.ts"
 import { allColumns, db } from "../db/index.ts"

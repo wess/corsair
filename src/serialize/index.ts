@@ -1,5 +1,4 @@
 import { num } from "../db/index.ts"
-import { webmailUrl } from "../webmailhost/index.ts"
 import type { Entitlement, Usage } from "../plans/index.ts"
 import type {
   Address,
@@ -20,6 +19,7 @@ import type {
   Transfer,
   User,
 } from "../schema/index.ts"
+import { webmailUrl } from "../webmailhost/index.ts"
 
 /**
  * Every response shape lives here so the panel and any API client see one

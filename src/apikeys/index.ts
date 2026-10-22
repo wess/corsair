@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto"
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { hashToken } from "../auth/index.ts"
 import { allColumns, db } from "../db/index.ts"
 import { type ApiKey, apiKeys } from "../schema/index.ts"

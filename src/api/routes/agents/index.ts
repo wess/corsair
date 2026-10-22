@@ -1,4 +1,4 @@
-import { delR, getR, json, patchR, postR, type Route } from "@atlas/server"
+import { delR, getR, json, patchR, postR, type Route } from "@wess/atlas/server"
 import { z } from "zod"
 import { ownedDomain } from "../../../access/index.ts"
 import { deleteAddress } from "../../../addresses/index.ts"
@@ -314,7 +314,7 @@ export const agentRoutes: Route[] = [
 
   getR(
     "/api/agent/messages",
-    { query: z.record(z.string()).optional(), before: agentOnly, assigns: {} as never },
+    { query: z.record(z.string(), z.string()).optional(), before: agentOnly, assigns: {} as never },
     async (c) => {
       const { address } = agentOf(c)
       const query = (c.query ?? {}) as Record<string, string>
@@ -327,7 +327,7 @@ export const agentRoutes: Route[] = [
   // it stays above it so a future literal under messages cannot be swallowed.
   getR(
     "/api/agent/wait",
-    { query: z.record(z.string()).optional(), before: agentOnly, assigns: {} as never },
+    { query: z.record(z.string(), z.string()).optional(), before: agentOnly, assigns: {} as never },
     async (c) => {
       const { address } = agentOf(c)
       const query = (c.query ?? {}) as Record<string, string>

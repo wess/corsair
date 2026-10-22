@@ -1,4 +1,4 @@
-import { getR, type Route, text } from "@atlas/server"
+import { getR, type Route, text } from "@wess/atlas/server"
 import { allowsWebmailHost } from "../../../webmailhost/index.ts"
 
 // the HTTPS proxy asks before issuing a certificate; fail closed on unknown names

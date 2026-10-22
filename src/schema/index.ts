@@ -1,4 +1,4 @@
-import { column, defineSchema, type RowOf } from "@atlas/db"
+import { column, defineSchema, type RowOf } from "@wess/atlas/db/query"
 
 /**
  * Every table in one module.

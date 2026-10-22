@@ -1,11 +1,9 @@
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { folderBySpecialUse } from "../../addresses/index.ts"
-import { db } from "../../db/index.ts"
 import { config } from "../../config/index.ts"
-import { resolvePublicHost } from "../../safefetch/index.ts"
-import { peerError } from "../../tlsverify/index.ts"
-import { createWriter } from "../../socketio/index.ts"
+import { db } from "../../db/index.ts"
 import { uidValidity } from "../../ids/index.ts"
+import { resolvePublicHost } from "../../safefetch/index.ts"
 import {
   type Address,
   addresses,
@@ -15,7 +13,9 @@ import {
   transfers,
 } from "../../schema/index.ts"
 import { decryptSecret } from "../../secrets/index.ts"
+import { createWriter } from "../../socketio/index.ts"
 import { deliver } from "../../store/index.ts"
+import { peerError } from "../../tlsverify/index.ts"
 
 /**
  * Migrates a mailbox from another host over IMAP.

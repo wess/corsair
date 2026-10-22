@@ -1,4 +1,4 @@
-import { get, post, type Route, text } from "@atlas/server"
+import { get, post, type Route, text } from "@wess/atlas/server"
 import { config } from "../../../config/index.ts"
 import { startTlsOffered } from "../../../starttls/index.ts"
 

@@ -1,5 +1,5 @@
-import { from } from "@atlas/db"
-import { createStore, presign, remove, type Store, upload } from "@atlas/storage"
+import { from } from "@wess/atlas/db/query"
+import { createStore, presign, remove, type Store, upload } from "@wess/atlas/storage"
 import { config } from "../config/index.ts"
 import { type Connection, db } from "../db/index.ts"
 import { messageBlobs } from "../schema/index.ts"

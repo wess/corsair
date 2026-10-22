@@ -1,9 +1,9 @@
-FROM oven/bun:1.3-alpine AS deps
+FROM oven/bun:1.4.4-alpine AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN bun install --frozen-lockfile --production --omit=peer
 
-FROM oven/bun:1.3-alpine
+FROM oven/bun:1.4.4-alpine
 WORKDIR /app
 
 # libcap so the entrypoint can grant the port-25 binding capability without the

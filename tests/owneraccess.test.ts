@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { owner } from "../src/api/pipes/index.ts"
 import { db } from "../src/db/index.ts"
 import { users } from "../src/schema/index.ts"

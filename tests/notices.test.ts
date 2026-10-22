@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { createAddress } from "../src/addresses/index.ts"
 import { hashPassword } from "../src/auth/index.ts"
 import { db } from "../src/db/index.ts"

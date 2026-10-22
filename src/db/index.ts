@@ -1,4 +1,5 @@
-import { type Connection, connect } from "@atlas/db"
+import { connect } from "@wess/atlas/db/postgres"
+import type { Connection } from "@wess/atlas/db/query"
 import { config } from "../config/index.ts"
 
 let shared: Connection | null = null

@@ -1,5 +1,5 @@
-import { from } from "@atlas/db"
-import { delR, getR, json, patchR, postR, type Route } from "@atlas/server"
+import { from } from "@wess/atlas/db/query"
+import { delR, getR, json, patchR, postR, type Route } from "@wess/atlas/server"
 import { z } from "zod"
 import { administeredDomain, grantFor } from "../../../access/index.ts"
 import {

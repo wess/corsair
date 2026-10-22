@@ -1,4 +1,4 @@
-import { getR, json, type Route } from "@atlas/server"
+import { getR, json, type Route } from "@wess/atlas/server"
 import * as logs from "../../../logs/index.ts"
 import { ownerOnly } from "../../pipes/index.ts"
 

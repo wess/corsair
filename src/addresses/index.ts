@@ -1,4 +1,4 @@
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { hashPassword, revokeMailSessions } from "../auth/index.ts"
 import { allColumns, db, num } from "../db/index.ts"
 import { conflict, invalidParameter, notFound } from "../errors/index.ts"
@@ -205,11 +205,9 @@ export const createAddress = async (
   // `useAccountPassword` is the explicit form, for the common case where the
   // panel sign-in address and the mailbox address are simply different — the
   // automatic match only fires when they are identical.
+  const accountId = input.useAccountPassword ? input.ownerId : undefined
   const userId =
-    isMailbox && !passwordless
-      ? ((input.useAccountPassword ? (input.ownerId ?? null) : null) ??
-        (await accountFor(input.domainId, localPart)))
-      : null
+    isMailbox && !passwordless ? (accountId ?? (await accountFor(input.domainId, localPart))) : null
 
   if (isMailbox && !passwordless && !input.password && !userId) {
     throw invalidParameter("A mailbox needs a password.")

@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { token } from "@atlas/auth"
+import * as token from "@wess/atlas/auth/token"
 import { createAddress, setPassword } from "../src/addresses/index.ts"
 import { buildFetch } from "../src/api/index.ts"
 import { revokeAllSessions } from "../src/auth/index.ts"

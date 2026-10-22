@@ -1,4 +1,4 @@
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { db } from "../db/index.ts"
 import { forbidden, notFound } from "../errors/index.ts"
 import { type Domain, domainAdmins, domains, users } from "../schema/index.ts"

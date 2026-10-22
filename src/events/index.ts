@@ -1,5 +1,5 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto"
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { allColumns, db } from "../db/index.ts"
 import { type Webhook, webhookEvents, webhooks } from "../schema/index.ts"
 

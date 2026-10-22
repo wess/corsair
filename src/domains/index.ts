@@ -1,5 +1,5 @@
 import { resolveCname, resolveMx, resolveTxt } from "node:dns/promises"
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { config } from "../config/index.ts"
 import { allColumns, db } from "../db/index.ts"
 import { generateKeyPair } from "../dkim/index.ts"

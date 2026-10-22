@@ -1,5 +1,5 @@
-import { from } from "@atlas/db"
-import { getR, json, postR, type Route } from "@atlas/server"
+import { from } from "@wess/atlas/db/query"
+import { getR, json, postR, type Route } from "@wess/atlas/server"
 import { z } from "zod"
 import { setPassword } from "../../../addresses/index.ts"
 import { allColumns, db } from "../../../db/index.ts"

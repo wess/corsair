@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { db } from "../src/db/index.ts"
 import { createWebhook, emit, FAILURE_LIMIT, verifySignature } from "../src/events/index.ts"
 import {

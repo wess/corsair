@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test"
 import { createPublicKey } from "node:crypto"
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { config } from "../src/config/index.ts"
 import { db } from "../src/db/index.ts"
 import { dkimRecord } from "../src/dkim/index.ts"

@@ -11,7 +11,7 @@
  * Needs Postgres and a certificate at TLS_CERT_PATH / TLS_KEY_PATH.
  */
 
-import { from } from "@atlas/db"
+import { from } from "@wess/atlas/db/query"
 import { createAddress } from "../src/addresses/index.ts"
 import { config } from "../src/config/index.ts"
 import { closeDb, db } from "../src/db/index.ts"
