@@ -165,6 +165,14 @@ export const config = defineConfig({
       pass: env("SMTP_RELAY_PASS", { default: "" }),
       secure: env("SMTP_RELAY_SECURE", { default: "starttls" }),
     },
+    // DANE for direct MX delivery. `auto` turns it on only when the resolver is
+    // seen to validate at startup; see `src/dane`. The resolver is `host` or
+    // `host:port` (`[v6]:port`), and defaults to resolv.conf's first nameserver.
+    dane: {
+      mode: env("DANE", { default: "auto" }),
+      resolver: env("DANE_RESOLVER", { default: "" }),
+      trustRemoteResolver: env("DANE_TRUST_REMOTE_RESOLVER", { parse: bool, default: "false" }),
+    },
   },
 
   storage: {

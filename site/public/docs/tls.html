@@ -135,6 +135,7 @@ systemctl restart corsair</code></pre></figure>
 <p>Certbot runs deploy hooks only when a certificate actually renewed, so this restarts roughly every sixty days rather than twice a day.</p>
 <p>Test the whole path before you depend on it:</p>
 <figure class="code"><span class="code-lang">sh</span><pre><code>sudo certbot renew --dry-run</code></pre></figure>
+<aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>If you publish TLSA records, keep the key</p><p>A <code>3 1 1</code> TLSA record pins the certificate's key, and certbot makes a new key on every renewal by default. The first renewal then stops mail from every sender that checks DANE. Issue and renew with <code>--reuse-key</code>, and change keys only with both records published — see <a href="deliverability.html#dane">DANE</a>.</p></aside>
 <aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Restarting drops connections</p><p>A restart disconnects every IMAP IDLE session and every in-flight SMTP transaction. Clients reconnect and senders retry, so the cost is small — but schedule it away from your busiest hour, and consider a <a href="installation.html">split deployment</a> if even that is too much.</p></aside>
 <h3 id="docker">Docker<a class="anchor" href="#docker" aria-label="Link to this section">#</a></h3>
 <p>With <code>./certs</code> bind-mounted, the hook writes to the host path and restarts the container:</p>

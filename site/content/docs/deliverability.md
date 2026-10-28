@@ -137,6 +137,108 @@ refuse to deliver rather than falling back to plaintext, and you get no bounce
 because they never connected.
 :::
 
+## DANE
+
+DANE (RFC 7672) is the other way a domain says "never send me mail in the clear".
+Instead of a policy fetched over HTTPS, it publishes TLSA records next to its MX
+host in a DNSSEC-signed zone, and the records pin the MX's certificate or key.
+When those records are authenticated, a sender must use STARTTLS and the
+certificate must match one of them — or it does not deliver.
+
+### Sending to DANE domains
+
+With `DELIVERY_TRANSPORT=direct`, Corsair looks up the MX and TLSA records through
+a **validating resolver** and reads the DNSSEC result from the AD bit of each
+reply. Node's resolver does not expose that bit, so these lookups use a small DNS
+client of Corsair's own, asking `DANE_RESOLVER`.
+
+| What DNS says | What Corsair does |
+| --- | --- |
+| MX not signed | No DANE. Ordinary opportunistic STARTTLS |
+| MX signed, MX host's address not signed | No DANE for that host |
+| TLSA signed, with usable records | STARTTLS required; certificate must match |
+| TLSA signed, but no usable records | STARTTLS required; certificate not checked |
+| TLSA signed "does not exist", or not signed | No DANE. Opportunistic STARTTLS |
+| TLSA lookup fails (SERVFAIL, timeout) | That host is deferred; the next MX is tried |
+
+A failed match, a missing STARTTLS, or a broken DNSSEC answer is a **deferral**
+(`4.7.5`), never a bounce and never a fallback to plaintext. The queue retries
+it like any other temporary failure, and the reason is in the delivery log.
+
+Usages `3` (DANE-EE) and `2` (DANE-TA) are supported, with selectors `0` and `1`
+and matching types `0`, `1`, and `2`. A DANE-EE record pins the certificate
+alone: name and expiry are not checked, which is what the RFC asks for. A DANE-TA
+record pins an issuer; the chain up to it must verify, every certificate on it
+must be current, and the certificate must name the MX host, its CNAME target, or
+the recipient domain. Usages `0` and `1` are ignored, as RFC 7672 requires for
+SMTP. When a domain has both DANE and MTA-STS, DANE wins.
+
+:::warning The resolver is the trust anchor
+Corsair does not validate signatures itself. It believes the resolver's AD bit,
+and anyone between Corsair and the resolver can set that bit on a forged reply.
+Run a validating resolver **on the same machine** — unbound listening on
+`127.0.0.1` is the usual choice — and point `DANE_RESOLVER` at it. A resolver
+that is not on loopback is refused unless you set
+`DANE_TRUST_REMOTE_RESOLVER=true`, which you should only do for a resolver on a
+network path you control.
+:::
+
+```sh
+apt install unbound          # validates DNSSEC out of the box
+echo 'DANE_RESOLVER=127.0.0.1' >> .env
+```
+
+At startup Corsair asks the resolver for the root zone (which must come back with
+AD set) and for `dnssec-failed.org` (which must not come back at all, because its
+signatures are deliberately broken). Passing both is what `DANE=auto` means by "a
+validating resolver". The log says which way it went:
+
+```text
+[corsair] dane        on — resolver 127.0.0.1:53 validates DNSSEC
+[corsair] dane        off — resolver 192.168.1.1:53 is not on loopback; ...
+```
+
+`DANE=on` skips the probe but not the loopback rule. `DANE=off` disables it.
+
+### Publishing TLSA for your own MX
+
+DANE for mail *arriving* here is DNS you publish; Corsair has nothing to switch
+on. It needs a DNSSEC-signed zone for the MX host's name and STARTTLS on port 25
+(see [TLS](tls.html)). Then publish a `3 1 1` record — the SHA-256 of the
+certificate's public key — at `_25._tcp.` plus the MX hostname:
+
+```sh
+openssl x509 -in /etc/corsair/certs/fullchain.pem -noout -pubkey \
+  | openssl pkey -pubin -outform DER \
+  | openssl dgst -sha256 -binary | xxd -p -c 64
+```
+
+```text
+_25._tcp.mx1.example.com. 3600 IN TLSA 3 1 1 <that hex>
+```
+
+`3 1 1` pins the key, not the certificate, so a renewal that keeps the key needs
+no DNS change. That is the reason to prefer it over `3 0 1`.
+
+:::danger Key changes take the MX off the air for DANE senders
+A sender that sees a TLSA record and a key that does not match it does not
+deliver — it defers, and keeps deferring. Certbot generates a **new key on every
+renewal** unless told not to, so a renewal can silently stop mail from every
+DANE-checking sender (including the large mailbox providers).
+
+Renew with `--reuse-key`. When you do have to change the key:
+
+1. Generate the new key and publish its `3 1 1` record **alongside** the current
+   one. Both records live in the RRset at once.
+2. Wait at least two TTLs of the TLSA record so every cache holds both.
+3. Switch the certificate to the new key.
+4. Remove the old record.
+:::
+
+Check the result from outside with `dig +dnssec TLSA _25._tcp.mx1.example.com`
+(the `ad` flag must be set when asked through a validating resolver) and with any
+public DANE SMTP checker.
+
 ## Forwarding
 
 Forwarding breaks SPF: the original sender's SPF does not list your server, so

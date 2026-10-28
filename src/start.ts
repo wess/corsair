@@ -2,6 +2,7 @@ import { startChallengeListener } from "./acme/challenge/index.ts"
 import { settingsFromConfig, settingsProblems, startAcme } from "./acme/index.ts"
 import { startApi } from "./api/index.ts"
 import { config } from "./config/index.ts"
+import { probeDane } from "./dane/index.ts"
 import { startImap } from "./imap/index.ts"
 import { startManagesieve } from "./managesieve/index.ts"
 import { startPop3 } from "./pop3/index.ts"
@@ -40,6 +41,11 @@ export const start = async (options: { hmr?: boolean } = {}): Promise<void> => {
   // listeners can actually do — a client auto-configured onto a port that
   // refuses it fails silently and forever.
   await probeServerStartTls(await tlsOptions())
+
+  // Before the worker drains anything, so no message goes out under the
+  // unprobed default. Only direct MX delivery uses it; a relay does its own.
+  const transport = config.delivery.transport
+  if (transport !== "console" && transport !== "relay") await probeDane()
 
   await startApi(config.port, options)
   await startWorker()
