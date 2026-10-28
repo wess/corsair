@@ -159,6 +159,22 @@ clear. It reads dig's status rather than `+short`, because an empty `+short` is
 either "not listed" or "never got an answer" and a monitor that cannot tell
 those apart reports health for a server it failed to ask.
 
+**The same refusal bites inbound blocklists.** `src/smtp/dnsbl` reads every
+`127.255.255.x` answer (and DBL's `127.0.1.255`, and another list's `127.0.0.1`)
+as "no answer", and ignores anything outside the documented `127.0.0.x`/`127.0.1.x`
+codes — an NXDOMAIN-rewriting resolver answers with a public address. Treating
+"it resolved" as "it is listed" files every message in Junk. Only the connecting
+IP is checked, never `Received:` hops, which is what keeps PBL off mail relayed
+from a home connection; behind the terminator that IP is the XCLIENT one.
+
+**A trusted correspondent needs authentication, not just an address.**
+`authenticatedFrom` in `src/smtp/inbound` returns the From address only when SPF
+or DKIM passes aligned with its domain, and the −5 and the greylist skip key on
+that. Keying on the bare header hands a forged From of a known contact a free
+pass. `tests/spam.test.ts` has the forged case. Every path a person sends through
+calls `recordCorrespondents` (submission, `sendFromMailbox`, JMAP
+`EmailSubmission`); agents deliberately do not record.
+
 ## One store, four protocols
 
 SMTP, IMAP, JMAP, POP3, and the webmail all read and write the same `messages`

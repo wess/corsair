@@ -1,6 +1,7 @@
 import { from } from "@wess/atlas/db/query"
 import { folderBySpecialUse, ownerOfDomain } from "../addresses/index.ts"
 import { AGENT_DAILY_SENDS, reserveSends } from "../agents/index.ts"
+import { recordCorrespondents } from "../correspondents/index.ts"
 import { db } from "../db/index.ts"
 import { sign } from "../dkim/index.ts"
 import { activeDkimKey } from "../domains/index.ts"
@@ -93,6 +94,7 @@ export const sendFromMailbox = async (
     addressId: address.id,
     domainId: domain.id,
   })
+  await recordCorrespondents(address, recipients)
 
   const sent = await folderBySpecialUse(address.id, "sent")
   if (sent) {

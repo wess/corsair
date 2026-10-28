@@ -3,6 +3,7 @@ import { folderBySpecialUse, ownerOfDomain } from "../../addresses/index.ts"
 import { reserveSends } from "../../agents/index.ts"
 import { authenticateAddress, type MailIdentity } from "../../auth/index.ts"
 import { config } from "../../config/index.ts"
+import { recordCorrespondents } from "../../correspondents/index.ts"
 import { db } from "../../db/index.ts"
 import { sign } from "../../dkim/index.ts"
 import { activeDkimKey } from "../../domains/index.ts"
@@ -239,6 +240,7 @@ export const handleMessage = async (
     addressId: identity.address.id,
     domainId: identity.domain.id,
   })
+  await recordCorrespondents(identity.address, envelope.rcptTo)
 
   // A copy in Sent, so the message appears in every client rather than only the
   // one that sent it. Clients that also APPEND their own copy will produce a

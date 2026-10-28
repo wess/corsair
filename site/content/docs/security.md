@@ -250,7 +250,8 @@ the server cannot read.
 
 **Not a spam-filtering product.** The scorer is heuristic and deliberately
 conservative: a false positive on real mail is far worse than a false negative.
-For aggressive filtering, put a dedicated filter in front.
+For aggressive filtering, put a dedicated filter in front. [Spam
+filtering](./spam.html) describes what it does check.
 
 **Not hardened against a hostile operator.** An operator can read every mailbox on
 the instance. That is inherent to running a mail server, and it is why you should

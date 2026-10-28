@@ -43,7 +43,7 @@ const publicV4 = (ip: string): boolean => {
 }
 
 /** The eight 16-bit groups of an IPv6 address, or null if it does not parse. */
-const groupsV6 = (ip: string): number[] | null => {
+export const groupsV6 = (ip: string): number[] | null => {
   let text = ip.toLowerCase()
   const zone = text.indexOf("%")
   if (zone !== -1) text = text.slice(0, zone)

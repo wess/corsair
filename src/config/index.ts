@@ -90,6 +90,27 @@ export const config = defineConfig({
     trustedProxies: env("SMTP_TRUSTED_PROXIES", { parse: list, default: "" }),
   },
 
+  // Inbound spam handling on the MX path. See src/smtp/spam for the philosophy;
+  // everything here feeds its score except the two switches that defer or refuse.
+  spam: {
+    // IP blocklists checked against the connecting client. Empty disables.
+    dnsbl: env("SPAM_DNSBL", { parse: list, default: "zen.spamhaus.org" }),
+    // Domain blocklists checked against the sender's domains and body links.
+    uribl: env("SPAM_URIBL", { parse: list, default: "dbl.spamhaus.org" }),
+    /**
+     * Refuse at RCPT when the client is on an SBL, CSS, DROP or XBL list rather
+     * than only scoring it. Off by default: the listing is a third party's
+     * judgement, and an operator should choose to let it bounce mail.
+     */
+    dnsblReject: env("SPAM_DNSBL_REJECT", { parse: bool, default: "false" }),
+    // Resolvers for blocklist queries. Spamhaus refuses public and cloud
+    // resolvers, so a production install wants a local recursive one here.
+    resolver: env("SPAM_RESOLVER", { parse: list, default: "" }),
+    // Off by default: it delays first-contact mail and people notice.
+    greylist: env("SPAM_GREYLIST", { parse: bool, default: "false" }),
+    greylistDelay: env("SPAM_GREYLIST_DELAY", { parse: Number, default: "300" }),
+  },
+
   imap: {
     enabled: env("IMAP_ENABLED", { parse: bool, default: "true" }),
     port: env("IMAP_PORT", { parse: Number, default: "2143" }),

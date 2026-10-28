@@ -10,6 +10,7 @@ import {
   resolveMailSession,
 } from "../../../auth/index.ts"
 import { config } from "../../../config/index.ts"
+import { recordCorrespondents } from "../../../correspondents/index.ts"
 import { db } from "../../../db/index.ts"
 import { sign } from "../../../dkim/index.ts"
 import { activeDkimKey } from "../../../domains/index.ts"
@@ -841,6 +842,7 @@ const invoke = async (
           addressId: ctx.identity.address.id,
           domainId: ctx.identity.domain.id,
         })
+        await recordCorrespondents(ctx.identity.address, recipients)
 
         created[key] = {
           id: message.id,

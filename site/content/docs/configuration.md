@@ -222,6 +222,22 @@ Card details never reach this server. The customer enters them on the provider's
 hosted page; a brand, four digits, and an opaque reference come back. There is no
 code path here that could accept a card number.
 
+## Spam filtering
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `SPAM_DNSBL` | `zen.spamhaus.org` | IP blocklists checked against the connecting client on port 25. Comma-separated; empty disables |
+| `SPAM_URIBL` | `dbl.spamhaus.org` | Domain blocklists checked against the sender's domains and up to 20 link domains. Comma-separated; empty disables |
+| `SPAM_DNSBL_REJECT` | `false` | Refuse clients on SBL, CSS, DROP, or XBL at `RCPT` instead of only scoring them |
+| `SPAM_RESOLVER` | system resolver | Resolver addresses for blocklist queries. Spamhaus refuses public and cloud resolvers, so set this to a local one |
+| `SPAM_GREYLIST` | `false` | Defer first contact from an unknown client, sender, and recipient with `451 4.7.1` |
+| `SPAM_GREYLIST_DELAY` | `300` | Seconds a greylisted sender must wait before its retry is accepted |
+
+If the log says a list "refused a query", blocklists are doing nothing until
+`SPAM_RESOLVER` points at a resolver the list will answer. See
+[Spam filtering](./spam.html) for what each setting scores and why the defaults
+are what they are.
+
 ## Mailbox transfers
 
 | Variable | Default | Purpose |

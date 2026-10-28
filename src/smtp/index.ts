@@ -176,7 +176,11 @@ const createListener = (input: {
         validateRecipient: (address, identity, envelope) =>
           input.mode === "submission"
             ? submission.validateRecipient(address, identity)
-            : inbound.validateRecipient(address, identity, envelope),
+            : inbound.validateRecipient(address, identity, envelope, {
+                // Read at call time: XCLIENT may have replaced it since `open`.
+                remoteIp: data.remoteIp,
+                local: !data.proxied && isLoopback(data.socketIp),
+              }),
         handleMessage: (envelope, raw, identity) => {
           data.helo = envelope.helo
           return input.mode === "submission"

@@ -8,6 +8,7 @@ import {
   resolveRecipient,
 } from "../../addresses/index.ts"
 import { config } from "../../config/index.ts"
+import { isCorrespondent } from "../../correspondents/index.ts"
 import { db } from "../../db/index.ts"
 import { aligned, fromDomainOf, verifySignature } from "../../dkim/index.ts"
 import { activeDkimKey } from "../../domains/index.ts"
@@ -22,8 +23,10 @@ import * as sieve from "../../sieve/index.ts"
 import { checkSpf, lookupDmarc, spfAligned } from "../../spf/index.ts"
 import { deliver } from "../../store/index.ts"
 import { sendBounce } from "../bounce/index.ts"
+import { checkDomains, checkIp, extractDomains, rejectable } from "../dnsbl/index.ts"
+import { checkGreylist } from "../greylist/index.ts"
 import type { Envelope, Reply } from "../session/index.ts"
-import { isJunk, type SpamVerdict, score } from "../spam/index.ts"
+import { adjust, isJunk, type SpamVerdict, score, spamHeaders } from "../spam/index.ts"
 import { rewrite } from "../srs/index.ts"
 
 /**
@@ -49,10 +52,55 @@ export type InboundContext = {
 
 // recipients
 
+/** What the listener knows about the client at RCPT time. */
+export type RcptContext = { remoteIp: string; local?: boolean }
+
+// RFC 5321 §4.5.1 and RFC 2142: a listed sender still has to be able to reach
+// the people who can tell them why.
+const ROLE = /^(postmaster|abuse)@/i
+
+/**
+ * The two checks that refuse or defer at RCPT rather than score. A blocklist
+ * refusal is opt-in (`SPAM_DNSBL_REJECT`) and only for listings that describe
+ * the host itself; greylisting is opt-in (`SPAM_GREYLIST`) and only defers.
+ */
+const screen = async (
+  address: string,
+  route: Route,
+  identity: unknown,
+  envelope: Envelope,
+  ctx: RcptContext,
+): Promise<Reply | null> => {
+  const local = spfExempt(ctx)
+  if (config.spam.dnsblReject && !local && !ROLE.test(address)) {
+    const listed = rejectable(await checkIp(ctx.remoteIp))
+    if (listed) {
+      return {
+        code: 554,
+        enhanced: "5.7.1",
+        message: `Service unavailable; client host [${listed.subject}] blocked using ${listed.zone} (${listed.category}).`,
+      }
+    }
+  }
+  if (config.spam.greylist) {
+    return checkGreylist({
+      remoteIp: ctx.remoteIp,
+      local,
+      authenticated: Boolean(identity),
+      helo: envelope.helo,
+      mailFrom: envelope.mailFrom,
+      recipient: address,
+      addressId: route.kind === "mailbox" ? route.address.id : null,
+    })
+  }
+  return null
+}
+
 export const validateRecipient = async (
   address: string,
-  _identity: unknown,
-  _envelope: Envelope,
+  identity: unknown,
+  envelope: Envelope,
+  ctx?: RcptContext,
 ): Promise<Reply | null> => {
   // A report for an API send, addressed to its bounce address. Accepted before
   // routing, and whether or not any mailbox by that name exists.
@@ -84,7 +132,7 @@ export const validateRecipient = async (
     }
   }
 
-  return null
+  return ctx ? screen(address, route, identity, envelope, ctx) : null
 }
 
 // authentication
@@ -111,6 +159,43 @@ type AuthResults = {
   dkimDomain: string | null
   reverseDns: string | null
 }
+
+/**
+ * The From address, when SPF or DKIM authenticates its domain — aligned the
+ * way DMARC aligns, relaxed. Null otherwise.
+ *
+ * This is what the trusted-correspondent bonus is keyed on, so it must not be
+ * the bare header: a known correspondent's address in a forged From is the
+ * oldest trick there is, and it is exactly the mail that bonus would wave in.
+ */
+export const authenticatedFrom = (
+  parsed: mime.ParsedMessage,
+  mailFrom: string,
+  results: Pick<AuthResults, "spf" | "dkim" | "dkimDomain">,
+): string | null => {
+  const address = mime
+    .parseAddressList(mime.headerValue(parsed.headers, "from"))[0]
+    ?.address.toLowerCase()
+  const domain = address?.split("@")[1]
+  if (!address || !domain) return null
+  const envelopeDomain = mailFrom.split("@")[1]
+  const dkimOk =
+    results.dkim === "pass" && !!results.dkimDomain && aligned(domain, results.dkimDomain)
+  const spfOk = results.spf === "pass" && !!envelopeDomain && spfAligned(domain, envelopeDomain)
+  return dkimOk || spfOk ? address : null
+}
+
+/** Mail back from someone this mailbox wrote to. Large enough to outweigh most heuristics. */
+export const CORRESPONDENT_POINTS = -5
+
+const forMailbox = async (
+  verdict: SpamVerdict,
+  addressId: string,
+  sender: string | null,
+): Promise<SpamVerdict> =>
+  sender && (await isCorrespondent(addressId, sender).catch(() => false))
+    ? adjust(verdict, CORRESPONDENT_POINTS, `${sender} is a correspondent of this mailbox`)
+    : verdict
 
 /**
  * A connection from this machine to itself.
@@ -251,7 +336,7 @@ const deliverToMailbox = async (
   verdict: SpamVerdict,
 ): Promise<DeliveryOutcome> => {
   const userId = await ownerOfDomain(route.domain.id)
-  const stamped = `${receivedHeader(ctx, `${route.address.local_part}@${route.domain.name}`)}\r\n${authenticationResults(results, envelope)}\r\n${raw}`
+  const stamped = `${receivedHeader(ctx, `${route.address.local_part}@${route.domain.name}`)}\r\n${authenticationResults(results, envelope)}\r\n${spamHeaders(verdict)}\r\n${raw}`
 
   if (userId) {
     try {
@@ -408,17 +493,40 @@ export const handleMessage = async (
     }
   }
   const parsed = mime.parseMessage(normalized)
-  const results = await authenticate(normalized, parsed, envelope, ctx)
+  const bodies = mime.bodyText(normalized, parsed)
 
-  const verdict = score(normalized, {
-    spf: results.spf,
-    dkim: results.dkim,
-    dmarc: results.dmarc,
-    helo: ctx.helo,
-    remoteIp: ctx.remoteIp,
-    mailFrom: envelope.mailFrom,
-    reverseDns: results.reverseDns,
-  })
+  // Blocklists run beside authentication rather than after it; each has its own
+  // budget and neither waits on the other. Skipped for this server talking to
+  // itself, which no list has anything to say about.
+  const screened = !spfExempt(ctx)
+  const [results, ipListings, domainListings] = await Promise.all([
+    authenticate(normalized, parsed, envelope, ctx),
+    screened ? checkIp(ctx.remoteIp) : [],
+    screened
+      ? checkDomains(
+          extractDomains({
+            senders: [fromDomainOf(parsed), envelope.mailFrom.split("@")[1]],
+            ...bodies,
+          }),
+        )
+      : [],
+  ])
+
+  const verdict = score(
+    normalized,
+    {
+      spf: results.spf,
+      dkim: results.dkim,
+      dmarc: results.dmarc,
+      helo: ctx.helo,
+      remoteIp: ctx.remoteIp,
+      mailFrom: envelope.mailFrom,
+      reverseDns: results.reverseDns,
+      listings: [...ipListings, ...domainListings],
+    },
+    { parsed, bodies },
+  )
+  const sender = authenticatedFrom(parsed, envelope.mailFrom, results)
 
   const subject = mime.decodeWords(mime.headerValue(parsed.headers, "subject") ?? "")
   const messageId = mime.headerValue(parsed.headers, "message-id")
@@ -464,9 +572,13 @@ export const handleMessage = async (
 
     const route = await resolveRecipient(recipient)
     let outcome: DeliveryOutcome
+    // The one part of the verdict that depends on the recipient: whether this
+    // mailbox has written to the (authenticated) sender.
+    const own =
+      route.kind === "mailbox" ? await forMailbox(verdict, route.address.id, sender) : verdict
 
     if (route.kind === "mailbox") {
-      outcome = await deliverToMailbox(route, normalized, envelope, ctx, results, verdict)
+      outcome = await deliverToMailbox(route, normalized, envelope, ctx, results, own)
     } else if (route.kind === "forward") {
       outcome = await deliverToForward(route, normalized, envelope, ctx, results)
     } else {
@@ -494,7 +606,7 @@ export const handleMessage = async (
           spf: results.spf,
           dkim: results.dkim,
           dmarc: results.dmarc,
-          spam_score: verdict.score,
+          spam_score: own.score,
           code: outcome.code,
           detail: outcome.detail,
         }),
@@ -509,7 +621,7 @@ export const handleMessage = async (
       type:
         outcome.code >= 400
           ? "message.rejected"
-          : isJunk(verdict)
+          : isJunk(own)
             ? "message.spam"
             : "message.received",
       data: {
@@ -518,7 +630,7 @@ export const handleMessage = async (
         subject,
         message_id: messageId,
         size: normalized.length,
-        spam_score: verdict.score,
+        spam_score: own.score,
         authentication: { spf: results.spf, dkim: results.dkim, dmarc: results.dmarc },
         remote_ip: ctx.remoteIp,
         ...(outcome.code >= 400 ? { reason: outcome.detail, code: outcome.code } : {}),
