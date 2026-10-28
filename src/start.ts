@@ -1,3 +1,5 @@
+import { startChallengeListener } from "./acme/challenge/index.ts"
+import { settingsFromConfig, settingsProblems, startAcme } from "./acme/index.ts"
 import { startApi } from "./api/index.ts"
 import { config } from "./config/index.ts"
 import { startImap } from "./imap/index.ts"
@@ -25,6 +27,14 @@ export const start = async (options: { hmr?: boolean } = {}): Promise<void> => {
   // Everywhere else a default secret is a server whose sessions anyone can forge.
   if (!options.hmr) assertSecret(config.jwtSecret)
 
+  // Refused outright rather than started half-configured: an install that
+  // asked for ACME and silently got no certificate finds out in 90 days.
+  const acme = config.acme.enabled ? settingsFromConfig() : null
+  if (acme) {
+    const problems = settingsProblems(acme)
+    if (problems.length > 0) throw new Error(`ACME=on but:\n  ${problems.join("\n  ")}`)
+  }
+
   // Before anything advertises a capability. Autoconfig names the submission
   // port and MTA-STS names a mode, and both have to agree with what the mail
   // listeners can actually do — a client auto-configured onto a port that
@@ -37,6 +47,17 @@ export const start = async (options: { hmr?: boolean } = {}): Promise<void> => {
   if (config.imap.enabled) await startImap()
   if (config.pop3.enabled) await startPop3()
   if (config.managesieve.enabled) await startManagesieve()
+
+  // After the listeners, so a first certificate lands on listeners that are
+  // already waiting for it. Without one, 465/993/995 open when it arrives and
+  // the STARTTLS probe is re-run then.
+  if (acme) {
+    if (config.acme.httpPort) {
+      startChallengeListener(config.acme.httpPort, config.host)
+      console.log(`[corsair] acme http   ${config.host}:${config.acme.httpPort}`)
+    }
+    startAcme(acme)
+  }
 }
 
 if (import.meta.main) await start()

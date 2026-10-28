@@ -95,6 +95,8 @@ bun run migrate:status
 bun run migrate:down
 bun run migrate:diff
 bun run seed
+bun run acme status    # built-in ACME: stored certificate and expiry
+bun run acme renew     # built-in ACME: issue now (needs ACME_HTTP_PORT free)
 
 bun run db:up          # PostgreSQL in Docker on 55433
 bun run db:down

@@ -174,6 +174,21 @@ unencrypted connection when a certificate is configured.
 
 See [TLS certificates](tls.html).
 
+### Built-in ACME
+
+Off unless you turn it on. For an install with no reverse proxy and no certbot;
+see [Built-in ACME](tls.html#built-in-acme-optional).
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `ACME` | `off` | `on` to obtain and renew the mail certificate over ACME. `TLS_CERT_PATH`/`TLS_KEY_PATH` are then ignored |
+| `ACME_EMAIL` | *(empty)* | Contact address for the CA. Required with `ACME=on` |
+| `ACME_AGREE_TOS` | `false` | Must be `true` with `ACME=on`: you agree to the CA's terms |
+| `ACME_DOMAINS` | `CORSAIR_HOSTNAME` | Comma-separated names on the certificate |
+| `ACME_DIRECTORY` | Let's Encrypt production | Staging: `https://acme-staging-v02.api.letsencrypt.org/directory` |
+| `ACME_DIR` | `./data/acme` | Account key and certificate, mode 0600 |
+| `ACME_HTTP_PORT` | `0` | Port for a challenge-only listener (normally `80`). `0` means none: port 80 must then reach `PORT` |
+
 ## Delivery
 
 | Variable | Default | What it does |

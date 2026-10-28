@@ -2,7 +2,7 @@ import { clearAuthFailures, isBanned, recordAuthFailure } from "../auth/index.ts
 import { config } from "../config/index.ts"
 import { createReader, createWriter, type SocketWriter } from "../socketio/index.ts"
 import { canUpgradeServerSocketToTls, upgradeAcceptedSocket } from "../starttls/index.ts"
-import { type TlsMaterial, tlsOptions } from "../tls/index.ts"
+import { currentTls, type TlsMaterial, tlsOptions } from "../tls/index.ts"
 import { createManageSieveSession, type ManageSieveSession } from "./session/index.ts"
 
 export { createManageSieveSession } from "./session/index.ts"
@@ -38,7 +38,10 @@ export const listenManageSieve = (input: {
 }) => {
   const implicitTls = Boolean(input.implicitTls && input.tls)
   // Never advertise STARTTLS the runtime cannot perform. See src/starttls.
-  const canStartTls = Boolean(input.tls) && !implicitTls && canUpgradeServerSocketToTls()
+  // Asked per connection: with ACME the first certificate can arrive after the
+  // listener is already up.
+  const tlsNow = () => currentTls() ?? input.tls
+  const canStartTls = () => Boolean(tlsNow()) && !implicitTls && canUpgradeServerSocketToTls()
 
   const handleChunk = async (socket: Bun.Socket<SocketData>, chunk: Uint8Array) => {
     const state = socket.data
@@ -55,7 +58,7 @@ export const listenManageSieve = (input: {
       state.upgradeRequested = false
       try {
         const [, tlsSocket] = upgradeAcceptedSocket<SocketData>(socket, {
-          tls: input.tls!,
+          tls: tlsNow()!,
           // NOT `handlers`: its `open` would build fresh state and greet again,
           // replacing this connection with an unauthenticated one.
           socket: {
@@ -99,7 +102,7 @@ export const listenManageSieve = (input: {
       data.session = createManageSieveSession({
         isSecure: () => data.secure,
         remoteIp,
-        ...(canStartTls
+        ...(canStartTls()
           ? {
               startTls: () => {
                 data.upgradeRequested = true
@@ -179,7 +182,7 @@ export const listenManageSieve = (input: {
 
 export const startManagesieve = async (): Promise<void> => {
   const tls = await tlsOptions()
-  if (!tls) {
+  if (!tls && !currentTls()) {
     console.warn("[corsair] no TLS certificate configured — ManageSieve will refuse logins.")
   }
 

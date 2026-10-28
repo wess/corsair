@@ -3,7 +3,7 @@ import { config } from "../config/index.ts"
 import { connections } from "../metrics/index.ts"
 import { createReader, createWriter, type SocketWriter } from "../socketio/index.ts"
 import { canUpgradeServerSocketToTls, upgradeAcceptedSocket } from "../starttls/index.ts"
-import { tlsOptions } from "../tls/index.ts"
+import { currentTls, serveImplicitTls, tlsOptions } from "../tls/index.ts"
 import { createImapSession, type ImapSession } from "./session/index.ts"
 
 export {
@@ -54,7 +54,10 @@ export const createListener = (input: {
   // Never advertise STARTTLS the runtime cannot actually perform: a sender
   // that takes us up on it gets its connection dropped mid-handshake and
   // defers rather than falling back. See src/starttls.
-  const canStartTls = Boolean(input.tls) && !input.implicitTls && canUpgradeServerSocketToTls()
+  // Asked per connection, not once: with ACME the first certificate can arrive
+  // after the listener is already up.
+  const tlsNow = () => currentTls() ?? input.tls
+  const canStartTls = () => Boolean(tlsNow()) && !input.implicitTls && canUpgradeServerSocketToTls()
 
   const handleChunk = async (socket: Bun.Socket<SocketData>, chunk: Uint8Array) => {
     const state = socket.data
@@ -74,7 +77,7 @@ export const createListener = (input: {
       state.upgradeRequested = false
       try {
         const [, tlsSocket] = upgradeAcceptedSocket<SocketData>(socket, {
-          tls: input.tls!,
+          tls: tlsNow()!,
           // NOT `handlers`. Bun runs `open` on the upgraded socket, and this
           // listener's `open` builds fresh state, starts a new session, and
           // writes a second greeting — so reusing it silently replaced the
@@ -132,7 +135,7 @@ export const createListener = (input: {
           data.writer.write(chunk)
           await data.writer.settled()
         },
-        ...(canStartTls
+        ...(canStartTls()
           ? {
               startTls: () => {
                 data.upgradeRequested = true
@@ -250,7 +253,7 @@ export const startImap = async (): Promise<void> => {
   }
 
   createListener({ port: config.imap.port, implicitTls: false, tls, label: "imap" })
-  if (tls) {
-    createListener({ port: config.imap.tlsPort, implicitTls: true, tls, label: "imaps" })
-  }
+  serveImplicitTls("imaps", (current) =>
+    createListener({ port: config.imap.tlsPort, implicitTls: true, tls: current, label: "imaps" }),
+  )
 }

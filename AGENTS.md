@@ -97,6 +97,18 @@ silently replaced the connection with an unauthenticated one that still
 advertised STARTTLS and no longer advertised AUTH. Pass
 `{ ...handlers, open: (s) => (s.data = state) }`.
 
+**Bun cannot change a running listener's certificate.** `listener.reload({ tls })`
+and `server.reload({ tls })` are both accepted on 1.4 and both keep serving the
+old certificate — checked with a handshake, not the types. So the built-in ACME
+client (`src/acme`, opt-in, `ACME=on`) installs a renewal by `replaceTls` in
+`src/tls`: STARTTLS reads `currentTls()` at each upgrade, and the implicit-TLS
+ports run under `serveImplicitTls`, which stops the old listener with
+`stop(false)` (open sessions survive) and binds a new one on the same port. A
+listener that captures the material once at startup will silently serve the
+expired certificate until a restart. With ACME and no certificate yet, 465/993/995
+are not listening at all until the first issue, and the STARTTLS probe is re-run
+then — it answered no at startup because there was nothing to upgrade to.
+
 **Bun delivers the post-upgrade stream to BOTH sockets** (oven-sh/bun#26297), so
 each listener's `data` drops anything arriving on the cleartext socket once
 `state.tlsSocket` is set. Without that gate the session parses a TLS ClientHello

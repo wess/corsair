@@ -43,6 +43,7 @@
     "test:dns": "bun tests/dns.ts",
     "test:starttls:server": "bun tests/serverstarttls.ts",
     "test:admins": "bun tests/admins.ts",
+    "acme": "bun scripts/acme.ts",
     "check:atlas": "bunx --package https://github.com/wess/atlas/releases/download/v0.4.9/wess-atlas-cli-0.4.9.tgz atlas check"
   },
   "dependencies": {

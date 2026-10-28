@@ -22,4 +22,12 @@ assertSecret(config.jwtSecret)
 // split deployment must run the same Bun version on both tiers.
 await probeServerStartTls(await tlsOptions())
 
+// The ACME client lives in start.ts with the listeners it reloads, and its
+// challenge tokens live in that process's memory. This tier cannot answer one.
+if (config.acme.enabled) {
+  console.warn(
+    "[corsair] ACME=on has no effect in server.ts: run the mail process with ACME_HTTP_PORT, or use certbot.",
+  )
+}
+
 await startApi(config.port)
