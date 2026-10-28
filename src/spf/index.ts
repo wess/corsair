@@ -357,6 +357,8 @@ export const checkSpf = async (input: {
 // DMARC
 
 export type DmarcPolicy = {
+  /** Where the record was found: the From domain, or its organisational domain. */
+  domain: string
   policy: "none" | "quarantine" | "reject"
   subdomainPolicy: "none" | "quarantine" | "reject" | null
   adkim: "strict" | "relaxed"
@@ -365,10 +367,15 @@ export type DmarcPolicy = {
   rua: string[]
 }
 
-export const lookupDmarc = async (domain: string): Promise<DmarcPolicy | null> => {
+export type TxtResolver = (name: string) => Promise<string[][]>
+
+export const lookupDmarc = async (
+  domain: string,
+  resolve: TxtResolver = resolveTxt,
+): Promise<DmarcPolicy | null> => {
   const read = async (name: string): Promise<string | null> => {
     try {
-      const records = await resolveTxt(`_dmarc.${name}`)
+      const records = await resolve(`_dmarc.${name}`)
       return records.map((c) => c.join("")).find((r) => /^v=DMARC1/i.test(r.trim())) ?? null
     } catch {
       return null
@@ -376,10 +383,14 @@ export const lookupDmarc = async (domain: string): Promise<DmarcPolicy | null> =
   }
 
   // A subdomain with no record inherits the organisational domain's policy.
-  let record = await read(domain)
+  let found = domain.toLowerCase()
+  let record = await read(found)
   if (!record) {
-    const parts = domain.split(".")
-    if (parts.length > 2) record = await read(parts.slice(-2).join("."))
+    const parts = found.split(".")
+    if (parts.length > 2) {
+      found = parts.slice(-2).join(".")
+      record = await read(found)
+    }
   }
   if (!record) return null
 
@@ -394,6 +405,7 @@ export const lookupDmarc = async (domain: string): Promise<DmarcPolicy | null> =
     v === "reject" || v === "quarantine" || v === "none" ? v : null
 
   return {
+    domain: found,
     policy: asPolicy(tags.p) ?? "none",
     subdomainPolicy: asPolicy(tags.sp),
     adkim: tags.adkim === "s" ? "strict" : "relaxed",

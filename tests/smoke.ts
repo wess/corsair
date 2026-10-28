@@ -169,6 +169,25 @@ const run = async () => {
   const zoneText = await zone.text()
   check("a zone file can be exported", zone.status === 200 && zoneText.includes("$ORIGIN"))
 
+  const dmarcReports = await call("GET", `/api/domains/${domainId}/reports/dmarc?days=30`)
+  check(
+    "received DMARC reports are summarised",
+    dmarcReports.status === 200 && dmarcReports.body?.object === "dmarc_summary",
+    dmarcReports.body,
+  )
+  check("a new domain has none", dmarcReports.body?.totals?.reports === 0, dmarcReports.body)
+  const tlsReports = await call("GET", `/api/domains/${domainId}/reports/tls`)
+  check(
+    "received TLS reports are summarised",
+    tlsReports.status === 200 && tlsReports.body?.object === "tls_summary",
+    tlsReports.body,
+  )
+  const strangerReports = await call(
+    "GET",
+    "/api/domains/00000000-0000-4000-8000-000000000000/reports/dmarc",
+  )
+  check("another domain's reports are a 404", strangerReports.status === 404)
+
   const keys = await call("GET", `/api/domains/${domainId}/keys`)
   check("three DKIM selectors exist", keys.body?.data?.length === 3, keys.body)
   check("private keys are never exposed", !JSON.stringify(keys.body).includes("PRIVATE KEY"))

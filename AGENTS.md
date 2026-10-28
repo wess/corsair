@@ -320,6 +320,37 @@ guarded.
 domain administrator manages mailboxes; sending as the domain is not delegated.
 `api_keys_scope_chk` keeps a domain-scoped key sending-only.
 
+## DMARC and TLS reports
+
+`src/authreports` owns both directions. Received reports land at the
+well-known `dmarc-reports@` / `tlsrpt@` on a hosted domain, checked per
+recipient ahead of `resolveRecipient` like the bounce address, and are parsed
+*in addition to* normal routing — a real mailbox by that name still gets the
+message. `src/archive` unpacks them and `src/xml` reads the XML.
+
+**A report may only describe the domain it was mailed to** (or a subdomain).
+`coversDomain` is what stops one customer filling another's tables, and a TLS
+report's entries about other domains are dropped one by one.
+`tests/authreports.test.ts` has the case.
+
+**Every inflate is capped while it runs.** `maxOutputLength` on node:zlib,
+because `Bun.gunzipSync` has no bound; a zip's declared size is checked *and*
+the inflate is capped again, since the declared size is the attacker's.
+
+**The XML parser refuses a DOCTYPE outright.** It is the only way to declare an
+entity, and declared entities are XXE and billion-laughs. Do not "support" it.
+
+**An external `rua` needs its TXT authorisation** (RFC 7489 §7.1,
+`destinationAllowed`). "Same domain" means the policy domain or under it — not
+a guessed organisational domain, which would call `a.co.uk` and `b.co.uk` one
+organisation. Without the check, anyone can have this server mail a stranger
+daily.
+
+Outcomes are counted into day-bucketed rows (`dmarc_evaluations`,
+`tls_outcomes`) and the `reports.send` job turns finished days into reports. The
+`report_sends` row is the claim, taken before anything is built, so a report is
+never sent twice.
+
 ## Agent email
 
 An agent mailbox is an `addresses` row of type `agent` plus a row in `agents`

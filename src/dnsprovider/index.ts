@@ -183,6 +183,7 @@ const sameTxtPurpose = (a: string, b: string): boolean => {
     const trimmed = value.trim().toLowerCase()
     if (trimmed.startsWith("v=spf1")) return "spf"
     if (trimmed.startsWith("v=dmarc1")) return "dmarc"
+    if (trimmed.startsWith("v=tlsrptv1")) return "tlsrpt"
     if (trimmed.startsWith("mail-host-verify=")) return "verify"
     return trimmed
   }

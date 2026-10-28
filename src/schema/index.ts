@@ -877,6 +877,131 @@ export const idempotencyKeys = defineSchema("idempotency_keys", {
   created_at: now(),
 })
 
+// authentication reports
+
+export type DmarcAuthResult = { domain: string; result: string; selector?: string; scope?: string }
+
+export type TlsFailure = {
+  result_type: string
+  sending_mta_ip: string | null
+  receiving_mx_hostname: string | null
+  receiving_ip: string | null
+  failed_session_count: number
+  failure_reason_code: string | null
+}
+
+/** A DMARC aggregate report received for one of our domains. See `src/authreports`. */
+export const dmarcReports = defineSchema("dmarc_reports", {
+  id: id(),
+  domain_id: column.uuid().ref("domains", "id"),
+  org_name: column.text(),
+  org_email: column.text().nullable(),
+  report_id: column.text(),
+  policy_domain: column.text(),
+  policy_p: column.text().nullable(),
+  policy_sp: column.text().nullable(),
+  policy_pct: column.integer().nullable(),
+  adkim: column.text().nullable(),
+  aspf: column.text().nullable(),
+  date_begin: column.timestamp(),
+  date_end: column.timestamp(),
+  message_count: column.integer().default(0),
+  pass_count: column.integer().default(0),
+  fail_count: column.integer().default(0),
+  created_at: now(),
+})
+
+export const dmarcReportRecords = defineSchema("dmarc_report_records", {
+  id: id(),
+  report_id: column.uuid().ref("dmarc_reports", "id"),
+  source_ip: column.text(),
+  count: column.integer().default(0),
+  disposition: column.text(),
+  dkim_eval: column.text(),
+  spf_eval: column.text(),
+  header_from: column.text(),
+  envelope_from: column.text().nullable(),
+  dkim_results: column.json<DmarcAuthResult[]>().default([]),
+  spf_results: column.json<DmarcAuthResult[]>().default([]),
+})
+
+export const tlsReports = defineSchema("tls_reports", {
+  id: id(),
+  domain_id: column.uuid().ref("domains", "id"),
+  org_name: column.text(),
+  report_id: column.text(),
+  contact: column.text().nullable(),
+  date_begin: column.timestamp(),
+  date_end: column.timestamp(),
+  success_count: column.integer().default(0),
+  failure_count: column.integer().default(0),
+  created_at: now(),
+})
+
+export const tlsReportPolicies = defineSchema("tls_report_policies", {
+  id: id(),
+  report_id: column.uuid().ref("tls_reports", "id"),
+  policy_type: column.text(),
+  policy_domain: column.text(),
+  mx_host: column.text().nullable(),
+  success_count: column.integer().default(0),
+  failure_count: column.integer().default(0),
+  failures: column.json<TlsFailure[]>().default([]),
+})
+
+/**
+ * DMARC outcomes this server observed, one row per distinct outcome per UTC day
+ * with a count. Deleted once the day's report is built. `day` is `YYYY-MM-DD`.
+ */
+export const dmarcEvaluations = defineSchema("dmarc_evaluations", {
+  id: id(),
+  day: column.text(),
+  policy_domain: column.text(),
+  header_from: column.text(),
+  source_ip: column.text(),
+  envelope_from: column.text().default(""),
+  spf_result: column.text(),
+  spf_domain: column.text().default(""),
+  spf_aligned: column.boolean().default(false),
+  dkim_result: column.text(),
+  dkim_domain: column.text().default(""),
+  dkim_aligned: column.boolean().default(false),
+  disposition: column.text(),
+  count: column.integer().default(1),
+})
+
+/** result: success | starttls-not-supported | validation-failure */
+export const tlsOutcomes = defineSchema("tls_outcomes", {
+  id: id(),
+  day: column.text(),
+  policy_domain: column.text(),
+  mx_host: column.text(),
+  result: column.text(),
+  detail: column.text().default(""),
+  count: column.integer().default(1),
+})
+
+/**
+ * kind:   dmarc | tlsrpt
+ * status: pending | sent | skipped | failed
+ */
+export const reportSends = defineSchema("report_sends", {
+  id: id(),
+  kind: column.text(),
+  policy_domain: column.text(),
+  day: column.text(),
+  status: column.text().default("pending"),
+  detail: column.text().nullable(),
+  created_at: now(),
+})
+
+export type DmarcReport = RowOf<typeof dmarcReports>
+export type DmarcReportRecord = RowOf<typeof dmarcReportRecords>
+export type TlsReport = RowOf<typeof tlsReports>
+export type TlsReportPolicy = RowOf<typeof tlsReportPolicies>
+export type DmarcEvaluation = RowOf<typeof dmarcEvaluations>
+export type TlsOutcome = RowOf<typeof tlsOutcomes>
+
 export type ApiKey = RowOf<typeof apiKeys>
 export type Email = RowOf<typeof emails>
 export type Suppression = RowOf<typeof suppressions>
@@ -902,6 +1027,9 @@ export const allSchemas = [
   bounces,
   deliveries,
   dkimKeys,
+  dmarcEvaluations,
+  dmarcReportRecords,
+  dmarcReports,
   domainAdmins,
   domainRecords,
   domains,
@@ -920,10 +1048,14 @@ export const allSchemas = [
   plans,
   rateLimits,
   referrals,
+  reportSends,
   sessions,
   subscriptions,
   suppressions,
   taxIds,
+  tlsOutcomes,
+  tlsReportPolicies,
+  tlsReports,
   tokens,
   transactions,
   transfers,

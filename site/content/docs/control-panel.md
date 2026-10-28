@@ -75,6 +75,14 @@ without a gap.
 
 The catch-all, the fallback domain, and self-service recovery.
 
+## Reports
+
+The DMARC aggregate and TLS reports other mail servers sent about one domain,
+over the last 7 to 180 days: how many messages were reported and how many passed,
+a table by sending IP, a table by reporting organisation, and TLS failures by
+type. Reports arrive at `dmarc-reports@` and `tlsrpt@` on the domain, which the
+generated DNS records already name. See [Deliverability](deliverability.html#dmarc-reports).
+
 ## Addresses
 
 A flat list across every domain, which is the view you want when you are looking

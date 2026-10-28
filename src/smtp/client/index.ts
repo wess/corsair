@@ -1,4 +1,5 @@
 import { resolveMx } from "node:dns/promises"
+import type { TlsSessionResult } from "../../authreports/outbound/index.ts"
 import { config } from "../../config/index.ts"
 import { createWriter, type SocketWriter } from "../../socketio/index.ts"
 import { peerError } from "../../tlsverify/index.ts"
@@ -21,6 +22,12 @@ export type SendResult = {
   code: number
   message: string
   host: string | null
+  /**
+   * What happened to TLS on each session that got as far as EHLO, for the
+   * TLS reports in `src/authreports`. A session that never reached EHLO says
+   * nothing about TLS and is not counted.
+   */
+  sessions?: TlsSessionResult[]
 }
 
 /**
@@ -316,6 +323,7 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
   // remote server's opinion of *us*; only after it can a rejection be about who
   // the mail is for. See REPUTATION_BLOCK.
   let namedRecipient = false
+  let tls: TlsSessionResult | undefined
 
   try {
     conn = await connect({
@@ -334,9 +342,17 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
     if (!conn.secure() && /\bSTARTTLS\b/i.test(greeting.text)) {
       conn.write(`STARTTLS${CRLF}`)
       await conn.read(220)
-      await conn.upgrade()
+      try {
+        await conn.upgrade()
+      } catch (e) {
+        tls = { host: input.host, result: "validation-failure", detail: (e as Error).message }
+        throw e
+      }
+      tls = { host: input.host, result: "success", detail: "" }
       conn.write(`EHLO ${config.hostname}${CRLF}`)
       greeting = await conn.read(250)
+    } else if (!input.implicitTls) {
+      tls = { host: input.host, result: "starttls-not-supported", detail: "" }
     }
 
     if (input.auth) {
@@ -367,8 +383,10 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
       code: accepted.code,
       message: accepted.text,
       host: input.host,
+      ...(tls ? { sessions: [tls] } : {}),
     }
   } catch (e) {
+    const sessions = tls ? { sessions: [tls] } : {}
     if (e instanceof SmtpFailure) {
       return {
         ok: false,
@@ -379,6 +397,7 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
         code: e.code,
         message: e.message,
         host: input.host,
+        ...sessions,
       }
     }
     // A DNS or TCP failure is transient by definition — the remote end never
@@ -389,6 +408,7 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
       code: 421,
       message: (e as Error).message,
       host: input.host,
+      ...sessions,
     }
   } finally {
     conn?.close()
@@ -463,6 +483,7 @@ export const deliverToDomain = async (input: {
     host: null,
   }
 
+  const sessions: TlsSessionResult[] = []
   for (const host of hosts) {
     last = await sendMessage({
       host,
@@ -470,8 +491,8 @@ export const deliverToDomain = async (input: {
       rcptTo: input.rcptTo,
       raw: input.raw,
     })
-    if (last.ok) return last
-    if (!last.retryable) return last
+    sessions.push(...(last.sessions ?? []))
+    if (last.ok || !last.retryable) break
   }
-  return last
+  return { ...last, sessions }
 }

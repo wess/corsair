@@ -256,6 +256,17 @@ A 429 carries `retry-after`, `ratelimit-limit`, `ratelimit-remaining`, and
 `MAX_MESSAGE_BYTES` is the wire size after encoding. Base64 costs about a third,
 so 25 MB on the wire is roughly an 18 MB attachment.
 
+## Authentication reports
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DMARC_REPORTS_SEND` | `true` | Record inbound DMARC results and send daily aggregate reports |
+| `TLSRPT_SEND` | `true` | Record outbound TLS outcomes and send daily TLS reports |
+| `REPORTS_DAILY_CAP` | `1000` | Reports of each kind sent per UTC day |
+| `REPORTS_FROM` | `noreply-dmarc@<CORSAIR_HOSTNAME>` | Sender of outgoing reports. Put it on a hosted domain so reports are DKIM-signed |
+
+See [Deliverability](deliverability.html#reports-corsair-sends).
+
 ## Seeding
 
 | Variable | Default | What it does |

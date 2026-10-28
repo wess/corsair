@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { from } from "@wess/atlas/db/query"
+import { runReports } from "../authreports/outbound/index.ts"
 import { config } from "../config/index.ts"
 import { db } from "../db/index.ts"
 import { checkDomain } from "../domains/index.ts"
@@ -16,7 +17,12 @@ export { deliverEvent, drainWebhooks, replayEvent } from "./webhook/index.ts"
 
 const WORKER_ID = `${process.pid}-${randomUUID().slice(0, 8)}`
 
-export type JobKind = "domain.verify" | "transfer.run" | "quota.recompute" | "retention.sweep"
+export type JobKind =
+  | "domain.verify"
+  | "transfer.run"
+  | "quota.recompute"
+  | "retention.sweep"
+  | "reports.send"
 
 export const enqueueJob = async (input: {
   kind: JobKind
@@ -220,9 +226,32 @@ const runJob = async (job: Job): Promise<void> => {
         text: "DELETE FROM idempotency_keys WHERE expires_at < now()",
         values: [],
       })
+      // Received DMARC and TLS reports. Half a year covers any trend worth
+      // looking at; the records under them go by cascade.
+      await db().execute({
+        text: "DELETE FROM dmarc_reports WHERE date_end < now() - interval '180 days'",
+        values: [],
+      })
+      await db().execute({
+        text: "DELETE FROM tls_reports WHERE date_end < now() - interval '180 days'",
+        values: [],
+      })
       if (tombstones.length || expunged.length || logs.length) {
         console.log(
           `[corsair] retention sweep: ${expunged.length} message(s), ${tombstones.length} tombstone(s), ${logs.length} log row(s)`,
+        )
+      }
+      return
+    }
+
+    case "reports.send": {
+      // Yesterday's DMARC and TLS reports. Runs on every sweep tick rather than
+      // once at midnight: it is idempotent per (kind, domain, day), so the first
+      // tick after a day ends sends it and the rest find nothing to do.
+      const result = await runReports()
+      if (result.dmarc || result.tlsrpt || result.capped) {
+        console.log(
+          `[corsair] reports: ${result.dmarc} DMARC, ${result.tlsrpt} TLS sent${result.capped ? " (daily cap reached)" : ""}`,
         )
       }
       return
@@ -309,6 +338,7 @@ export const startWorker = async (): Promise<void> => {
       void releaseStaleWebhooks().catch(() => {})
       void releaseStaleJobs().catch(() => {})
       void periodic("retention.sweep", 4711).catch(() => {})
+      void periodic("reports.send", 4713).catch(() => {})
     }, 15 * 60_000),
   )
 

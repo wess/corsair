@@ -422,6 +422,34 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p>Authenticated requests are limited per user; unauthenticated ones per IP. Sign-in and sign-up have their own tighter limit of <strong>5 per second per IP</strong>, since there is no principal yet.</p>
 <p>A 429 carries <code>retry-after</code>, <code>ratelimit-limit</code>, <code>ratelimit-remaining</code>, and <code>ratelimit-reset</code>.</p>
 <p><code>MAX_MESSAGE_BYTES</code> is the wire size after encoding. Base64 costs about a third, so 25 MB on the wire is roughly an 18 MB attachment.</p>
+<h2 id="authentication-reports">Authentication reports<a class="anchor" href="#authentication-reports" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>DMARC_REPORTS_SEND</code></td>
+<td><code>true</code></td>
+<td>Record inbound DMARC results and send daily aggregate reports</td>
+</tr>
+<tr>
+<td><code>TLSRPT_SEND</code></td>
+<td><code>true</code></td>
+<td>Record outbound TLS outcomes and send daily TLS reports</td>
+</tr>
+<tr>
+<td><code>REPORTS_DAILY_CAP</code></td>
+<td><code>1000</code></td>
+<td>Reports of each kind sent per UTC day</td>
+</tr>
+<tr>
+<td><code>REPORTS_FROM</code></td>
+<td><code>noreply-dmarc@&lt;CORSAIR_HOSTNAME&gt;</code></td>
+<td>Sender of outgoing reports. Put it on a hosted domain so reports are DKIM-signed</td>
+</tr>
+</tbody></table></div>
+<p>See <a href="deliverability.html#reports-corsair-sends">Deliverability</a>.</p>
 <h2 id="seeding">Seeding<a class="anchor" href="#seeding" aria-label="Link to this section">#</a></h2>
 <div class='table-wrap'><table><thead><tr>
 <th>Variable</th>
@@ -478,7 +506,7 @@ STORAGE_SECRET_ACCESS_KEY=...</code></pre></figure>
 # or
 docker compose up -d</code></pre></figure>
 <p>There is no reload signal. A mail server that reconfigures itself mid-connection is a source of bugs nobody enjoys.</p><nav class="pager"><a class="pager-prev" href="./installation.html"><span>Previous</span><strong>Installation</strong></a><a class="pager-next" href="./dns-setup.html"><span>Next</span><strong>DNS setup</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#core">Core</a></li><li class="toc-h2"><a href="#mail-identity">Mail identity</a></li><li class="toc-h2"><a href="#listeners">Listeners</a></li><li class="toc-h3"><a href="#starttls-on-25-and-587">STARTTLS on 25 and 587</a></li><li class="toc-h2"><a href="#tls">TLS</a></li><li class="toc-h2"><a href="#delivery">Delivery</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#workers">Workers</a></li><li class="toc-h2"><a href="#payments">Payments</a></li><li class="toc-h2"><a href="#mailbox-transfers">Mailbox transfers</a></li><li class="toc-h2"><a href="#webhooks">Webhooks</a></li><li class="toc-h2"><a href="#limits">Limits</a></li><li class="toc-h2"><a href="#seeding">Seeding</a></li><li class="toc-h2"><a href="#a-production-starting-point">A production starting point</a></li><li class="toc-h2"><a href="#changing-configuration">Changing configuration</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#core">Core</a></li><li class="toc-h2"><a href="#mail-identity">Mail identity</a></li><li class="toc-h2"><a href="#listeners">Listeners</a></li><li class="toc-h3"><a href="#starttls-on-25-and-587">STARTTLS on 25 and 587</a></li><li class="toc-h2"><a href="#tls">TLS</a></li><li class="toc-h2"><a href="#delivery">Delivery</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#workers">Workers</a></li><li class="toc-h2"><a href="#payments">Payments</a></li><li class="toc-h2"><a href="#mailbox-transfers">Mailbox transfers</a></li><li class="toc-h2"><a href="#webhooks">Webhooks</a></li><li class="toc-h2"><a href="#limits">Limits</a></li><li class="toc-h2"><a href="#authentication-reports">Authentication reports</a></li><li class="toc-h2"><a href="#seeding">Seeding</a></li><li class="toc-h2"><a href="#a-production-starting-point">A production starting point</a></li><li class="toc-h2"><a href="#changing-configuration">Changing configuration</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

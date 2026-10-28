@@ -155,7 +155,7 @@ dig +short TXT   corsair-1._domainkey.example.com</code></pre></figure>
 <p>The TXT lookup should follow the CNAME and return <code>v=DKIM1; k=rsa; p=…</code>.</p>
 <aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Some providers flatten CNAMEs</p><p>Cloudflare's proxy and a few managed DNS products will resolve a CNAME at publish time and store the result. That freezes the key, and rotation then silently breaks signing. If your provider does this, turn proxying <strong>off</strong> for the <code>_domainkey</code> records.</p></aside>
 <h2 id="dmarc">DMARC<a class="anchor" href="#dmarc" aria-label="Link to this section">#</a></h2>
-<figure class="code"><pre><code>v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com</code></pre></figure>
+<figure class="code"><pre><code>v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@example.com;</code></pre></figure>
 <p>Tells receivers what to do when a message claiming to be from you passes neither an aligned SPF nor an aligned DKIM check.</p>
 <div class='table-wrap'><table><thead><tr>
 <th>Policy</th>
@@ -176,6 +176,10 @@ dig +short TXT   corsair-1._domainkey.example.com</code></pre></figure>
 </tbody></table></div>
 <p><code>quarantine</code> is the sensible default. Move to <code>reject</code> once you are confident every legitimate sender for the domain is covered — including the marketing platform, the ticketing system, and whatever else sends as you.</p>
 <p><code>rua=</code> gives you aggregate reports, which is how you find the sender you forgot. Add it before tightening the policy, not after.</p>
+<p>The generated record points <code>rua</code> at <code>dmarc-reports@</code> on the domain itself. That address needs no mailbox: Corsair accepts mail for it, reads the reports (gzip, zip, or plain XML), and files them under the domain, where <strong>Reports</strong> in the control panel totals them by sending IP and by reporting organisation. If you do create a mailbox or alias called <code>dmarc-reports</code>, it receives the messages as well — the parse is in addition to delivery, not instead of it.</p>
+<p>Two rules decide what is filed:</p>
+<ul><li><strong>A report must be about the domain it was sent to</strong>, or a subdomain of it. A report mailed to <code>dmarc-reports@a.example</code> about <code>b.example</code> is dropped, so one domain cannot fill another's dashboard.</li><li><strong>The sender must authenticate</strong> — SPF or DKIM passed. Every large reporter signs its reports; without the check anyone could invent traffic by mailing an XML file.</li></ul>
+<p>You can keep your own <code>rua</code> instead, or as well (<code>rua=mailto:dmarc-reports@example.com,mailto:you@dmarc-service.example</code>). A destination on another domain has to publish a TXT record authorising it — <code>example.com._report._dmarc.dmarc-service.example</code> with <code>v=DMARC1</code> — or receivers will not send to it. Commercial report services publish theirs for you.</p>
 <p>**DMARC passes if <em>either</em> SPF or DKIM passes and aligns with the From domain.** One is enough by design — that is what makes forwarding survivable, since forwarding breaks SPF but preserves DKIM.</p>
 <h2 id="mx">MX<a class="anchor" href="#mx" aria-label="Link to this section">#</a></h2>
 <figure class="code"><pre><code>example.com.  MX  10  mail.example.com.</code></pre></figure>
@@ -194,6 +198,10 @@ max_age: 604800</code></pre></figure>
 <figure class="code"><pre><code>_mta-sts.example.com.  TXT  &quot;v=STSv1; id=20260810000000&quot;</code></pre></figure>
 <p>Bump the <code>id</code> whenever the policy changes.</p>
 <aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Do not go straight to enforce</p><p>Going to <code>enforce</code> with a wrong MX list silently blackholes your inbound mail — senders refuse to deliver rather than falling back. Watch the reports, confirm the MX list is right, and only then change it.</p></aside>
+<h2 id="tls-reporting">TLS reporting<a class="anchor" href="#tls-reporting" aria-label="Link to this section">#</a></h2>
+<figure class="code"><pre><code>_smtp._tls.example.com.  TXT  &quot;v=TLSRPTv1; rua=mailto:tlsrpt@example.com&quot;</code></pre></figure>
+<p>Optional. Asks senders for a daily report (RFC 8460) of how their TLS sessions to your MX went — how many negotiated TLS, and why any did not. It is the feedback loop that makes <a href="#mta-sts">MTA-STS</a> safe to tighten: an expired certificate shows up as <code>certificate-expired</code> failures before it becomes lost mail.</p>
+<p>Like <code>dmarc-reports@</code>, the <code>tlsrpt@</code> address needs no mailbox; Corsair files the JSON reports under the domain and shows them beside the DMARC ones. Entries in a report about any other domain are dropped.</p>
 <h2 id="autoconfig-and-autodiscover">autoconfig and autodiscover<a class="anchor" href="#autoconfig-and-autodiscover" aria-label="Link to this section">#</a></h2>
 <p>CNAMEs that let Thunderbird and Outlook configure themselves from an email address alone. Optional, and worth publishing — the alternative is telling every user six hostnames.</p>
 <h2 id="checking-everything">Checking everything<a class="anchor" href="#checking-everything" aria-label="Link to this section">#</a></h2>
@@ -212,7 +220,7 @@ dig +short TXT   corsair-1._domainkey.example.com</code></pre></figure>
 <h2 id="before-a-migration-lower-your-ttls">Before a migration, lower your TTLs<a class="anchor" href="#before-a-migration-lower-your-ttls" aria-label="Link to this section">#</a></h2>
 <p>A day before you plan to change the MX, drop its TTL to 300 seconds. Then the cutover window is five minutes rather than however long the old TTL was.</p>
 <p>Raise them again afterwards.</p><nav class="pager"><a class="pager-prev" href="./configuration.html"><span>Previous</span><strong>Configuration</strong></a><a class="pager-next" href="./tls.html"><span>Next</span><strong>TLS certificates</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#verification">Verification</a></li><li class="toc-h2"><a href="#spf">SPF</a></li><li class="toc-h2"><a href="#dkim">DKIM</a></li><li class="toc-h2"><a href="#dmarc">DMARC</a></li><li class="toc-h2"><a href="#mx">MX</a></li><li class="toc-h2"><a href="#mta-sts">MTA-STS</a></li><li class="toc-h2"><a href="#autoconfig-and-autodiscover">autoconfig and autodiscover</a></li><li class="toc-h2"><a href="#checking-everything">Checking everything</a></li><li class="toc-h2"><a href="#when-a-record-will-not-verify">When a record will not verify</a></li><li class="toc-h2"><a href="#before-a-migration-lower-your-ttls">Before a migration, lower your TTLs</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#verification">Verification</a></li><li class="toc-h2"><a href="#spf">SPF</a></li><li class="toc-h2"><a href="#dkim">DKIM</a></li><li class="toc-h2"><a href="#dmarc">DMARC</a></li><li class="toc-h2"><a href="#mx">MX</a></li><li class="toc-h2"><a href="#mta-sts">MTA-STS</a></li><li class="toc-h2"><a href="#tls-reporting">TLS reporting</a></li><li class="toc-h2"><a href="#autoconfig-and-autodiscover">autoconfig and autodiscover</a></li><li class="toc-h2"><a href="#checking-everything">Checking everything</a></li><li class="toc-h2"><a href="#when-a-record-will-not-verify">When a record will not verify</a></li><li class="toc-h2"><a href="#before-a-migration-lower-your-ttls">Before a migration, lower your TTLs</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">
