@@ -471,6 +471,20 @@ kind of thing that regresses quietly.
   `127.0.0.1` and softfails SPF (DMARC still passes on DKIM) because the loopback
   exemption deliberately requires a *direct* connection.
 
+## Metrics
+
+`GET /metrics` (`src/metrics`) is answered inside `buildFetch`, ahead of the router,
+and only when `METRICS_TOKEN` is set: unset is a 404, a wrong token a 401. Do not
+add a loopback exemption. Behind a proxy every request is loopback, and the SMTP
+front's `spfExempt` lesson applies here too.
+
+**Label values must come from a closed set.** Never an address, domain, IP or
+free-form command name: `commandName` folds anything unknown into `other`, and the
+reason classes (`smtpReason`, `deferralReason`) are the only way text from a
+remote server becomes a label. The registry caps a metric at 500 series as a
+backstop, not as permission. Queue depth and bans are read at scrape time (cached
+5 s, 2 s deadline), not sampled, so a stopped worker still reports its backlog.
+
 ## Adding an endpoint
 
 1. Schema in `src/schema/index.ts`, plus SQL in a new migration

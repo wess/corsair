@@ -2574,6 +2574,7 @@ Defaults below are what the shipped code uses, not suggestions.
 | `MAIL_WEBMAIL_HOST` | *(empty)* | Optional CNAME target for customer webmail URLs; requires [HTTPS proxy setup](webmail.html#for-operators) |
 | `SIGNUPS` | `open` | `open` lets anyone sign up; `closed` allows only the first account |
 | `TRUSTED_PROXIES` | *(empty)* | Proxies whose `X-Forwarded-For` is believed |
+| `METRICS_TOKEN` | *(empty)* | Bearer token for `GET /metrics`; unset, the endpoint answers 404. See [Monitoring](monitoring.html#prometheus-metrics) |
 
 danger JWT_SECRET
 Anyone who knows it can mint a session for any account. Generate 48 random bytes
@@ -3480,6 +3481,10 @@ Three passes. Then send *to* the domain from outside and confirm it lands.
 - [ ] **Monitoring** on: the process, the queue depth, certificate expiry, disk,
   and the bounce rate. See [Monitoring](monitoring.html).
 
+- [ ] **Metrics scraped** if you run Prometheus: set `METRICS_TOKEN` and add the
+  alerts in [Monitoring](monitoring.html#prometheus-metrics). The endpoint is
+  off, and 404s, until the token exists.
+
 - [ ] **Log retention** decided. Mail logs contain sender and recipient addresses.
 
 - [ ] **Service restarts on boot.**
@@ -3939,6 +3944,94 @@ FROM jobs GROUP BY 1, 2;
 ```
 
 Jobs stuck in `running` with an old `updated_at` mean a worker died mid-job.
+
+## Prometheus metrics
+
+Corsair serves its own counters at `GET /metrics` in the Prometheus text format.
+It is off until you set a token:
+
+```sh
+# .env
+METRICS_TOKEN=$(openssl rand -hex 32)
+```
+
+With no `METRICS_TOKEN` the path answers 404, as if it did not exist. With one,
+every request needs `Authorization: Bearer <token>`; a wrong or missing token is a
+401. There is no "trust loopback" shortcut, because behind a reverse proxy every
+request arrives from `127.0.0.1`. Metrics live in the process that serves them and
+reset on restart, which is what `rate()` expects.
+
+```yaml
+scrape_configs:
+  - job_name: corsair
+    scheme: https
+    metrics_path: /metrics
+    authorization:
+      credentials_file: /etc/prometheus/corsair.token
+    static_configs:
+      - targets: ["mail.example.com"]
+```
+
+None of the labels carry an address, a domain or an IP, so the number of series
+stays small however much mail you handle.
+
+| Metric | Labels | Meaning |
+| --- | --- | --- |
+| `corsair_smtp_sessions_total` | `listener` (`mx`, `submission`, `submissions`) | Connections accepted |
+| `corsair_smtp_messages_total` | `listener`, `result`, `reason` | Messages finished at DATA; `reason` is `spam`, `auth`, `policy`, `size`, `other`, or `none` when accepted |
+| `corsair_smtp_recipients_rejected_total` | `listener`, `reason` | RCPT refusals |
+| `corsair_smtp_message_size_bytes` | `listener` | Histogram of message sizes |
+| `corsair_delivery_attempts_total` | `outcome` (`delivered`, `deferred`, `bounced`) | Outbound attempts |
+| `corsair_delivery_deferrals_total` | `reason` (`blocklist`, `tls`, `connect`, `4xx`, `other`) | Why attempts were deferred |
+| `corsair_queue_depth` | `status` (`queued`, `deferred`, `sending`) | Deliveries waiting, read at scrape time |
+| `corsair_queue_oldest_age_seconds` | | Age of the oldest queued or deferred delivery |
+| `corsair_queue_overdue_age_seconds` | | How long the longest-waiting due delivery has been due |
+| `corsair_auth_attempts_total` | `protocol`, `result` (`ok`, `fail`, `banned`) | Logins |
+| `corsair_bans_active` | | IPs currently banned |
+| `corsair_connections_active` | `protocol` (`imap`, `pop3`) | Open client connections |
+| `corsair_commands_total` | `protocol`, `command` | Protocol commands; unknown names are `other` |
+| `corsair_webhook_deliveries_total` | `outcome` (`delivered`, `failed`, `exhausted`) | Webhook attempts |
+| `corsair_storage_errors_total` | `op` (`read`, `write`, `delete`) | Object store failures |
+| `corsair_process_*`, `corsair_event_loop_lag_seconds`, `corsair_build_info` | | Uptime, memory, loop lag, version |
+
+The queue gauges come from two small queries run when you scrape, cached for five
+seconds with a two-second deadline. If the database is slow they keep their last
+values instead of failing the scrape.
+
+Counters are per process. On a split deployment, scrape the web tier and the
+process that runs the worker and listeners separately, and sum across them.
+
+Alerts worth starting with:
+
+```yaml
+groups:
+  - name: corsair
+    rules:
+      - alert: CorsairQueueGrowing
+        expr: deriv(sum(corsair_queue_depth{status!="sending"})[30m:]) > 0 and sum(corsair_queue_depth{status!="sending"}) > 50
+        for: 30m
+      - alert: CorsairOldestQueuedTooOld
+        expr: corsair_queue_oldest_age_seconds > 3600
+        for: 10m
+      - alert: CorsairWorkerBehind
+        expr: corsair_queue_overdue_age_seconds > 300
+        for: 5m
+      - alert: CorsairDeferralsBlocklist
+        expr: sum(increase(corsair_delivery_deferrals_total{reason="blocklist"}[15m])) > 0
+      - alert: CorsairDeferralRateHigh
+        expr: |
+          sum(rate(corsair_delivery_attempts_total{outcome="deferred"}[15m]))
+            / sum(rate(corsair_delivery_attempts_total[15m])) > 0.3
+        for: 15m
+      - alert: CorsairAuthFailureSpike
+        expr: sum by (protocol) (rate(corsair_auth_attempts_total{result="fail"}[5m])) > 1
+        for: 10m
+      - alert: CorsairStorageErrors
+        expr: sum(increase(corsair_storage_errors_total[10m])) > 0
+      - alert: CorsairDown
+        expr: up{job="corsair"} == 0
+        for: 2m
+```
 
 ## External checks
 

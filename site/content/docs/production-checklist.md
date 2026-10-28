@@ -167,6 +167,10 @@ Three passes. Then send *to* the domain from outside and confirm it lands.
 - [ ] **Monitoring** on: the process, the queue depth, certificate expiry, disk,
   and the bounce rate. See [Monitoring](monitoring.html).
 
+- [ ] **Metrics scraped** if you run Prometheus: set `METRICS_TOKEN` and add the
+  alerts in [Monitoring](monitoring.html#prometheus-metrics). The endpoint is
+  off, and 404s, until the token exists.
+
 - [ ] **Log retention** decided. Mail logs contain sender and recipient addresses.
 
 - [ ] **Service restarts on boot.**

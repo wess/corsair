@@ -3,6 +3,7 @@ import { inboxOf } from "../../addresses/index.ts"
 import { authenticateAddress, type MailIdentity } from "../../auth/index.ts"
 import { config } from "../../config/index.ts"
 import { num } from "../../db/index.ts"
+import { commandName, commands } from "../../metrics/index.ts"
 import * as mime from "../../mime/index.ts"
 import type { Message } from "../../schema/index.ts"
 import { getRaw } from "../../storage/index.ts"
@@ -103,6 +104,7 @@ export const createPop3Session = (hooks: Pop3Hooks): Pop3Session => {
     const space = line.indexOf(" ")
     const verb = (space === -1 ? line : line.slice(0, space)).toUpperCase()
     const argument = space === -1 ? "" : line.slice(space + 1).trim()
+    commands.inc({ protocol: "pop3", command: commandName("pop3", verb) })
 
     switch (verb) {
       case "CAPA": {

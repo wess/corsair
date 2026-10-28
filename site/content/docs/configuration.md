@@ -28,6 +28,7 @@ Defaults below are what the shipped code uses, not suggestions.
 | `MAIL_WEBMAIL_HOST` | *(empty)* | Optional CNAME target for customer webmail URLs; requires [HTTPS proxy setup](webmail.html#for-operators) |
 | `SIGNUPS` | `open` | `open` lets anyone sign up; `closed` allows only the first account |
 | `TRUSTED_PROXIES` | *(empty)* | Proxies whose `X-Forwarded-For` is believed |
+| `METRICS_TOKEN` | *(empty)* | Bearer token for `GET /metrics`; unset, the endpoint answers 404. See [Monitoring](monitoring.html#prometheus-metrics) |
 
 :::danger JWT_SECRET
 Anyone who knows it can mint a session for any account. Generate 48 random bytes

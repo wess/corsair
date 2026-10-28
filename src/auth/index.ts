@@ -5,6 +5,7 @@ import { from } from "@wess/atlas/db/query"
 import { config } from "../config/index.ts"
 import { db } from "../db/index.ts"
 import { forbidden, rateLimitExceeded, unauthorized } from "../errors/index.ts"
+import { authResult } from "../metrics/index.ts"
 import {
   type Address,
   addresses,
@@ -558,12 +559,13 @@ const FAILURE_WINDOW_MS = 15 * 60 * 1000
 const FAILURE_THRESHOLD = 10
 const BAN_MS = 60 * 60 * 1000
 
-export const isBanned = async (ip: string): Promise<boolean> => {
+export const isBanned = async (ip: string, protocol = "other"): Promise<boolean> => {
   const row = await db().one<{ ip: string }>(
     from(bans)
       .select("ip")
       .where((q) => [q("ip").equals(ip), q("expires_at").greaterThan(new Date())]),
   )
+  if (row) authResult(protocol, "banned")
   return Boolean(row)
 }
 
@@ -577,6 +579,7 @@ export const recordAuthFailure = async (
   protocol: string,
   username?: string | null,
 ): Promise<void> => {
+  authResult(protocol, "fail")
   await db().execute(from(authFailures).insert({ ip, protocol, username: username ?? null }))
   const since = new Date(Date.now() - FAILURE_WINDOW_MS)
   const row = await db().one<{ count: string }>({
@@ -592,7 +595,8 @@ export const recordAuthFailure = async (
   })
 }
 
-export const clearAuthFailures = async (ip: string): Promise<void> => {
+export const clearAuthFailures = async (ip: string, protocol?: string): Promise<void> => {
+  if (protocol) authResult(protocol, "ok")
   await db().execute(
     from(authFailures)
       .where((q) => q("ip").equals(ip))

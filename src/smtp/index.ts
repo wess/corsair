@@ -1,5 +1,6 @@
 import { clearAuthFailures, isBanned, recordAuthFailure } from "../auth/index.ts"
 import { config } from "../config/index.ts"
+import { smtpSessions } from "../metrics/index.ts"
 import { createReader, createWriter, type SocketWriter } from "../socketio/index.ts"
 import {
   canUpgradeServerSocketToTls,
@@ -61,6 +62,7 @@ const createListener = (input: {
   // Never advertise STARTTLS the runtime cannot actually perform: a sender
   // that takes us up on it gets its connection dropped mid-handshake and
   // defers rather than falling back. See src/starttls.
+  const listenerName = input.implicitTls ? "submissions" : input.mode
   const canStartTls = Boolean(input.tls) && !input.implicitTls && canUpgradeServerSocketToTls()
 
   const handleChunk = async (socket: Bun.Socket<SocketData>, chunk: Uint8Array) => {
@@ -117,6 +119,7 @@ const createListener = (input: {
   const handlers = {
     open(socket: Bun.Socket<SocketData>) {
       const socketIp = socket.remoteAddress ?? "unknown"
+      smtpSessions.inc({ listener: listenerName })
       // Whether *this peer* may speak XCLIENT, decided here from the socket and
       // never from anything the connection says about itself.
       const trustProxy = config.smtp.trustedProxies.includes(socketIp)
@@ -136,6 +139,7 @@ const createListener = (input: {
 
       data.session = createSession({
         mode: input.mode,
+        listener: listenerName,
         hostname: config.hostname,
         maxSize: config.maxMessageBytes,
         remoteIp: socketIp,
@@ -158,11 +162,11 @@ const createListener = (input: {
         authenticate:
           input.mode === "submission"
             ? async (username, password) => {
-                if (await isBanned(data.remoteIp)) return null
+                if (await isBanned(data.remoteIp, "smtp")) return null
                 const result = await submission.authenticate(username, password)
                 if (result) {
                   data.identity = result
-                  await clearAuthFailures(data.remoteIp).catch(() => {})
+                  await clearAuthFailures(data.remoteIp, "smtp").catch(() => {})
                 } else {
                   await recordAuthFailure(data.remoteIp, "smtp", username).catch(() => {})
                 }
@@ -208,7 +212,7 @@ const createListener = (input: {
 
       // A banned source gets a 421 and nothing else. Answering at all costs one
       // packet; answering properly costs an Argon2 hash per attempt.
-      const ready = isBanned(socketIp)
+      const ready = isBanned(socketIp, "smtp")
         .then((banned) => {
           if (banned) {
             data.writer.write(`421 4.7.0 Too many failed attempts from ${socketIp}.\r\n`)

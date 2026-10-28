@@ -113,6 +113,11 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td><em>(empty)</em></td>
 <td>Proxies whose <code>X-Forwarded-For</code> is believed</td>
 </tr>
+<tr>
+<td><code>METRICS_TOKEN</code></td>
+<td><em>(empty)</em></td>
+<td>Bearer token for <code>GET /metrics</code>; unset, the endpoint answers 404. See <a href="monitoring.html#prometheus-metrics">Monitoring</a></td>
+</tr>
 </tbody></table></div>
 <aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>JWT_SECRET</p><p>Anyone who knows it can mint a session for any account. Generate 48 random bytes and treat it as a credential:</p>
 <p><code>openssl rand -base64 48</code></p>

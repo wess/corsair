@@ -14,6 +14,7 @@ import { db } from "../../../db/index.ts"
 import { sign } from "../../../dkim/index.ts"
 import { activeDkimKey } from "../../../domains/index.ts"
 import { rfcMessageId, uidValidity } from "../../../ids/index.ts"
+import { authResult, commandName, commands } from "../../../metrics/index.ts"
 import * as mime from "../../../mime/index.ts"
 import { enqueue } from "../../../outbound/index.ts"
 import { responseConn } from "../../../parts/index.ts"
@@ -106,7 +107,7 @@ const authenticate = async (conn: { headers: Headers }): Promise<MailIdentity | 
   // front door without the failure ban the mail listeners and the webmail have:
   // unlimited tries against a known address, each one an Argon2 verify.
   const ip = ipOf(conn as never)
-  if (await isBanned(ip)) return null
+  if (await isBanned(ip, "jmap")) return null
 
   const username = decoded.slice(0, colon)
   const identity = await authenticateAddress(username, decoded.slice(colon + 1))
@@ -114,6 +115,7 @@ const authenticate = async (conn: { headers: Headers }): Promise<MailIdentity | 
     await recordAuthFailure(ip, "jmap", username).catch(() => {})
     return null
   }
+  authResult("jmap", "ok")
   return identity
 }
 
@@ -961,6 +963,7 @@ export const jmapRoutes: Route[] = [
     for (const [name, rawArgs, callId] of calls) {
       const args = { ...rawArgs, ...resolveReferences(rawArgs ?? {}, responses) }
       try {
+        commands.inc({ protocol: "jmap", command: commandName("jmap", name) })
         const [responseName, result] = await invoke(name, args, ctx)
         responses.push([responseName, result as Record<string, any>, callId])
       } catch (e) {

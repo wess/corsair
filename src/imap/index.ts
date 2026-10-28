@@ -1,5 +1,6 @@
 import { clearAuthFailures, isBanned, recordAuthFailure } from "../auth/index.ts"
 import { config } from "../config/index.ts"
+import { connections } from "../metrics/index.ts"
 import { createReader, createWriter, type SocketWriter } from "../socketio/index.ts"
 import { canUpgradeServerSocketToTls, upgradeAcceptedSocket } from "../starttls/index.ts"
 import { tlsOptions } from "../tls/index.ts"
@@ -105,6 +106,7 @@ export const createListener = (input: {
   const handlers = {
     open(socket: Bun.Socket<SocketData>) {
       const remoteIp = socket.remoteAddress ?? "unknown"
+      connections.inc({ protocol: "imap" })
       const data: SocketData = {
         session: null as never,
         remoteIp,
@@ -140,7 +142,7 @@ export const createListener = (input: {
         onAuthSuccess: () => {
           data.authed = true
           ;(data.tlsSocket ?? socket).timeout(AUTHED_IDLE)
-          void clearAuthFailures(remoteIp).catch(() => {})
+          void clearAuthFailures(remoteIp, "imap").catch(() => {})
         },
         onAuthFailure: (username) => {
           void recordAuthFailure(remoteIp, "imap", username).catch(() => {})
@@ -157,7 +159,7 @@ export const createListener = (input: {
       socket.data = data
       socket.timeout(PRE_AUTH_IDLE)
 
-      const ready = isBanned(remoteIp)
+      const ready = isBanned(remoteIp, "imap")
         .then((banned) => {
           if (banned) {
             data.writer.write(`* BYE Too many failed attempts from ${remoteIp}.\r\n`)
@@ -214,6 +216,7 @@ export const createListener = (input: {
 
     close(socket: Bun.Socket<SocketData>) {
       if (socket.data?.tlsSocket && socket !== socket.data.tlsSocket) return
+      if (socket.data) connections.dec({ protocol: "imap" })
       socket.data?.reader?.close()
       socket.data?.writer?.close()
       if (socket.data?.idleTimer) clearInterval(socket.data.idleTimer)
