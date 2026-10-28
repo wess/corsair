@@ -121,6 +121,13 @@ Test the whole path before you depend on it:
 sudo certbot renew --dry-run
 ```
 
+:::danger If you publish TLSA records, keep the key
+A `3 1 1` TLSA record pins the certificate's key, and certbot makes a new key on
+every renewal by default. The first renewal then stops mail from every sender
+that checks DANE. Issue and renew with `--reuse-key`, and change keys only with
+both records published — see [DANE](deliverability.html#dane).
+:::
+
 :::warning Restarting drops connections
 A restart disconnects every IMAP IDLE session and every in-flight SMTP
 transaction. Clients reconnect and senders retry, so the cost is small — but

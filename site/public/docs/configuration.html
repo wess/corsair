@@ -283,6 +283,21 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td><code>starttls</code></td>
 <td></td>
 </tr>
+<tr>
+<td><code>DANE</code></td>
+<td><code>auto</code></td>
+<td><code>auto</code>, <code>on</code>, or <code>off</code>. DANE for <code>direct</code> delivery; <code>auto</code> enables it only if the resolver is seen to validate DNSSEC at startup</td>
+</tr>
+<tr>
+<td><code>DANE_RESOLVER</code></td>
+<td><em>(resolv.conf)</em></td>
+<td>Validating resolver whose AD bit is trusted, as <code>host</code> or <code>host:port</code>. Defaults to the first <code>nameserver</code> in <code>/etc/resolv.conf</code></td>
+</tr>
+<tr>
+<td><code>DANE_TRUST_REMOTE_RESOLVER</code></td>
+<td><code>false</code></td>
+<td>Accept a resolver that is not on loopback. Its AD bit can be forged in transit; see <a href="deliverability.html#dane">Deliverability</a></td>
+</tr>
 </tbody></table></div>
 <div class='table-wrap'><table><thead><tr>
 <th>Transport</th>

@@ -159,6 +159,19 @@ clear. It reads dig's status rather than `+short`, because an empty `+short` is
 either "not listed" or "never got an answer" and a monitor that cannot tell
 those apart reports health for a server it failed to ask.
 
+**DANE trusts a resolver's AD bit, and nothing else.** `node:dns` cannot report
+DNSSEC status, so `src/dnswire` speaks the wire format to `DANE_RESOLVER` and
+`src/dane` reads AD from the reply. That is sound only over a path nobody can
+tamper with, so a non-loopback resolver is refused unless
+`DANE_TRUST_REMOTE_RESOLVER=true`, and `DANE=auto` turns on only after the
+startup probe sees AD on the root and *no* answer for `dnssec-failed.org` — a
+forwarder that sets AD blindly passes the first check and fails the second. Every
+DANE failure (mismatch, STARTTLS missing, SERVFAIL on TLSA) is a 4.7.5 deferral;
+falling back to cleartext there is exactly the downgrade DANE prevents. Bun's
+native `getPeerCertificate` inverts Node's argument: `(false)` returns the chain
+with `issuerCertificate` links, `(true)` the leaf alone. DANE-TA needs the chain,
+and the 2 0 1 delivery test in `tests/dane.test.ts` fails if `peerChain` flips it.
+
 ## One store, four protocols
 
 SMTP, IMAP, JMAP, POP3, and the webmail all read and write the same `messages`

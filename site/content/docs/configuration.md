@@ -169,6 +169,9 @@ See [TLS certificates](tls.html).
 | `SMTP_RELAY_USER` | *(empty)* | |
 | `SMTP_RELAY_PASS` | *(empty)* | |
 | `SMTP_RELAY_SECURE` | `starttls` | |
+| `DANE` | `auto` | `auto`, `on`, or `off`. DANE for `direct` delivery; `auto` enables it only if the resolver is seen to validate DNSSEC at startup |
+| `DANE_RESOLVER` | *(resolv.conf)* | Validating resolver whose AD bit is trusted, as `host` or `host:port`. Defaults to the first `nameserver` in `/etc/resolv.conf` |
+| `DANE_TRUST_REMOTE_RESOLVER` | `false` | Accept a resolver that is not on loopback. Its AD bit can be forged in transit; see [Deliverability](deliverability.html#dane) |
 
 | Transport | Behaviour |
 | --- | --- |
