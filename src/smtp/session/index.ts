@@ -154,6 +154,7 @@ export type Session = {
 export const createSession = (hooks: SessionHooks): Session => {
   let buffer = ""
   let closing = false
+  let upgrade = false
   let inData = false
   let dataBuffer = ""
   let dataOverflow = false
@@ -395,10 +396,10 @@ export const createSession = (hooks: SessionHooks): Session => {
         if (hooks.isSecure()) {
           return badCommand({ code: 503, enhanced: "5.5.1", message: "TLS is already active." })
         }
-        // The caller upgrades the socket as soon as this reply has been
-        // flushed; everything negotiated so far is discarded because a
-        // pre-TLS EHLO cannot be trusted.
-        hooks.startTls()
+        // The caller upgrades the socket once this reply has been flushed and
+        // the chunk is done (see `feed`); everything negotiated so far is
+        // discarded because a pre-TLS EHLO cannot be trusted.
+        upgrade = true
         return format({ code: 220, enhanced: "2.0.0", message: "Ready to start TLS." })
       }
 
@@ -628,7 +629,25 @@ export const createSession = (hooks: SessionHooks): Session => {
         }
         if (!line.trim()) continue
         out += await handleCommand(line.trim())
-        if (closing) break
+        if (closing || upgrade) break
+      }
+
+      // Bytes pipelined behind STARTTLS were sent in the clear, before the
+      // handshake; whoever injected them is not who ends up on the TLS side
+      // (CVE-2011-0411). The upgrade waits for the end of the chunk, and anything
+      // still buffered then closes the connection instead.
+      if (upgrade) {
+        upgrade = false
+        if (buffer) {
+          buffer = ""
+          closing = true
+          return `${out}${format({
+            code: 554,
+            enhanced: "5.5.0",
+            message: "Commands were pipelined after STARTTLS; closing.",
+          })}`
+        }
+        hooks.startTls?.()
       }
       return out
     },

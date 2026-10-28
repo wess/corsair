@@ -180,22 +180,28 @@ CNAME is the signing selector, not position 0. `DKIM_ROTATE_DAYS` defaults to 0 
 no install starts a cycle by surprise. `tests/dkimrotate.test.ts` uses a stub
 resolver; keep the refusal cases.
 
-**Ports 25 and 587 are held by a Rust process, not by Bun.** `engine/` is a
-STARTTLS terminator: it relays the session verbatim and intervenes at exactly
-two points — it advertises STARTTLS in the EHLO reply, and it performs the
-upgrade Bun cannot. Every policy decision stays in Corsair, which listens on
-127.0.0.1:2525 and :2587 behind it. Submission on 465 is untouched, because
-implicit TLS never needed an upgrade.
+**Corsair holds ports 25 and 587 itself; `engine/` is a fallback.** Bun 1.3
+could not upgrade an accepted socket, so from 0.1.x until 0.4.0 a Rust STARTTLS
+terminator held 25 and 587 and relayed to Corsair on 127.0.0.1:2525 and :2587.
+Bun 1.4.4 passes the `src/starttls` probe, and production listens directly since
+2026-10-28. The engine stays in the tree for a runtime where the probe fails.
+Taking the ports back meant taking back what the terminator enforced. Each
+session (SMTP, IMAP, POP3, ManageSieve) now refuses bytes pipelined behind
+STARTTLS (CVE-2011-0411): the upgrade waits for the end of the chunk, and anything
+still buffered closes the connection. `tests/starttlsinjection.test.ts` covers all
+three of the original listeners. The SMTP listener also caps itself at 512
+connections, as the engine did.
 
-The client's address therefore arrives as a *claim* (`XCLIENT`) rather than as a
-socket fact, and two rules keep that honest. XCLIENT is refused unless the peer
-is in `SMTP_TRUSTED_PROXIES`, decided from the socket and never from the wire.
-And the loopback shortcut that skips SPF for "this is us" now requires the
-listener to confirm the session arrived directly — `spfExempt` needs both halves,
-because behind a terminator *every* message arrives from 127.0.0.1 and the
-address alone would hand a free SPF pass to the internet.
+Behind the terminator, the client's address arrives as a *claim* (`XCLIENT`)
+rather than as a socket fact, and two rules keep that honest. XCLIENT is refused
+unless the peer is in `SMTP_TRUSTED_PROXIES`, decided from the socket and never
+from the wire. And the loopback shortcut that skips SPF for "this is us" requires
+the listener to confirm the session arrived directly — `spfExempt` needs both
+halves, because behind a terminator *every* message arrives from 127.0.0.1 and
+the address alone would hand a free SPF pass to the internet.
 `tests/proxy.test.ts` pins both; `bun run test:mxfront` drives a real handshake
-through the front into a recording backend and checks the body survives it.
+through the front into a recording backend and checks the body survives it. Keep
+both while the engine is a supported deployment.
 
 **A blocklisted sending IP defers; it does not bounce.** RFC 5321 says 5xx is
 permanent, and for the recipient it is. A `554 ... blocked using

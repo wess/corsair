@@ -25,6 +25,10 @@ export { reverse as srsReverse, rewrite as srsRewrite } from "./srs/index.ts"
 // five minutes between commands; a connection quieter than that is dead or
 // hostile, and each one holds a socket and a session on a small box.
 const IDLE_SECONDS = 300
+// Per listener. These ports used to sit behind `engine/`, which held the cap;
+// facing the internet directly, a flood of idle sockets is otherwise bounded
+// only by the 1 GB box.
+const MAX_CONNECTIONS = 512
 
 type SocketData = {
   session: Session
@@ -119,8 +123,16 @@ const createListener = (input: {
     if (state.session.shouldClose()) state.writer.afterFlush(() => socket.end())
   }
 
+  let active = 0
+
   const handlers = {
     open(socket: Bun.Socket<SocketData>) {
+      if (active >= MAX_CONNECTIONS) {
+        // Left without data, so `close` does not count it back down.
+        socket.end()
+        return
+      }
+      active++
       const socketIp = socket.remoteAddress ?? "unknown"
       smtpSessions.inc({ listener: listenerName })
       // Whether *this peer* may speak XCLIENT, decided here from the socket and
@@ -250,7 +262,9 @@ const createListener = (input: {
     },
 
     close(socket: Bun.Socket<SocketData>) {
-      if (socket.data?.tlsSocket && socket !== socket.data.tlsSocket) return
+      if (!socket.data) return
+      if (socket.data.tlsSocket && socket !== socket.data.tlsSocket) return
+      active--
       socket.data?.reader?.close()
       socket.data?.writer?.close()
       if (input.mode === "submission" && socket.data?.identity) {
