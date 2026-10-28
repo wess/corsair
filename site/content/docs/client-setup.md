@@ -142,6 +142,14 @@ Corsair advertises `IDLE`, so `set imap_idle = yes` works.
 Session resource at `https://mail.example.com/.well-known/jmap`, authenticated
 with HTTP Basic using the address and mailbox password. See [JMAP](jmap.html).
 
+## Contacts
+
+Your address book syncs over CardDAV on the same HTTPS address as the panel —
+`https://mail.example.com/dav/`, the full address as the username, the mailbox
+password as the password. iOS, macOS Contacts, Thunderbird, and DAVx⁵ on Android
+all work; most need only the hostname. Step-by-step setup is in
+[Contacts (CardDAV)](contacts.html).
+
 ## Roundcube, SnappyMail, and other webmail
 
 The IMAP and SMTP servers are standard, so any of them work unchanged. Point them

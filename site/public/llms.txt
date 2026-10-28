@@ -60,6 +60,7 @@ Corsair is a Bun and PostgreSQL application. Mail for every protocol is stored o
 - [IMAP](https://wess.io/corsair/docs/imap.html): Advertised capabilities, supported commands, and the two behaviours that make IMAP correct rather than merely working.
 - [JMAP](https://wess.io/corsair/docs/jmap.html): Session discovery, the supported methods, back-references, and blob upload and download.
 - [POP3](https://wess.io/corsair/docs/pop3.html): The supported command set, and an honest account of when POP3 is the wrong choice.
+- [Contacts (CardDAV)](https://wess.io/corsair/docs/contacts.html): One address book per mailbox, synced to phones and desktop clients over CardDAV and used by the webmail's recipient autocomplete.
 - [Command line](https://wess.io/corsair/docs/cli.html): Every script and entrypoint, what it does, and when to reach for it.
 - [Database schema](https://wess.io/corsair/docs/database.html): Every table, what it holds, and the constraints that are load-bearing rather than decorative.
 - [SMTP error lookup](https://wess.io/corsair/docs/smtp-errors.html): What an SMTP reply code actually means, and whether you need to act on it.

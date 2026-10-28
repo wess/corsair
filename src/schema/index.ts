@@ -823,6 +823,53 @@ export const agents = defineSchema("agents", {
 
 export type Agent = RowOf<typeof agents>
 
+// contacts
+
+/**
+ * A mailbox's address book, served over CardDAV.
+ *
+ * `sync_token` is the book's own modseq: every write to a contact in it takes the
+ * next value in the same transaction, so it doubles as the CalendarServer ctag
+ * and as the RFC 6578 sync token. The UPDATE that advances it also takes the row
+ * lock that serialises writes within a book, which is what keeps an If-Match
+ * check and the write it guards atomic.
+ */
+export const addressBooks = defineSchema("address_books", {
+  id: id(),
+  address_id: column.uuid().ref("addresses", "id"),
+  slug: column.text(),
+  name: column.text(),
+  sync_token: column.bigint().default(1n),
+  created_at: now(),
+})
+
+/**
+ * One vCard. A deleted one stays as a tombstone (`deleted_at`, empty `vcard`)
+ * so sync-collection can tell a client what went away since its token.
+ *
+ * `full_name` and `emails` are extracted on write for the webmail's recipient
+ * autocomplete; the vCard text is the record and is served back verbatim.
+ */
+export const contacts = defineSchema("contacts", {
+  id: id(),
+  book_id: column.uuid().ref("address_books", "id"),
+  address_id: column.uuid().ref("addresses", "id"),
+  href: column.text(),
+  uid: column.text(),
+  etag: column.text(),
+  vcard: column.text(),
+  size: column.integer(),
+  full_name: column.text().nullable(),
+  emails: column.json<string[]>().default([]),
+  modseq: column.bigint(),
+  created_at: now(),
+  updated_at: now(),
+  deleted_at: column.timestamp().nullable(),
+})
+
+export type AddressBook = RowOf<typeof addressBooks>
+export type Contact = RowOf<typeof contacts>
+
 export type Tag = { name: string; value: string }
 
 /**
@@ -892,6 +939,7 @@ export type IdempotencyKey = RowOf<typeof idempotencyKeys>
  * loudly at the type level when one is renamed.
  */
 export const allSchemas = [
+  addressBooks,
   addressDestinations,
   addresses,
   agents,
@@ -900,6 +948,7 @@ export const allSchemas = [
   authFailures,
   bans,
   bounces,
+  contacts,
   deliveries,
   dkimKeys,
   domainAdmins,

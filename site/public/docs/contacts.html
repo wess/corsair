@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Contacts (CardDAV) · Corsair</title>
+<meta name="description" content="One address book per mailbox, synced to phones and desktop clients over CardDAV and used by the webmail's recipient autocomplete." />
+<link rel="canonical" href="https://wess.io/corsair/docs/contacts.html" />
+<meta property="og:title" content="Contacts (CardDAV)" />
+<meta property="og:site_name" content="Corsair" />
+<meta property="og:description" content="One address book per mailbox, synced to phones and desktop clients over CardDAV and used by the webmail's recipient autocomplete." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://wess.io/corsair/docs/contacts.html" />
+<meta name="twitter:card" content="summary" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../style.css" />
+<script>/* Applied before first paint so a chosen theme does not flash the other one. */
+try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body class="is-doc">
+<a class="skip" href="#content">Skip to content</a>
+<header class="masthead">
+  <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+  <button class="menu" aria-expanded="false" aria-controls="site-nav" aria-label="Menu"><span></span><span></span><span></span></button>
+  <nav id="site-nav" class="masthead-nav">
+    <a href="./index.html" class="on">Docs</a><a href="./tutorials/index.html">Tutorials</a><a href="../faq.html">FAQ</a>
+    <a class="ghost" href="https://github.com/wess/corsair" rel="noopener">GitHub</a>
+    <button class="theme" type="button" aria-label="Switch between light and dark" title="Light or dark">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" /><path d="M12 1.4v3.2M12 19.4v3.2M1.4 12h3.2M19.4 12h3.2M4.5 4.5l2.3 2.3M17.2 17.2l2.3 2.3M19.5 4.5l-2.3 2.3M6.8 17.2l-2.3 2.3" /></svg>
+    </button>
+    <a class="cta" href="/app">Control panel</a>
+  </nav>
+</header>
+<div id="content">
+<div class="docs-shell">
+<nav class="sidebar" aria-label="Documentation"><div class="side-group">
+<p class="side-label"><span class="side-num">01</span>Start here</p>
+<ul><li><a href="./index.html">Overview</a></li><li><a href="./introduction.html">Introduction</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./concepts.html">Core concepts</a></li><li><a href="./prerequisites.html">Prerequisites</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">02</span>Tutorials</p>
+<ul><li><a href="./tutorials/index.html">All tutorials</a></li><li><a href="./tutorials/first-server.html">First server</a></li><li><a href="./tutorials/migrate-from-google.html">Migrate from Google</a></li><li><a href="./tutorials/household.html">Household setup</a></li><li><a href="./tutorials/filter-cookbook.html">Filter cookbook</a></li><li><a href="./tutorials/webhook-consumer.html">Webhook consumer</a></li><li><a href="./tutorials/backup-drill.html">Restore drill</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">03</span>Install and operate</p>
+<ul><li><a href="./installation.html">Installation</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./dns-setup.html">DNS setup</a></li><li><a href="./tls.html">TLS</a></li><li><a href="./production-checklist.html">Go-live checklist</a></li><li><a href="./backups.html">Backups</a></li><li><a href="./monitoring.html">Monitoring</a></li><li><a href="./upgrading.html">Upgrading</a></li><li><a href="./scaling.html">Scaling</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li><li><a href="./security.html">Security</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">04</span>Using Corsair</p>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li><li><a href="./agents.html">Agent email</a></li><li><a href="./agent-tools.html">Tools for agents</a></li></ul>
+</div>
+<div class="side-group">
+<p class="side-label"><span class="side-num">05</span>Reference</p>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./contacts.html" class="active" aria-current="page">Contacts (CardDAV)</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+</div></nav>
+<main class="prose"><div class="page-head"><p class="eyebrow">Reference</p></div><h1 id="contacts-carddav">Contacts (CardDAV)</h1>
+<p>Every mailbox has one address book. Phones and desktop clients sync it over CardDAV (<a href="https://datatracker.ietf.org/doc/html/rfc6352" class="external" rel="noopener">RFC 6352</a>), and the webmail reads the same rows: a contact added on your phone autocompletes in compose, and one added in the webmail turns up on your phone at its next sync.</p>
+<p>CardDAV runs on the same HTTPS address as the panel and the webmail. There is no extra port.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Setting</th>
+<th>Value</th>
+</tr></thead><tbody>
+<tr>
+<td>Server</td>
+<td>the panel's hostname, e.g. <code>mail.example.com</code></td>
+</tr>
+<tr>
+<td>Path</td>
+<td><code>/dav/</code> (clients that follow <code>/.well-known/carddav</code> find it alone)</td>
+</tr>
+<tr>
+<td>Username</td>
+<td>the full email address</td>
+</tr>
+<tr>
+<td>Password</td>
+<td>the mailbox password, the same one IMAP uses</td>
+</tr>
+</tbody></table></div>
+<aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span>Contacts, not calendars.</p><p>Corsair does not serve CalDAV. That is a decision rather than a gap still to be filled: contacts are what makes autocomplete work and what people expect to follow them between devices, while calendars are a large, quirky protocol for a mail server to take on. Use a dedicated calendar server alongside it.</p></aside>
+<h2 id="setting-up-a-client">Setting up a client<a class="anchor" href="#setting-up-a-client" aria-label="Link to this section">#</a></h2>
+<h3 id="iphone-and-ipad">iPhone and iPad<a class="anchor" href="#iphone-and-ipad" aria-label="Link to this section">#</a></h3>
+<p><strong>Settings → Contacts → Accounts → Add Account → Other → Add CardDAV Account.</strong></p>
+<ul><li><strong>Server</strong>: <code>mail.example.com</code></li><li><strong>User Name</strong>: you@example.com</li><li><strong>Password</strong>: your mailbox password</li></ul>
+<p>iOS finds the address book through <code>/.well-known/carddav</code>. If it reports it cannot connect, open <strong>Advanced Settings</strong> and confirm <strong>Use SSL</strong> is on and the port is 443.</p>
+<h3 id="macos-contacts">macOS Contacts<a class="anchor" href="#macos-contacts" aria-label="Link to this section">#</a></h3>
+<p><strong>Contacts → Settings → Accounts → +</strong> (or <strong>System Settings → Internet Accounts → Add Other Account</strong>) <strong>→ CardDAV account</strong>. Choose <strong>Manual</strong> as the account type and enter the same three values as on iOS.</p>
+<h3 id="thunderbird">Thunderbird<a class="anchor" href="#thunderbird" aria-label="Link to this section">#</a></h3>
+<p>If the domain publishes <code>autoconfig</code>, Thunderbird offers the address book when you add the mail account — the autoconfig document names it.</p>
+<p>By hand: <strong>Address Book → New Address Book → Add CardDAV Address Book</strong>. Enter your email address as the username and <code>https://mail.example.com/dav/</code> as the location. Thunderbird discovers the book and asks for the mailbox password.</p>
+<h3 id="android-davx">Android (DAVx⁵)<a class="anchor" href="#android-davx" aria-label="Link to this section">#</a></h3>
+<p>Install DAVx⁵, then <strong>+ → Login with URL and user name</strong>:</p>
+<ul><li><strong>Base URL</strong>: <code>https://mail.example.com/dav/</code></li><li><strong>User name</strong>: you@example.com</li><li><strong>Password</strong>: your mailbox password</li></ul>
+<p>DAVx⁵ walks from there to the address book and syncs it into the system contacts.</p>
+<h2 id="what-is-supported">What is supported<a class="anchor" href="#what-is-supported" aria-label="Link to this section">#</a></h2>
+<ul><li><strong>Discovery</strong>: <code>/.well-known/carddav</code> redirects to <code>/dav/</code>; <code>current-user-principal</code>, <code>addressbook-home-set</code>, and the CalendarServer <code>email-address-set</code> are answered so clients that only know a hostname get the rest of the way.</li><li><strong>PROPFIND</strong> at depth 0 and 1 on the principal, the home set, the book, and each card, including <code>getctag</code> and <code>sync-token</code>.</li><li><strong>REPORT</strong>: <code>addressbook-multiget</code>, <code>addressbook-query</code> (text matches on any property — <code>FN</code>, <code>EMAIL</code>, and the rest — or every card with no filter), and <code>sync-collection</code> (<a href="https://datatracker.ietf.org/doc/html/rfc6578" class="external" rel="noopener">RFC 6578</a>), which reports deletions as well as changes.</li><li><strong>GET, PUT, DELETE</strong> with ETags. <code>If-Match</code> and <code>If-None-Match: *</code> are honoured, so a client editing a stale copy gets a 412 rather than overwriting a newer one.</li><li>vCard <strong>3.0 and 4.0</strong>, up to <strong>256 KB</strong> a card (room for a photo), with a UID unique within the book. Cards are stored and served back byte for byte.</li></ul>
+<h2 id="what-is-not">What is not<a class="anchor" href="#what-is-not" aria-label="Link to this section">#</a></h2>
+<ul><li><strong>One book per mailbox.</strong> Creating a second one (<code>MKCOL</code>) is refused with a 403. The book can be renamed (<code>PROPPATCH</code> on <code>displayname</code>); nothing else on it is writable.</li><li><strong>No sharing</strong> between mailboxes, and no ACLs beyond &quot;the mailbox owns its own book&quot;. Another mailbox's book is a 404, exactly like one that does not exist.</li><li><strong>Alias, group, and agent addresses have no address book.</strong> Aliases and groups are routing entries. An agent mailbox reads mail a stranger can write, so it is kept away from a list that autocompletes into a person's compose.</li><li><strong>Sent-to recipients are not added automatically.</strong> The address book holds what you put in it.</li></ul>
+<h2 id="authentication">Authentication<a class="anchor" href="#authentication" aria-label="Link to this section">#</a></h2>
+<p>HTTP Basic, checked by the same code as IMAP, POP3, SMTP, and JMAP: failed attempts count towards the same per-IP ban, and a mailbox that is disabled or whose account is terminated cannot sign in here either.</p>
+<p>A browser session cookie is never accepted on <code>/dav/</code>. If it were, any site you visited could write to your address book through your browser. A browser on another site that tries a PUT or DELETE is refused before authentication.</p>
+<h2 id="dns-for-discovery-from-the-address-alone">DNS for discovery from the address alone<a class="anchor" href="#dns-for-discovery-from-the-address-alone" aria-label="Link to this section">#</a></h2>
+<p>Clients that start from <code>you@example.com</code> look for the CardDAV server under <code>example.com</code> (<a href="https://datatracker.ietf.org/doc/html/rfc6764" class="external" rel="noopener">RFC 6764</a>). If <code>example.com</code> is not served by Corsair, publish an SRV record pointing at it:</p>
+<figure class="code"><pre><code>_carddavs._tcp.example.com.  3600 IN SRV 0 1 443 mail.example.com.
+_carddavs._tcp.example.com.  3600 IN TXT &quot;path=/dav/&quot;</code></pre></figure>
+<p>Optional. Without it, entering the server hostname works on every client above.</p><nav class="pager"><a class="pager-prev" href="./pop3.html"><span>Previous</span><strong>POP3</strong></a><a class="pager-next" href="./cli.html"><span>Next</span><strong>Command line</strong></a></nav></main>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#setting-up-a-client">Setting up a client</a></li><li class="toc-h3"><a href="#iphone-and-ipad">iPhone and iPad</a></li><li class="toc-h3"><a href="#macos-contacts">macOS Contacts</a></li><li class="toc-h3"><a href="#thunderbird">Thunderbird</a></li><li class="toc-h3"><a href="#android-davx">Android (DAVx⁵)</a></li><li class="toc-h2"><a href="#what-is-supported">What is supported</a></li><li class="toc-h2"><a href="#what-is-not">What is not</a></li><li class="toc-h2"><a href="#authentication">Authentication</a></li><li class="toc-h2"><a href="#dns-for-discovery-from-the-address-alone">DNS for discovery from the address alone</a></li></ul></nav>
+</div>
+</div>
+<footer class="colophon">
+  <div class="colophon-burst"><svg class="starburst" viewBox="0 0 200 200" aria-hidden="true" focusable="false"><polygon points="100.0,2.0 104.3,78.4 123.0,44.6 112.2,81.7 169.3,30.7 118.3,87.8 155.4,77.0 121.6,95.7 198.0,100.0 121.6,104.3 155.4,123.0 118.3,112.2 169.3,169.3 112.2,118.3 123.0,155.4 104.3,121.6 100.0,198.0 95.7,121.6 77.0,155.4 87.8,118.3 30.7,169.3 81.7,112.2 44.6,123.0 78.4,104.3 2.0,100.0 78.4,95.7 44.6,77.0 81.7,87.8 30.7,30.7 87.8,81.7 77.0,44.6 95.7,78.4" /></svg></div>
+  <div class="colophon-grid">
+    <div class="colophon-brand">
+      <a class="brand" href="../index.html"><svg class="mark" viewBox="0 0 44 44" aria-hidden="true" focusable="false">
+<ellipse cx="22" cy="22" rx="20" ry="8.5" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(60 22 22)" />
+<ellipse cx="22" cy="22" rx="20" ry="8.5" transform="rotate(120 22 22)" />
+<circle class="nucleus" cx="22" cy="22" r="5" />
+</svg><span>Corsair</span></a>
+      <p>Self-hostable email. SMTP, IMAP, POP3, JMAP, webmail, and a control panel in one process.</p>
+      <p class="plaque">MIT licensed · No telemetry</p>
+    </div>
+    <div>
+      <p class="colophon-label">Corsair</p>
+      <ul><li><a href="../index.html">Overview</a></li><li><a href="./introduction.html">What it is</a></li><li><a href="./architecture.html">Architecture</a></li><li><a href="../faq.html">Questions</a></li><li><a href="../contact.html">Contact</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Documentation</p>
+      <ul><li><a href="./index.html">All documentation</a></li><li><a href="./quickstart.html">Quickstart</a></li><li><a href="./tutorials/index.html">Tutorials</a></li><li><a href="./configuration.html">Configuration</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./troubleshooting.html">Troubleshooting</a></li></ul>
+    </div><div>
+      <p class="colophon-label">Project</p>
+      <ul><li><a href="https://github.com/wess/corsair" rel="noopener">Source on GitHub</a></li><li><a href="https://github.com/wess/corsair/issues" rel="noopener">Issues</a></li><li><a href="https://github.com/wess/corsair/blob/main/LICENSE" rel="noopener">MIT license</a></li><li><a href="../policies/privacy.html">Privacy template</a></li><li><a href="../policies/acceptable-use.html">Acceptable use template</a></li></ul>
+    </div><div>
+      <p class="colophon-label">This service</p>
+      <ul><li><a href="../legal/terms.html">Terms of service</a></li><li><a href="../legal/privacy.html">Privacy policy</a></li></ul>
+    </div>
+  </div>
+</footer>
+<script src="../docs.js" defer></script>
+</body>
+</html>

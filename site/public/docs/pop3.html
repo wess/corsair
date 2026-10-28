@@ -57,7 +57,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">05</span>Reference</p>
-<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html" class="active" aria-current="page">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html" class="active" aria-current="page">POP3</a></li><li><a href="./contacts.html">Contacts (CardDAV)</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
 </div></nav>
 <main class="prose"><div class="page-head"><p class="eyebrow">Reference</p></div><h1 id="pop3">POP3</h1>
 <p>POP3 on <strong>995</strong> (implicit TLS). Full email address as the username, mailbox password as the password.</p>
@@ -148,7 +148,7 @@ QUIT</code></pre></figure>
 <p>Replies are <code>+OK</code> or <code>-ERR</code>, which makes POP3 the easiest of the mail protocols to debug by hand.</p>
 <h2 id="same-store">Same store<a class="anchor" href="#same-store" aria-label="Link to this section">#</a></h2>
 <p>POP3 reads the same rows as IMAP, JMAP, and the webmail. A message deleted over POP3 is gone from all of them — it is the same message, not a copy.</p>
-<p>That is worth saying explicitly, because the POP3 mental model of &quot;downloading my mail&quot; suggests otherwise. There is one copy, and <code>DELE</code> plus <code>QUIT</code> deletes it.</p><nav class="pager"><a class="pager-prev" href="./jmap.html"><span>Previous</span><strong>JMAP</strong></a><a class="pager-next" href="./cli.html"><span>Next</span><strong>Command line</strong></a></nav></main>
+<p>That is worth saying explicitly, because the POP3 mental model of &quot;downloading my mail&quot; suggests otherwise. There is one copy, and <code>DELE</code> plus <code>QUIT</code> deletes it.</p><nav class="pager"><a class="pager-prev" href="./jmap.html"><span>Previous</span><strong>JMAP</strong></a><a class="pager-next" href="./contacts.html"><span>Next</span><strong>Contacts (CardDAV)</strong></a></nav></main>
 <nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#commands">Commands</a></li><li class="toc-h2"><a href="#inbox-only">INBOX only</a></li><li class="toc-h2"><a href="#deletions-commit-at-quit">Deletions commit at QUIT</a></li><li class="toc-h2"><a href="#uidl">UIDL</a></li><li class="toc-h2"><a href="#when-pop3-is-right">When POP3 is right</a></li><li class="toc-h2"><a href="#when-it-is-wrong-which-is-usually">When it is wrong, which is usually</a></li><li class="toc-h2"><a href="#testing-by-hand">Testing by hand</a></li><li class="toc-h2"><a href="#same-store">Same store</a></li></ul></nav>
 </div>
 </div>

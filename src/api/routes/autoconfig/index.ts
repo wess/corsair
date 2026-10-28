@@ -92,6 +92,11 @@ export const autoconfigRoutes: Route[] = [
       <username>%EMAILADDRESS%</username>
     </outgoingServer>
   </emailProvider>
+  <addressBook type="carddav">
+    <username>%EMAILADDRESS%</username>
+    <authentication system="http">basic</authentication>
+    <serverURL>${new URL("/dav/", config.publicUrl).href}</serverURL>
+  </addressBook>
 </clientConfig>
 `,
     )

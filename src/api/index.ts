@@ -1,6 +1,7 @@
 import { withSecurityHeaders } from "@wess/atlas/security"
 import { type Route, router } from "@wess/atlas/server"
 import { assetResponse, buildClients, type ClientBundle } from "../bundle/index.ts"
+import { handleDav } from "../carddav/index.ts"
 import { config } from "../config/index.ts"
 import { errorBody, notFound } from "../errors/index.ts"
 import { checkOrigin, privateResponse } from "../httpguard/index.ts"
@@ -16,6 +17,7 @@ import { apiKeyRoutes } from "./routes/apikeys/index.ts"
 import { authRoutes } from "./routes/auth/index.ts"
 import { autoconfigRoutes } from "./routes/autoconfig/index.ts"
 import { billingRoutes } from "./routes/billing/index.ts"
+import { contactRoutes } from "./routes/contacts/index.ts"
 import { dashboardRoutes } from "./routes/dashboard/index.ts"
 import { domainRoutes } from "./routes/domains/index.ts"
 import { emailRoutes } from "./routes/emails/index.ts"
@@ -67,6 +69,7 @@ export const allRoutes = (): Route[] => [
   // Ahead of the webmail's own routes: `/api/mail/admin/...` must not be
   // shadowed by anything matching `/api/mail/:something`.
   ...wrapAll(mailAdminRoutes),
+  ...wrapAll(contactRoutes),
   ...wrapAll(webmailRoutes),
   ...wrapAll(webmailHostRoutes),
   ...wrapAll(jmapRoutes),
@@ -152,6 +155,10 @@ export const buildFetch = (clients: ClientBundle | null): ((req: Request) => Pro
           headers: { "content-type": "application/json" },
         })
     }
+    // Ahead of the router, which has no notion of PROPFIND or an XML body.
+    const dav = await handleDav(req)
+    if (dav) return dav
+
     const res = await handle(req)
     if (res.status !== 404) return res
 

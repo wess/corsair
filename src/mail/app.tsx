@@ -857,6 +857,263 @@ type Draft = {
   references?: string[]
 }
 
+// contacts
+
+type Contact = { id: string; name: string | null; emails: string[] }
+
+/**
+ * A comma-separated recipient field that suggests from the address book.
+ *
+ * Only the token after the last comma is completed, and choosing a suggestion
+ * replaces just that token with the bare address — the send endpoint takes
+ * addresses, not display forms.
+ */
+const RecipientInput = ({
+  id,
+  value,
+  onChange,
+  required,
+  placeholder,
+}: {
+  id: string
+  value: string
+  onChange: (value: string) => void
+  required?: boolean
+  placeholder?: string
+}) => {
+  const [suggestions, setSuggestions] = useState<{ name: string | null; email: string }[]>([])
+  const [active, setActive] = useState(0)
+  const [open, setOpen] = useState(false)
+  const lastToken = value.split(/[,;]/).pop()?.trim() ?? ""
+
+  useEffect(() => {
+    if (!open || lastToken.length < 2) {
+      setSuggestions([])
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      try {
+        const res = await get<{ data: Contact[] }>(
+          `/api/mail/contacts?limit=8&q=${encodeURIComponent(lastToken)}`,
+        )
+        if (cancelled) return
+        const needle = lastToken.toLowerCase()
+        const options = res.data.flatMap((c) =>
+          c.emails
+            .filter(
+              (e) =>
+                (c.name ?? "").toLowerCase().includes(needle) || e.toLowerCase().includes(needle),
+            )
+            .map((email) => ({ name: c.name, email })),
+        )
+        setSuggestions(options.slice(0, 8))
+        setActive(0)
+      } catch {
+        if (!cancelled) setSuggestions([])
+      }
+    }, 150)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [lastToken, open])
+
+  const choose = (email: string) => {
+    const parts = value.split(/[,;]/)
+    parts[parts.length - 1] = ` ${email}`
+    onChange(`${parts.join(",").replace(/^\s+/, "")}, `)
+    setSuggestions([])
+  }
+
+  const showing = open && suggestions.length > 0
+  return (
+    <div className="recipient">
+      <input
+        id={id}
+        required={required}
+        value={value}
+        placeholder={placeholder}
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={showing}
+        aria-controls={`${id}-list`}
+        aria-autocomplete="list"
+        aria-activedescendant={showing ? `${id}-opt-${active}` : undefined}
+        onChange={(e) => {
+          onChange(e.target.value)
+          setOpen(true)
+        }}
+        onBlur={() => setOpen(false)}
+        onKeyDown={(e) => {
+          if (!showing) return
+          if (e.key === "ArrowDown") {
+            e.preventDefault()
+            setActive((i) => (i + 1) % suggestions.length)
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault()
+            setActive((i) => (i - 1 + suggestions.length) % suggestions.length)
+          } else if (e.key === "Enter" || e.key === "Tab") {
+            e.preventDefault()
+            choose(suggestions[active]!.email)
+          } else if (e.key === "Escape") {
+            // Close the list, not the dialog around it.
+            e.preventDefault()
+            e.stopPropagation()
+            setOpen(false)
+          }
+        }}
+      />
+      {showing && (
+        <div className="recipient-list" id={`${id}-list`} role="listbox">
+          {suggestions.map((s, i) => (
+            <div
+              key={s.email}
+              id={`${id}-opt-${i}`}
+              role="option"
+              tabIndex={-1}
+              aria-selected={i === active}
+              className={i === active ? "active" : undefined}
+              // mousedown, so the choice lands before the input's blur closes the list
+              onMouseDown={(e) => {
+                e.preventDefault()
+                choose(s.email)
+              }}
+            >
+              {s.name && <span>{s.name}</span>}
+              <span className="muted">{s.email}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const Contacts = ({ onClose }: { onClose: () => void }) => {
+  const [search, setSearch] = useState("")
+  const [nonce, setNonce] = useState(0)
+  const [editing, setEditing] = useState<Contact | "new" | null>(null)
+  const [name, setName] = useState("")
+  const [emails, setEmails] = useState("")
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+
+  const { data, loading } = useLoad(
+    () => get<{ data: Contact[] }>(`/api/mail/contacts?limit=500&q=${encodeURIComponent(search)}`),
+    [search, nonce],
+  )
+
+  const edit = (target: Contact | "new") => {
+    setEditing(target)
+    setName(target === "new" ? "" : (target.name ?? ""))
+    setEmails(target === "new" ? "" : target.emails.join(", "))
+    setError(null)
+  }
+
+  return (
+    <Dialog title="Contacts" onClose={onClose}>
+      <p className="muted" style={{ marginTop: 0 }}>
+        The same address book your phone syncs over CardDAV.
+      </p>
+      {editing ? (
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault()
+            setBusy(true)
+            setError(null)
+            const body = {
+              name,
+              emails: emails
+                .split(/[,;\s]+/)
+                .map((v) => v.trim())
+                .filter(Boolean),
+            }
+            try {
+              if (editing === "new") await post("/api/mail/contacts", body)
+              else await patch(`/api/mail/contacts/${editing.id}`, body)
+              setEditing(null)
+              setNonce((n) => n + 1)
+            } catch (error) {
+              setError(error)
+            } finally {
+              setBusy(false)
+            }
+          }}
+        >
+          <Field label="Name">
+            <input required value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
+          <Field label="Email addresses" hint="Separate several with commas.">
+            <input value={emails} onChange={(e) => setEmails(e.target.value)} />
+          </Field>
+          <ErrorText error={error} />
+          <div className="row">
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? <Spinner /> : "Save"}
+            </button>
+            <button type="button" className="btn" onClick={() => setEditing(null)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <div className="row" style={{ marginBottom: 12 }}>
+            <input
+              type="search"
+              aria-label="Search contacts"
+              placeholder="Search contacts"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <button type="button" className="btn btn-primary" onClick={() => edit("new")}>
+              <Icon path={icons.plus} size={15} /> Add
+            </button>
+          </div>
+          <ErrorText error={error} />
+          {loading ? (
+            <Loading />
+          ) : (data?.data ?? []).length === 0 ? (
+            <p className="muted">{search ? "No contacts match." : "No contacts yet."}</p>
+          ) : (
+            <table>
+              <tbody>
+                {(data?.data ?? []).map((c) => (
+                  <tr key={c.id}>
+                    <td>{c.name ?? "—"}</td>
+                    <td className="muted">{c.emails.join(", ")}</td>
+                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      <button type="button" className="btn btn-sm" onClick={() => edit(c)}>
+                        Edit
+                      </button>{" "}
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        aria-label={`Delete ${c.name ?? "contact"}`}
+                        onClick={async () => {
+                          try {
+                            await del(`/api/mail/contacts/${c.id}`)
+                            setNonce((n) => n + 1)
+                          } catch (error) {
+                            setError(error)
+                          }
+                        }}
+                      >
+                        <Icon path={icons.trash} size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
+      )}
+    </Dialog>
+  )
+}
+
 const Compose = ({
   initial,
   onClose,
@@ -906,21 +1163,22 @@ const Compose = ({
       >
         <div className="compose-grid">
           <div className="compose-row">
-            <span>To</span>
-            <input
+            <label htmlFor="compose-to">To</label>
+            <RecipientInput
+              id="compose-to"
               required
               value={draft.to}
-              onChange={(e) => set({ to: e.target.value })}
+              onChange={(to) => set({ to })}
               placeholder="someone@example.com"
             />
           </div>
           <div className="compose-row">
-            <span>Cc</span>
-            <input value={draft.cc} onChange={(e) => set({ cc: e.target.value })} />
+            <label htmlFor="compose-cc">Cc</label>
+            <RecipientInput id="compose-cc" value={draft.cc} onChange={(cc) => set({ cc })} />
           </div>
           <div className="compose-row">
-            <span>Bcc</span>
-            <input value={draft.bcc} onChange={(e) => set({ bcc: e.target.value })} />
+            <label htmlFor="compose-bcc">Bcc</label>
+            <RecipientInput id="compose-bcc" value={draft.bcc} onChange={(bcc) => set({ bcc })} />
           </div>
           <div className="compose-row">
             <span>Subject</span>
@@ -996,6 +1254,7 @@ const App = () => {
   const [creating, setCreating] = useState(false)
   const [settings, setSettings] = useState(false)
   const [users, setUsers] = useState(false)
+  const [contacts, setContacts] = useState(false)
   // Bumped when a dialog that can resolve a notice closes, so acting on one
   // makes the banner go away without a reload.
   const [noticeNonce, setNoticeNonce] = useState(0)
@@ -1171,6 +1430,10 @@ const App = () => {
                 Users
               </button>
             )}
+            <button type="button" className="nav-item" onClick={() => setContacts(true)}>
+              <Icon path={icons.account} />
+              Contacts
+            </button>
             <button
               type="button"
               className="nav-item"
@@ -1383,6 +1646,7 @@ const App = () => {
       )}
 
       {users && <Users mailbox={mailbox} onClose={() => setUsers(false)} />}
+      {contacts && <Contacts onClose={() => setContacts(false)} />}
 
       {creating && (
         <Dialog title="New folder" onClose={() => setCreating(false)}>
