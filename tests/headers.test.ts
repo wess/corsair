@@ -243,4 +243,21 @@ describe("what the server advertises about its own TLS", () => {
     expect(mozilla).toMatch(/<incomingServer type="imap">[\s\S]*?<socketType>SSL<\/socketType>/)
     expect(mozilla).toMatch(/<incomingServer type="pop3">[\s\S]*?<socketType>SSL<\/socketType>/)
   })
+
+  test("a value echoed from the request cannot shape the document", async () => {
+    const hostile = encodeURIComponent('a@x"><evil/>')
+    const mozilla = await fetch(`${base}/mail/config-v1.1.xml?emailaddress=${hostile}`).then((r) =>
+      r.text(),
+    )
+    expect(mozilla).not.toContain("<evil")
+    expect(mozilla).toContain('<emailProvider id="%EMAILDOMAIN%">')
+
+    const outlook = await fetch(`${base}/autodiscover/autodiscover.xml`, {
+      method: "POST",
+      headers: { "content-type": "text/xml" },
+      body: "<Autodiscover><Request><EMailAddress>a&amp;b@x</EMailAddress></Request></Autodiscover>",
+    }).then((r) => r.text())
+    expect(outlook).not.toContain("&amp;b")
+    expect(outlook).toContain("<LoginName>%EMAILADDRESS%</LoginName>")
+  })
 })
