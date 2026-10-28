@@ -7,6 +7,7 @@ import {
   type Route,
   resolveRecipient,
 } from "../../addresses/index.ts"
+import { type ArcChain, dmarcOverride, seal, verifyChain } from "../../arc/index.ts"
 import { config } from "../../config/index.ts"
 import { db } from "../../db/index.ts"
 import { aligned, fromDomainOf, verifySignature } from "../../dkim/index.ts"
@@ -16,7 +17,14 @@ import { queueId, uidValidity } from "../../ids/index.ts"
 import * as mime from "../../mime/index.ts"
 import { enqueue } from "../../outbound/index.ts"
 import { assertStorageAvailable, withinDailyLimit } from "../../plans/index.ts"
-import { type Filter, type Folder, filters, folders, mailLog } from "../../schema/index.ts"
+import {
+  type Domain,
+  type Filter,
+  type Folder,
+  filters,
+  folders,
+  mailLog,
+} from "../../schema/index.ts"
 import { applyReport, bounceTarget } from "../../sending/index.ts"
 import * as sieve from "../../sieve/index.ts"
 import { checkSpf, lookupDmarc, spfAligned } from "../../spf/index.ts"
@@ -110,6 +118,9 @@ type AuthResults = {
   dmarc: string
   dkimDomain: string | null
   reverseDns: string | null
+  arc: ArcChain
+  /** The trusted sealer whose ARC pass overrides a DMARC failure, if any. */
+  dmarcOverride: string | null
 }
 
 /**
@@ -147,7 +158,7 @@ const authenticate = async (
   envelope: Envelope,
   ctx: InboundContext,
 ): Promise<AuthResults> => {
-  const [spf, dkim, ptr] = await Promise.all([
+  const [spf, dkim, ptr, arc] = await Promise.all([
     spfExempt(ctx)
       ? Promise.resolve({ result: "pass" as const, domain: ctx.helo })
       : checkSpf({ ip: ctx.remoteIp, mailFrom: envelope.mailFrom, helo: ctx.helo }),
@@ -156,6 +167,7 @@ const authenticate = async (
       (names) => names[0] ?? null,
       () => null,
     ),
+    verifyChain(raw, parsed),
   ])
 
   const fromDomain = fromDomainOf(parsed)
@@ -182,18 +194,68 @@ const authenticate = async (
     dmarc,
     dkimDomain: dkim.domain,
     reverseDns: ptr,
+    arc,
+    dmarcOverride: dmarcOverride(dmarc, arc, config.arc.trustedSealers),
   }
 }
 
-const authenticationResults = (results: AuthResults, envelope: Envelope): string => {
+// A domain from the message goes into a header we emit, so anything but a
+// hostname's characters is dropped rather than quoted.
+const hostnameOnly = (value: string | null): string | null =>
+  value && /^[a-z0-9.-]{1,253}$/i.test(value) ? value : null
+
+/** The Authentication-Results payload after the authserv-id, shared with the ARC copy. */
+const resultsPayload = (results: AuthResults, envelope: Envelope): string => {
+  const sealer = hostnameOnly(results.arc.sealer)
   const parts = [
     `spf=${results.spf} smtp.mailfrom=${envelope.mailFrom || "<>"}`,
     results.dkimDomain
       ? `dkim=${results.dkim} header.d=${results.dkimDomain}`
       : `dkim=${results.dkim}`,
-    `dmarc=${results.dmarc}`,
+    // The failure is recorded as it was; the override is local policy (RFC 7489
+    // §6.7) and says so, rather than rewriting the result into a pass.
+    results.dmarcOverride
+      ? `dmarc=${results.dmarc} (overridden by local policy: forwarded, arc=pass by ${hostnameOnly(results.dmarcOverride) ?? "a trusted sealer"})`
+      : `dmarc=${results.dmarc}`,
+    results.arc.result === "pass" && sealer
+      ? `arc=pass (i=${results.arc.instance} d=${sealer})`
+      : `arc=${results.arc.result}`,
   ]
-  return `Authentication-Results: ${config.hostname}; ${parts.join("; ")}`
+  return mime.stripControls(parts.join("; "))
+}
+
+const authenticationResults = (results: AuthResults, envelope: Envelope): string =>
+  `Authentication-Results: ${config.hostname}; ${resultsPayload(results, envelope)}`
+
+/**
+ * Adds our ARC set to a message we are relaying to another domain, signed with
+ * the forwarding domain's DKIM key — the same key and selector its outbound mail
+ * uses, so the receiver resolves it under `d=` exactly as it would a DKIM
+ * signature. A domain with no active key relays unsealed, and so does a seal
+ * that throws: the mail is the product and the seal is a courtesy to the next hop.
+ */
+const sealForRelay = async (
+  stamped: string,
+  domain: Domain,
+  results: AuthResults,
+  envelope: Envelope,
+): Promise<string> => {
+  const key = await activeDkimKey(domain.id)
+  if (!key) return stamped
+  try {
+    return seal({
+      raw: stamped,
+      chain: results.arc,
+      authservId: config.hostname,
+      results: resultsPayload(results, envelope),
+      domain: domain.name,
+      selector: key.selector,
+      privateKey: key.private_key,
+    })
+  } catch (e) {
+    console.error(`[corsair] could not ARC-seal for ${domain.name}:`, (e as Error).message)
+    return stamped
+  }
 }
 
 const receivedHeader = (ctx: InboundContext, recipient: string): string => {
@@ -304,9 +366,12 @@ const deliverToMailbox = async (
     return { code: 550, status: "rejected", detail: decision.reject }
   }
 
+  const redirected = decision.redirect.length
+    ? await sealForRelay(stamped, route.domain, results, envelope)
+    : stamped
   for (const target of decision.redirect) {
     await enqueue({
-      raw: stamped,
+      raw: redirected,
       mailFrom: rewrite(envelope.mailFrom, route.domain.name),
       recipients: [target],
       domainId: route.domain.id,
@@ -362,9 +427,10 @@ const deliverToForward = async (
 
   // The envelope sender is rewritten into the forwarding domain so the next hop
   // sees a sender whose SPF we actually satisfy. Without this, forwarding to
-  // any large provider fails.
+  // any large provider fails. SRS fixes SPF but not DMARC alignment, which is
+  // what the ARC seal is for.
   await enqueue({
-    raw: stamped,
+    raw: await sealForRelay(stamped, route.domain, results, envelope),
     mailFrom: rewrite(envelope.mailFrom, route.domain.name),
     recipients: route.destinations,
     domainId: route.domain.id,
@@ -414,6 +480,7 @@ export const handleMessage = async (
     spf: results.spf,
     dkim: results.dkim,
     dmarc: results.dmarc,
+    dmarcOverride: results.dmarcOverride,
     helo: ctx.helo,
     remoteIp: ctx.remoteIp,
     mailFrom: envelope.mailFrom,

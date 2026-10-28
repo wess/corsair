@@ -302,6 +302,20 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tr>
 </tbody></table></div>
 <aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span><code>console</code> is the default</p><p>A fresh <code>.env</code> delivers nothing. That is right for a laptop and wrong for a server — set <code>DELIVERY_TRANSPORT=direct</code> (or <code>relay</code>) as part of going live, or mail silently goes to the log.</p></aside>
+<h2 id="forwarded-mail-arc">Forwarded mail (ARC)<a class="anchor" href="#forwarded-mail-arc" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>ARC_TRUSTED_SEALERS</code></td>
+<td><em>(empty)</em></td>
+<td>Comma-separated sealer domains whose ARC pass overrides a DMARC failure, e.g. <code>google.com,outlook.com</code></td>
+</tr>
+</tbody></table></div>
+<p>Every inbound message has its ARC chain checked and the result recorded as <code>arc=</code> in <code>Authentication-Results</code>. That needs no configuration. This setting covers one decision: when a message fails DMARC but arrives with a passing ARC chain whose newest seal is from a listed domain (or a subdomain of one), the DMARC failure no longer counts against its spam score. The header still says <code>dmarc=fail</code> and notes the override, so it stays visible.</p>
+<p>Anyone can seal a message, so a seal is worth only what you know about who made it. List the forwarders and mailing lists your users really receive through, and nothing else. See <a href="deliverability.html#forwarding">Forwarding</a>.</p>
 <h2 id="storage">Storage<a class="anchor" href="#storage" aria-label="Link to this section">#</a></h2>
 <div class='table-wrap'><table><thead><tr>
 <th>Variable</th>
@@ -478,7 +492,7 @@ STORAGE_SECRET_ACCESS_KEY=...</code></pre></figure>
 # or
 docker compose up -d</code></pre></figure>
 <p>There is no reload signal. A mail server that reconfigures itself mid-connection is a source of bugs nobody enjoys.</p><nav class="pager"><a class="pager-prev" href="./installation.html"><span>Previous</span><strong>Installation</strong></a><a class="pager-next" href="./dns-setup.html"><span>Next</span><strong>DNS setup</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#core">Core</a></li><li class="toc-h2"><a href="#mail-identity">Mail identity</a></li><li class="toc-h2"><a href="#listeners">Listeners</a></li><li class="toc-h3"><a href="#starttls-on-25-and-587">STARTTLS on 25 and 587</a></li><li class="toc-h2"><a href="#tls">TLS</a></li><li class="toc-h2"><a href="#delivery">Delivery</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#workers">Workers</a></li><li class="toc-h2"><a href="#payments">Payments</a></li><li class="toc-h2"><a href="#mailbox-transfers">Mailbox transfers</a></li><li class="toc-h2"><a href="#webhooks">Webhooks</a></li><li class="toc-h2"><a href="#limits">Limits</a></li><li class="toc-h2"><a href="#seeding">Seeding</a></li><li class="toc-h2"><a href="#a-production-starting-point">A production starting point</a></li><li class="toc-h2"><a href="#changing-configuration">Changing configuration</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#core">Core</a></li><li class="toc-h2"><a href="#mail-identity">Mail identity</a></li><li class="toc-h2"><a href="#listeners">Listeners</a></li><li class="toc-h3"><a href="#starttls-on-25-and-587">STARTTLS on 25 and 587</a></li><li class="toc-h2"><a href="#tls">TLS</a></li><li class="toc-h2"><a href="#delivery">Delivery</a></li><li class="toc-h2"><a href="#forwarded-mail-arc">Forwarded mail (ARC)</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#workers">Workers</a></li><li class="toc-h2"><a href="#payments">Payments</a></li><li class="toc-h2"><a href="#mailbox-transfers">Mailbox transfers</a></li><li class="toc-h2"><a href="#webhooks">Webhooks</a></li><li class="toc-h2"><a href="#limits">Limits</a></li><li class="toc-h2"><a href="#seeding">Seeding</a></li><li class="toc-h2"><a href="#a-production-starting-point">A production starting point</a></li><li class="toc-h2"><a href="#changing-configuration">Changing configuration</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

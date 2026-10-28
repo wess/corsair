@@ -39,7 +39,7 @@ export const dkimRecord = (publicKeyPem: string): string => {
  * relaxed header canonicalisation (RFC 6376 §3.4.2): lower-case the name,
  * unfold, collapse runs of whitespace, trim the ends.
  */
-const canonHeader = (name: string, value: string): string =>
+export const canonHeader = (name: string, value: string): string =>
   `${name.toLowerCase()}:${value
     .replace(/\r\n[ \t]+/g, " ")
     .replace(/[ \t]+/g, " ")
@@ -59,8 +59,90 @@ const canonHeader = (name: string, value: string): string =>
  * signature was well-formed, the key resolved, and the arithmetic just did not
  * agree.
  */
-const canonSignatureHeader = (value: string): string =>
-  canonHeader("dkim-signature", value).slice(0, -CRLF.length)
+export const canonSignatureHeader = (value: string, name = "dkim-signature"): string =>
+  canonHeader(name, value).slice(0, -CRLF.length)
+
+/**
+ * A signature header's value with its `b=` tag emptied, which is the form it
+ * signs itself in. Anchored to a tag boundary rather than any `b=` in the
+ * string, and tolerant of the whitespace the tag-list grammar allows around
+ * `=` — ARC seals come from other implementations, which write it differently.
+ */
+export const emptySignature = (value: string): string =>
+  value.replace(/(^|;)(\s*b\s*=)[^;]*/, "$1$2")
+
+/**
+ * The listed headers, canonicalised in the order listed. A name that occurs
+ * more than once is taken from the bottom up (RFC 6376 §5.4.2), and a name with
+ * nothing left to take contributes nothing. Returns the names as they appear on
+ * the message, for the signer's `h=`.
+ *
+ * Relaxed unless told otherwise. For simple, pass `rawFields` and `simpleField`.
+ */
+export const canonSelected = (
+  headers: readonly Header[],
+  names: readonly string[],
+  canon: (h: Header) => string = (h) => canonHeader(h.name, h.value),
+): { canon: string; names: string[] } => {
+  const pool = new Map<string, Header[]>()
+  for (const h of headers) {
+    const key = h.name.toLowerCase()
+    const list = pool.get(key) ?? []
+    list.push(h)
+    pool.set(key, list)
+  }
+  let out = ""
+  const used: string[] = []
+  for (const name of names) {
+    const header = pool.get(name.trim().toLowerCase())?.pop()
+    if (!header) continue
+    used.push(header.name)
+    out += canon(header)
+  }
+  return { canon: out, names: used }
+}
+
+/**
+ * The header block as it was folded on the wire, which simple canonicalisation
+ * (RFC 6376 §3.4.1) hashes byte for byte. `value` is the whole field, name and
+ * colon included, without its terminating CRLF — not the unfolded value that
+ * `splitHeaders` returns.
+ */
+export const rawFields = (raw: string, bodyStart: number): Header[] => {
+  const block = raw.slice(0, bodyStart).replace(/(?:\r\n)+$/, "")
+  const fields: Header[] = []
+  for (const line of block ? block.split(CRLF) : []) {
+    const last = fields[fields.length - 1]
+    if (last && (line.startsWith(" ") || line.startsWith("\t"))) last.value += CRLF + line
+    else fields.push({ name: line.slice(0, Math.max(0, line.indexOf(":"))).trim(), value: line })
+  }
+  return fields
+}
+
+export const simpleField = (field: Header): string => field.value + CRLF
+
+/**
+ * A raw field as it signs itself under simple canonicalisation: `b=` emptied in
+ * the value only, and no trailing CRLF.
+ */
+export const simpleSignatureField = (field: Header): string => {
+  const colon = field.value.indexOf(":")
+  return field.value.slice(0, colon + 1) + emptySignature(field.value.slice(colon + 1))
+}
+
+/**
+ * simple body canonicalisation (RFC 6376 §3.4.3): the body as it is, with
+ * trailing empty lines reduced to one CRLF. An empty body is a single CRLF —
+ * the opposite of relaxed, where it is the empty string.
+ */
+export const simpleBodyHash = (body: string): string => {
+  let end = body.length
+  while (end >= 2 && body.endsWith(CRLF, end)) end -= 2
+  return createHash("sha256")
+    .update(Buffer.from(body.slice(0, end), "latin1"))
+    .update(CRLF)
+    .digest("base64")
+}
 
 /**
  * relaxed body canonicalisation (RFC 6376 §3.4.4): strip trailing whitespace on
@@ -141,7 +223,7 @@ export type SignInput = {
   headers?: string[]
 }
 
-const DEFAULT_HEADERS = [
+export const DEFAULT_HEADERS = [
   "from",
   "to",
   "cc",
@@ -168,26 +250,9 @@ export const sign = (input: SignInput): string => {
   const { headers, bodyStart } = splitHeaders(input.raw)
   const body = input.raw.slice(bodyStart)
 
-  const wanted = (input.headers ?? DEFAULT_HEADERS).map((h) => h.toLowerCase())
-  // Signed in the order given, and only for headers that exist. Duplicates are
-  // taken from the bottom up, per RFC 6376 §5.4.2.
-  const remaining = new Map<string, Header[]>()
-  for (const h of headers) {
-    const key = h.name.toLowerCase()
-    const list = remaining.get(key) ?? []
-    list.push(h)
-    remaining.set(key, list)
-  }
-
-  const signedNames: string[] = []
-  let canon = ""
-  for (const name of wanted) {
-    const list = remaining.get(name)
-    if (!list?.length) continue
-    const header = list.pop()!
-    signedNames.push(header.name)
-    canon += canonHeader(header.name, header.value)
-  }
+  const wanted = input.headers ?? DEFAULT_HEADERS
+  // Signed in the order given, and only for headers that exist.
+  const { canon, names: signedNames } = canonSelected(headers, wanted)
 
   const bh = bodyHash(body)
   const tags = [
@@ -214,7 +279,7 @@ export const sign = (input: SignInput): string => {
 
 // A header longer than 78 characters has to be folded, and the signature is
 // always longer than that.
-const foldSignature = (line: string): string => {
+export const foldSignature = (line: string): string => {
   const out: string[] = []
   let current = ""
   for (const token of line.split(" ")) {
@@ -236,7 +301,7 @@ export type DkimResult = {
   reason?: string
 }
 
-const parseTags = (value: string): Record<string, string> => {
+export const parseTags = (value: string): Record<string, string> => {
   const out: Record<string, string> = {}
   for (const part of value.split(";")) {
     const eq = part.indexOf("=")
@@ -249,7 +314,7 @@ const parseTags = (value: string): Record<string, string> => {
   return out
 }
 
-const pemFromRecord = (record: string): string | null => {
+export const pemFromRecord = (record: string): string | null => {
   const tags = parseTags(record)
   if (!tags.p) return null
 
@@ -347,24 +412,11 @@ export const verifySignature = async (
 
   // Rebuild exactly what the signer hashed: the listed headers, bottom-up for
   // duplicates, then the signature header itself with b= emptied.
-  const pool = new Map<string, Header[]>()
-  for (const h of parsed.headers) {
-    if (h === sigHeader) continue
-    const key = h.name.toLowerCase()
-    const list = pool.get(key) ?? []
-    list.push(h)
-    pool.set(key, list)
-  }
-
-  let canon = ""
-  for (const name of tags.h.split(":").map((n) => n.trim().toLowerCase())) {
-    const list = pool.get(name)
-    if (!list?.length) continue
-    const header = list.pop()!
-    canon += canonHeader(header.name, header.value)
-  }
-  const stripped = sigHeader.value.replace(/\bb=[^;]*/, "b=")
-  canon += canonSignatureHeader(stripped)
+  const { canon: selected } = canonSelected(
+    parsed.headers.filter((h) => h !== sigHeader),
+    tags.h.split(":"),
+  )
+  const canon = selected + canonSignatureHeader(emptySignature(sigHeader.value))
 
   // Both the key and the signature come from the message and from DNS the sender
   // controls, and OpenSSL throws rather than returning false on malformed input.

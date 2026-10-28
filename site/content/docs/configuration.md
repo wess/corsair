@@ -182,6 +182,23 @@ server — set `DELIVERY_TRANSPORT=direct` (or `relay`) as part of going live, o
 mail silently goes to the log.
 :::
 
+## Forwarded mail (ARC)
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `ARC_TRUSTED_SEALERS` | *(empty)* | Comma-separated sealer domains whose ARC pass overrides a DMARC failure, e.g. `google.com,outlook.com` |
+
+Every inbound message has its ARC chain checked and the result recorded as
+`arc=` in `Authentication-Results`. That needs no configuration. This setting
+covers one decision: when a message fails DMARC but arrives with a passing ARC
+chain whose newest seal is from a listed domain (or a subdomain of one), the
+DMARC failure no longer counts against its spam score. The header still says
+`dmarc=fail` and notes the override, so it stays visible.
+
+Anyone can seal a message, so a seal is worth only what you know about who made
+it. List the forwarders and mailing lists your users really receive through,
+and nothing else. See [Forwarding](deliverability.html#forwarding).
+
 ## Storage
 
 | Variable | Default | What it does |

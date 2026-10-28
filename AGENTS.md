@@ -118,6 +118,20 @@ and the key resolves. `tests/dkimwire.test.ts` rebuilds the signed input by hand
 from the spec and verifies with `node:crypto` rather than with this codebase,
 because a test that uses our own verifier cannot see this class of bug at all.
 
+**ARC reuses the DKIM canonicalisation, and its bug.** `src/arc` imports
+`canonHeader`, `canonSelected`, `canonSignatureHeader` and the body hashes from
+`src/dkim` rather than having its own. The ARC-Seal signs every set from i=1 up,
+in the order AAR, AMS, AS, and the seal being made is the last thing hashed:
+`b=` emptied and no trailing CRLF. `tests/arcwire.test.ts` rebuilds that input by
+hand and checks it with `node:crypto`, for the same reason `dkimwire` exists.
+Forwarded mail (alias, group, Sieve `redirect`) is sealed with the forwarding
+domain's DKIM key in `sealForRelay`. A new relay path that skips it relays mail
+that fails DMARC downstream and gives no sign of it. The DMARC override for a
+passing chain needs the sealer to be in `ARC_TRUSTED_SEALERS`, because anyone can
+seal. It cancels the DMARC score penalty and nothing else. Do not widen it to
+any passing chain. That would turn "I sealed it" into a free DMARC pass for
+anyone who can run a mail server.
+
 **One DKIM keypair per selector host, shared by every domain.**
 `MAIL_DKIM_HOSTS` is installation-wide and each domain publishes
 `corsair-N._domainkey` as a CNAME to it, so that one name holds one TXT record.
