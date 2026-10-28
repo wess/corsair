@@ -90,7 +90,14 @@ export const webmailRoutes: Route[] = [
       assigns: {} as never,
     },
     async (c) => {
-      const identity = await authenticateAddress(c.body.email.trim(), c.body.password)
+      const identity = await authenticateAddress(
+        c.body.email.trim(),
+        c.body.password,
+        // No ip, as before: there is no app password use to record here, and an ip
+        // would also start ban-checking this route, which is a separate change.
+        undefined,
+        "webmail",
+      )
       if (!identity) {
         const { recordAuthFailure } = await import("../../../auth/index.ts")
         await recordAuthFailure(ipOf(c as never), "webmail", c.body.email).catch(() => {})

@@ -273,7 +273,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
 
   const finishLogin = async (tag: string, username: string, password: string): Promise<string> => {
     authState = null
-    const result = await authenticateAddress(username, password, hooks.remoteIp)
+    const result = await authenticateAddress(username, password, hooks.remoteIp, "imap")
     if (!result) {
       hooks.onAuthFailure?.(username)
       return no(tag, "Invalid credentials.", "AUTHENTICATIONFAILED")

@@ -11,6 +11,7 @@ import {
   setPassword,
   unlinkFromAccount,
 } from "../../../addresses/index.ts"
+import { listAppPasswords } from "../../../apppasswords/index.ts"
 import { revokeMailSessions } from "../../../auth/index.ts"
 import { allColumns, db } from "../../../db/index.ts"
 import { conflict, invalidParameter, notFound } from "../../../errors/index.ts"
@@ -39,7 +40,7 @@ const addressParam = z.object({ address_id: z.string().uuid() })
  * grant exists. What is *not* here is what stays with the owner: the domain
  * itself, its DNS, its billing, and who administers it.
  */
-const ownedAddress = async (
+export const ownedAddress = async (
   userId: string,
   id: string,
 ): Promise<{ address: Address; domain: Domain }> => {
@@ -246,6 +247,7 @@ export const addressRoutes: Route[] = [
         destinations: z.array(z.string().email().max(320)).max(50).optional(),
         disabled: z.boolean().optional(),
         daily_out_limit: z.number().int().min(0).max(100_000).nullable().optional(),
+        require_app_passwords: z.boolean().optional(),
       }),
       before: authed,
       assigns: {} as never,
@@ -273,6 +275,19 @@ export const addressRoutes: Route[] = [
       // disabled would let every old cookie come back to life on re-enabling.
       if (c.body.disabled === true) await revokeMailSessions(address.id)
       if (c.body.daily_out_limit !== undefined) patch.daily_out_limit = c.body.daily_out_limit
+      if (c.body.require_app_passwords !== undefined) {
+        if (address.type !== "standard" && address.type !== "catchall") {
+          throw invalidParameter("Only a mailbox that people sign into can require app passwords.")
+        }
+        // Turning it on with none to use would sign every mail client out with no
+        // way back in but this page. Asking for one first is the cheaper lesson.
+        if (c.body.require_app_passwords && (await listAppPasswords(address.id)).length === 0) {
+          throw invalidParameter(
+            "Create an app password for each mail client before requiring them.",
+          )
+        }
+        patch.require_app_passwords = c.body.require_app_passwords
+      }
 
       const updated = await db().one<Address>(
         from(addresses)

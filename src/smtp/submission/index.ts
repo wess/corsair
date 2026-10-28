@@ -30,8 +30,9 @@ const identities = new Map<string, MailIdentity>()
 export const authenticate = async (
   username: string,
   password: string,
+  ip?: string,
 ): Promise<Identity | null> => {
-  const identity = await authenticateAddress(username, password)
+  const identity = await authenticateAddress(username, password, ip, "smtp")
   if (!identity) return null
   identities.set(identity.address.id, identity)
   return { username: identity.email, id: identity.address.id }

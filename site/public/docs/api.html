@@ -408,7 +408,23 @@ ratelimit-reset: 1</code></pre></figure>
 <td><code>/api/addresses/:address_id/activity</code></td>
 <td>Recent mail activity</td>
 </tr>
+<tr>
+<td>GET</td>
+<td><code>/api/addresses/:address_id/app-passwords</code></td>
+<td>App passwords, without secrets</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/addresses/:address_id/app-passwords</code></td>
+<td>Create one; <code>password</code> is returned once</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/addresses/:address_id/app-passwords/:app_password_id</code></td>
+<td>Revoke one</td>
+</tr>
 </tbody></table></div>
+<p><code>PATCH</code> takes <code>require_app_passwords</code> to refuse the mailbox password over the mail protocols; it is refused while the mailbox has no app passwords. Creating one takes a <code>name</code> and optional <code>scopes</code> (<code>imap</code>, <code>pop3</code>, <code>smtp</code>, <code>jmap</code>, <code>dav</code>, <code>sieve</code>; all by default). The webmail has the same three under <code>/api/mail/app-passwords</code>, where creating one also requires <code>current_password</code>.</p>
 <h3 id="filters">Filters<a class="anchor" href="#filters" aria-label="Link to this section">#</a></h3>
 <div class='table-wrap'><table><thead><tr>
 <th>Method</th>

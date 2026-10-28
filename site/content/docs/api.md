@@ -185,6 +185,15 @@ The API token posted to `dns/publish` is used for that one call and never stored
 | POST | `/api/addresses/:address_id/recovery` | Set the recovery address |
 | GET | `/api/addresses/:address_id/folders` | Folders with counts |
 | GET | `/api/addresses/:address_id/activity` | Recent mail activity |
+| GET | `/api/addresses/:address_id/app-passwords` | App passwords, without secrets |
+| POST | `/api/addresses/:address_id/app-passwords` | Create one; `password` is returned once |
+| DELETE | `/api/addresses/:address_id/app-passwords/:app_password_id` | Revoke one |
+
+`PATCH` takes `require_app_passwords` to refuse the mailbox password over the mail
+protocols; it is refused while the mailbox has no app passwords. Creating one
+takes a `name` and optional `scopes` (`imap`, `pop3`, `smtp`, `jmap`, `dav`,
+`sieve`; all by default). The webmail has the same three under
+`/api/mail/app-passwords`, where creating one also requires `current_password`.
 
 ### Filters
 

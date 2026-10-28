@@ -77,7 +77,7 @@ export const createPop3Session = (hooks: Pop3Hooks): Pop3Session => {
   }
 
   const finishAuth = async (username: string, password: string): Promise<string> => {
-    const result = await authenticateAddress(username, password, hooks.remoteIp)
+    const result = await authenticateAddress(username, password, hooks.remoteIp, "pop3")
     if (!result) {
       hooks.onAuthFailure?.(username)
       return err("Invalid credentials.")
