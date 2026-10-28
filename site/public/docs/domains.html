@@ -117,6 +117,63 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p>The reset link goes to the recovery address, never to the mailbox itself — which would be useless to someone locked out of it.</p>
 <p>The request endpoint answers identically whether or not the address exists. Making it more helpful turns it into a way to enumerate your mailboxes.</p>
 <p>A plan feature (<code>self_service</code>).</p>
+<h2 id="delegating-administration">Delegating administration<a class="anchor" href="#delegating-administration" aria-label="Link to this section">#</a></h2>
+<p>Two kinds of administrator, appointed by different people on purpose.</p>
+<ul><li>A <strong>system administrator</strong> acts on every domain on the server. Only the instance owner appoints one.</li><li>A <strong>domain administrator</strong> manages one domain's mailboxes. The domain's owner appoints them. They cannot see billing, touch DNS, delete the domain, send as it, or appoint anyone else.</li></ul>
+<p>A domain administrator is either a panel account or, more usually, a mailbox on that domain. Granting by email address prefers the mailbox: the person who runs a client's mail then manages users from inside the <a href="webmail.html#managing-users">webmail</a> and never needs the panel. A forwarding address (alias or group) cannot be granted, since it has nothing to sign into. An address that is not a mailbox here must belong to an existing, active panel account.</p>
+<p>All of these are panel-session routes. Naming an email address with no account on the server is a 404, and a suspended or terminated account is a 400, each with a plain explanation.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Who</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/users</code></td>
+<td>Instance owner</td>
+<td>Create a panel account for a delegate</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/admins</code></td>
+<td>Instance owner</td>
+<td>System administrators, the owner first</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/admins</code></td>
+<td>Instance owner</td>
+<td>Make an account a system administrator</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/admins/:user_id</code></td>
+<td>Instance owner</td>
+<td>Revoke it. The owner cannot be demoted</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/domains/:domain_id/admins</code></td>
+<td>Domain owner</td>
+<td>Accounts and mailboxes administering the domain</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/domains/:domain_id/admins</code></td>
+<td>Domain owner</td>
+<td>Grant by email address</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/domains/:domain_id/admins/:user_id</code></td>
+<td>Domain owner</td>
+<td>Revoke; the id may be an account's or a mailbox's</td>
+</tr>
+</tbody></table></div>
+<p><code>POST /api/users</code> takes <code>email</code>, <code>password</code> (8 to 200 characters) and an optional <code>name</code>, and answers 201 with the new account. It exists because <code>SIGNUPS=closed</code> leaves a private server with no other way to make an account to appoint. The account is created verified, is not an owner, and is a separate credential from any mailbox of the same name. A duplicate email is a 409.</p>
+<p><code>POST /api/admins</code> and <code>POST /api/domains/:domain_id/admins</code> take <code>email</code> and answer 201. Granting twice is the same state, not an error. The domain owner and a system administrator are refused with 409 because they already hold the rights. Every grant and revoke emits <code>admin.granted</code> or <code>admin.revoked</code>.</p>
+<p>Each entry in a list has <code>subject</code> (<code>account</code> or <code>mailbox</code>), <code>user_id</code> or <code>address_id</code> (whichever applies, the other null), <code>email</code>, <code>name</code> and <code>granted_at</code>.</p>
 <h2 id="removing-a-domain">Removing a domain<a class="anchor" href="#removing-a-domain" aria-label="Link to this section">#</a></h2>
 <p>Deleting a domain deletes its addresses, and deleting an address deletes its mail. There is no trash.</p>
 <p>Before you do:</p>
@@ -125,7 +182,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <h2 id="several-domains-one-account">Several domains, one account<a class="anchor" href="#several-domains-one-account" aria-label="Link to this section">#</a></h2>
 <p>There is no limit beyond the plan's <code>max_domains</code>, and each has its own DKIM keys, catch-all, and addresses. They share the account's storage quota, daily limits, and filters — a filter belongs to the account and can be attached to mailboxes on any domain.</p>
 <p>The same server sends for all of them, which is why one domain's bad sending behaviour affects the others. That is the reason the pending/active distinction is enforced rather than advisory.</p><nav class="pager"><a class="pager-prev" href="./control-panel.html"><span>Previous</span><strong>The control panel</strong></a><a class="pager-next" href="./addresses.html"><span>Next</span><strong>Addresses</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#adding-one">Adding one</a></li><li class="toc-h2"><a href="#pending-versus-active">Pending versus active</a></li><li class="toc-h2"><a href="#verifying">Verifying</a></li><li class="toc-h2"><a href="#publishing-automatically">Publishing automatically</a></li><li class="toc-h2"><a href="#dkim-keys-and-rotation">DKIM keys and rotation</a></li><li class="toc-h3"><a href="#rotating-without-a-gap">Rotating without a gap</a></li><li class="toc-h2"><a href="#catch-all">Catch-all</a></li><li class="toc-h2"><a href="#fallback-domains">Fallback domains</a></li><li class="toc-h2"><a href="#recipient-resolution-in-order">Recipient resolution, in order</a></li><li class="toc-h2"><a href="#self-service-recovery">Self-service recovery</a></li><li class="toc-h2"><a href="#removing-a-domain">Removing a domain</a></li><li class="toc-h2"><a href="#several-domains-one-account">Several domains, one account</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#adding-one">Adding one</a></li><li class="toc-h2"><a href="#pending-versus-active">Pending versus active</a></li><li class="toc-h2"><a href="#verifying">Verifying</a></li><li class="toc-h2"><a href="#publishing-automatically">Publishing automatically</a></li><li class="toc-h2"><a href="#dkim-keys-and-rotation">DKIM keys and rotation</a></li><li class="toc-h3"><a href="#rotating-without-a-gap">Rotating without a gap</a></li><li class="toc-h2"><a href="#catch-all">Catch-all</a></li><li class="toc-h2"><a href="#fallback-domains">Fallback domains</a></li><li class="toc-h2"><a href="#recipient-resolution-in-order">Recipient resolution, in order</a></li><li class="toc-h2"><a href="#self-service-recovery">Self-service recovery</a></li><li class="toc-h2"><a href="#delegating-administration">Delegating administration</a></li><li class="toc-h2"><a href="#removing-a-domain">Removing a domain</a></li><li class="toc-h2"><a href="#several-domains-one-account">Several domains, one account</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

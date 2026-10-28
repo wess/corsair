@@ -4201,6 +4201,26 @@ Worth grepping for:
 | `job .* failed` | A worker job threw. It retries |
 | `rejected` | Inbound refusals — no such user, over quota, filtered |
 
+### From the panel
+
+The instance owner can read the journal over the API without a shell. Both routes
+need the owner's panel session.
+
+| Method | Path | Does |
+| --- | --- | --- |
+| GET | `/api/logs/sources` | The units that can be read (`key`, `label`, `unit`) and the accepted `since` windows |
+| GET | `/api/logs` | One read of one unit's journal |
+
+`/api/logs` takes `unit` (a `key` from the sources list, default `corsair`; an
+unknown one is a 400), `lines` (default 300, at most 2000), `since` (`15m`, `1h`,
+`6h`, `24h`, `7d` or `all`; default `1h`), `q` (a literal, case-insensitive
+search of at most 200 characters) and `priority` (0 to 7, entries at that syslog
+severity and worse). The answer is a list of entries (`id`, `at`, `unit`,
+`priority`, `message`) plus `truncated` and `available`. If the service account
+cannot read the journal, `available` is false and `reason` says to add it to the
+`systemd-journal` group. Output is redacted for connection strings and similar
+before it leaves the server.
+
 warning Mail logs contain addresses
 Sender and recipient addresses are personal data. Decide your retention period
 deliberately and configure `journald` or your log shipper to honour it.
@@ -4407,6 +4427,48 @@ systemctl status corsair
 sudo ss -lntp | grep bun            # every listener came back
 curl -sf localhost:3000/api/plans   # the API answers
 ```
+
+## Upgrading to 0.4
+
+Nothing here needs action to keep running, but read the first two items.
+
+- **Six migrations** (`20261028000015_qresync`, `…017_dmarcreports`,
+  `…019_apppasswords`, `…021_dkimrotate`, `…023_spam`, `…024_contacts`). All are
+  additive and each has a `down.sql`. Run them before restarting, as always.
+  After 0.4.1, `…025_storagestate` adds `users.storage_state`, which is how the
+  storage warnings know they have already been sent.
+- **Corsair can hold ports 25 and 587 itself.** On a runtime that passes the
+  STARTTLS probe (Bun 1.4.4 or later) it upgrades connections without the Rust
+  terminator in `engine/`, which is now an optional fallback. Keeping the terminator
+  works unchanged. To drop it, set `SMTP_MX_PORT=25`, `SMTP_SUBMISSION_PORT=587`,
+  `SMTP_BIND=0.0.0.0`, an empty `SMTP_TRUSTED_PROXIES` and
+  `SMTP_STARTTLS_FRONTED=false`, stop and disable the front, and restart. Empty
+  `SMTP_TRUSTED_PROXIES` matters: only list a proxy you run. See [Listeners](configuration.html#listeners) and
+  [STARTTLS on 25 and 587](configuration.html#starttls-on-25-and-587).
+- **0.4.1 closes connections that pipeline commands behind `STARTTLS`** on SMTP,
+  IMAP, POP3 and ManageSieve, and caps the SMTP listener at 512 connections.
+  A client that sends the next command before the upgrade finishes was never
+  valid, but it will now be disconnected rather than served.
+
+New features. These need no configuration to keep your install behaving as it
+did, but some are on by default:
+
+| Feature | Default | Where |
+| --- | --- | --- |
+| ManageSieve on port 4190 | On (`MANAGESIEVE_ENABLED`). Open the port if you want it | [Filters](filters.html#editing-from-a-mail-client) |
+| IP and domain blocklists | Score only. `SPAM_DNSBL=zen.spamhaus.org`, `SPAM_URIBL=dbl.spamhaus.org`. Set `SPAM_RESOLVER` to a local resolver | [Spam filtering](spam.html#blocklists) |
+| Greylisting | Off (`SPAM_GREYLIST=false`) | [Greylisting](spam.html#greylisting) |
+| DMARC and TLS-RPT reports | On. Sent daily from `REPORTS_FROM`; `DMARC_REPORTS_SEND=false` and `TLSRPT_SEND=false` turn them off | [Reports Corsair sends](deliverability.html#reports-corsair-sends) |
+| DANE for outbound delivery | `DANE=auto`: on only if the resolver is seen to validate DNSSEC. Set `DANE_RESOLVER` | [DANE](deliverability.html#dane) |
+| Built-in ACME | Off (`ACME=on`) | [Built-in ACME](configuration.html#built-in-acme) |
+| DKIM rotation | Off (`DKIM_ROTATE_DAYS=0`) | [DKIM rotation](configuration.html#dkim-rotation) |
+| Metrics at `/metrics` | Off until `METRICS_TOKEN` is set | [Prometheus metrics](monitoring.html#prometheus-metrics) |
+| ARC | Chains are checked and forwarded mail is sealed. `ARC_TRUSTED_SEALERS` is empty, so no DMARC override | [Forwarded mail](configuration.html#forwarded-mail-arc) |
+| App passwords | Per mailbox, none until created | [App passwords](client-setup.html#app-passwords) |
+| CardDAV at `/dav/` | On, with the panel's HTTPS listener | [Contacts](contacts.html) |
+
+If you run the Rust front, no change is required. If a firewall rule allows only
+the ports you used to serve, add 4190 when you want ManageSieve.
 
 ## Upgrading to 0.3
 
@@ -5457,6 +5519,16 @@ without a gap.
 
 The catch-all, the fallback domain, and self-service recovery.
 
+## Notices
+
+Things that need your attention are listed on every screen, not only the overview:
+an unverified email address, a domain whose DNS is incomplete, a verified domain
+with no mailboxes, recovery switched on for mailboxes with nowhere to send a link.
+They are computed from the account's own domains and disappear when the cause
+does, so there is nothing to dismiss. `GET /api/notices` returns them as a list of
+`{ id, level, title, body, action }`, with `level` of `info` or `warn`; the
+webmail has its own at `/api/mail/notices`.
+
 ## Reports
 
 The DMARC aggregate and TLS reports other mail servers sent about one domain,
@@ -5709,6 +5781,52 @@ Making it more helpful turns it into a way to enumerate your mailboxes.
 
 A plan feature (`self_service`).
 
+## Delegating administration
+
+Two kinds of administrator, appointed by different people on purpose.
+
+- A **system administrator** acts on every domain on the server. Only the
+  instance owner appoints one.
+- A **domain administrator** manages one domain's mailboxes. The domain's owner
+  appoints them. They cannot see billing, touch DNS, delete the domain, send as
+  it, or appoint anyone else.
+
+A domain administrator is either a panel account or, more usually, a mailbox on
+that domain. Granting by email address prefers the mailbox: the person who runs a
+client's mail then manages users from inside the [webmail](webmail.html#managing-users)
+and never needs the panel. A forwarding address (alias or group) cannot be
+granted, since it has nothing to sign into. An address that is not a mailbox here
+must belong to an existing, active panel account.
+
+All of these are panel-session routes. Naming an email address with no account
+on the server is a 404, and a suspended or terminated account is a 400, each with
+a plain explanation.
+
+| Method | Path | Who | Does |
+| --- | --- | --- | --- |
+| POST | `/api/users` | Instance owner | Create a panel account for a delegate |
+| GET | `/api/admins` | Instance owner | System administrators, the owner first |
+| POST | `/api/admins` | Instance owner | Make an account a system administrator |
+| DELETE | `/api/admins/:user_id` | Instance owner | Revoke it. The owner cannot be demoted |
+| GET | `/api/domains/:domain_id/admins` | Domain owner | Accounts and mailboxes administering the domain |
+| POST | `/api/domains/:domain_id/admins` | Domain owner | Grant by email address |
+| DELETE | `/api/domains/:domain_id/admins/:user_id` | Domain owner | Revoke; the id may be an account's or a mailbox's |
+
+`POST /api/users` takes `email`, `password` (8 to 200 characters) and an optional
+`name`, and answers 201 with the new account. It exists because `SIGNUPS=closed`
+leaves a private server with no other way to make an account to appoint. The
+account is created verified, is not an owner, and is a separate credential from
+any mailbox of the same name. A duplicate email is a 409.
+
+`POST /api/admins` and `POST /api/domains/:domain_id/admins` take `email` and
+answer 201. Granting twice is the same state, not an error. The domain owner
+and a system administrator are refused with 409 because they already hold the
+rights. Every grant and revoke emits `admin.granted` or `admin.revoked`.
+
+Each entry in a list has `subject` (`account` or `mailbox`), `user_id` or
+`address_id` (whichever applies, the other null), `email`, `name` and
+`granted_at`.
+
 ## Removing a domain
 
 Deleting a domain deletes its addresses, and deleting an address deletes its
@@ -5878,6 +5996,21 @@ owns every domain.
 
 Change one in the panel: **Addresses → the address → Change password**. Every
 client using it will need updating; there is no way around that.
+
+### Linking and separating
+
+A mailbox that is its owner's own account shares the account's password. Over the
+API, `POST /api/addresses/:address_id/link` switches it either way:
+
+- `{ "use_account_password": true }` makes the mailbox sign in with the account
+  password. Only the domain's owner may do this; a domain administrator gets a 400.
+- `{ "use_account_password": false, "password": "…" }` gives the mailbox a
+  password of its own (8 to 200 characters). Any administrator may do this. The
+  `password` is required, and a mailbox that already has its own is a 400.
+
+Either way the mailbox's webmail sessions end, an alias or group is a 400, and the answer is
+`{ object: "address", id, uses_account_password }`. A linked mailbox refuses
+`POST /api/addresses/:address_id/password`.
 
 ## Recovery
 
@@ -6249,6 +6382,58 @@ Sending goes through the same submission path as any client: the From address is
 proven to belong to the caller, the message is DKIM-signed with the domain's key,
 a copy is filed in Sent, and delivery is queued.
 
+## Managing users
+
+A mailbox that has been made a [domain administrator](domains.html#delegating-administration)
+gets a Users section. It manages that domain's mailboxes with the credential it
+already holds, and nothing else: no billing, DNS, or domain deletion, and
+`/app` still refuses a mailbox sign-in. Every route takes the webmail session and
+re-checks the grant on each call, so a mailbox not named on a domain gets 404.
+
+| Method | Path | Does |
+| --- | --- | --- |
+| GET | `/api/mail/admin/domains` | Domains this mailbox administers. Empty for almost every mailbox |
+| GET | `/api/mail/admin/domains/:domain_id/users` | Every address on the domain |
+| POST | `/api/mail/admin/domains/:domain_id/users` | Create one. 201 |
+| PATCH | `/api/mail/admin/users/:address_id` | Set `name` or `disabled` |
+| POST | `/api/mail/admin/users/:address_id/password` | Set a mailbox's password |
+| DELETE | `/api/mail/admin/users/:address_id` | Delete it, with its mail |
+
+Create takes `local_part`, `type` (`standard`, `alias` or `group`), and optionally
+`name`, `password` (8 to 200 characters) and `destinations` (up to 50 addresses).
+A mailbox made here always gets its own password and is never linked to a panel
+account. The limit that applies is the domain *owner's* plan: past
+`max_addresses` the answer is a 409. Agent mailboxes are not reachable from here.
+Setting a password on an alias or group is a 400, and on a mailbox that signs in
+with its owner's account password it is refused.
+
+You cannot disable or delete the mailbox you are signed in to. Both are 400.
+
+## Your own credentials
+
+| Method | Path | Does |
+| --- | --- | --- |
+| POST | `/api/mail/password` | Change this mailbox's password |
+| POST | `/api/mail/recovery` | Set or clear the recovery address |
+| GET | `/api/mail/app-passwords` | App passwords, without secrets |
+| POST | `/api/mail/app-passwords` | Create one; `password` is returned once |
+| DELETE | `/api/mail/app-passwords/:app_password_id` | Revoke one |
+| GET | `/api/mail/notices` | What this mailbox should be told about |
+
+`password` takes `current_password` and `new_password` (8 to 200 characters,
+different from the current one). Every other webmail session ends; this one stays.
+`recovery` takes `current_password` and `recovery_address` (an email, or `null`
+to clear it); the address cannot be the mailbox itself. Creating an app password
+also takes `current_password`. A wrong current password is a 401 and counts as a
+failed sign-in towards the per-IP ban. A mailbox that signs in with its owner's
+account password cannot change it here.
+
+`/api/mail/notices` answers a list of `{ id, level, title, body, action }`, where
+`level` is `info` or `warn` and `action` (optional) is `{ label, target }`. A
+notice is computed, not stored: it exists while the thing it describes does, and
+there is nothing to dismiss. For a mailbox the only one today is
+`recovery_missing`.
+
 ## Sanitisation
 
 Message bodies are sanitised on the **server**, in `src/sanitize`, never in the
@@ -6307,8 +6492,8 @@ without a second thing to deploy. It is not trying to be Roundcube.
 
 ## What it deliberately does not have
 
-**No calendar or contacts.** Corsair does email. There is no CalDAV or CardDAV
-server behind this.
+**No calendar.** There is no CalDAV server. Contacts are an address book shared
+with [CardDAV](contacts.html), used for recipient autocomplete.
 
 **No conversation threading beyond `thread_id`.** Messages carry a thread id and
 the API exposes it; the client lists messages rather than collapsing threads.
@@ -6582,8 +6767,10 @@ infected laptop, so it nudges the score rather than deciding it.
 Only the connecting IP is ever checked, never the addresses in `Received:`
 headers. So PBL never counts against someone who sent from home through their
 provider, and mail relayed by a forwarder is judged by the forwarder's IP.
-Submission on 587 and 465 is not checked at all. Behind the STARTTLS terminator,
-the IP checked is the one `XCLIENT` reports, not `127.0.0.1`.
+Submission on 587 and 465 is not checked at all. On a direct listener the IP
+checked is the socket's. Behind the optional STARTTLS terminator every connection
+arrives from `127.0.0.1`, so the IP checked is the one the terminator reports
+with `XCLIENT`.
 
 warning Spamhaus will not answer a public resolver
 Spamhaus refuses queries from public DNS services and from most cloud providers'
@@ -6761,6 +6948,21 @@ the last 7 to 180 days: messages, pass rate, a table by sending IP, and a table 
 reporting organisation. An IP you do not recognise with a high failure count is
 either a sender you forgot or somebody forging you; the reporter column says who
 saw it. See [DNS setup](dns-setup.html#dmarc) for what is and is not accepted.
+
+The same totals are available over the API. Both routes take a panel session and
+are open to a domain administrator as well as the owner, since they only read.
+`days` is 1 to 180 and defaults to 30.
+
+| Method | Path | Does |
+| --- | --- | --- |
+| GET | `/api/domains/:domain_id/reports/dmarc` | Totals, per sending IP, per reporter, and the individual reports |
+| GET | `/api/domains/:domain_id/reports/tls` | Totals, per reporter, per result type, and the individual reports |
+
+The DMARC summary (`object: "dmarc_summary"`) has `days`, `totals`
+(`reports`, `messages`, `passed`, `failed`), `by_source` (`source_ip`, the same
+counts, and `reporters`), `by_reporter` (`org_name` and counts) and `reports`.
+The TLS summary (`object: "tls_summary"`) has `totals` (`reports`, `succeeded`,
+`failed`), `by_reporter`, `by_result` (`result_type`, `sessions`) and `reports`.
 
 Move to `p=reject` only once those reports are clean. Going straight there means
 silently killing a legitimate sender you did not know you had.
@@ -7277,8 +7479,9 @@ re-serialising it changes the bytes and the signature will not match.
 | `email.scheduled` · `email.sent` · `email.delivered` · `email.delivery_delayed` | A [sending API](sending.html) email on its way |
 | `email.bounced` · `email.complained` · `email.failed` · `email.suppressed` | A sending API email that did not arrive |
 | `address.created` · `address.deleted` · `address.password_changed` | Mailbox changes |
+| `admin.granted` · `admin.revoked` | Someone was given, or lost, administration of a domain or of the server |
 | `domain.created` · `domain.verified` · `domain.verification_failed` · `domain.deleted` | Domain changes |
-| `quota.warning` · `quota.exceeded` | Storage |
+| `quota.warning` · `quota.exceeded` | The account crossed 90% of its storage, or filled it |
 | `transfer.completed` · `transfer.failed` | Mailbox migration |
 
 Mail from a mailbox reports as `message.*`; mail sent over the sending API reports
@@ -7306,6 +7509,29 @@ family without you changing anything.
   }
 }
 ```
+
+Every `message.*` event describes one recipient. A message sent to three people
+is three `message.sent` events, then three `message.delivered` (or deferred, or
+bounced) as each receiving server answers. `message.sent` fires for mail sent
+over SMTP submission, from the webmail, over JMAP, and by an agent mailbox; it
+does not fire for mail Corsair forwards on someone's behalf.
+
+`quota.*` and `transfer.*` carry their own fields:
+
+```json
+{ "type": "quota.warning",
+  "data": { "bytes_used": 9663676416, "storage_bytes": 10737418240, "percent": 90 } }
+
+{ "type": "transfer.completed",
+  "data": { "transfer_id": "…", "address": "me@example.com", "server": "imap.old-host.com",
+            "username": "me@old-host.com", "messages": 18234, "bytes": 2147483648 } }
+```
+
+A `transfer.failed` has `error` in place of `messages` and `bytes`. The quota
+events fire once per crossing, on the way up: an account that sits at 95% is warned
+once, not at every delivery. Freeing space resets it, so the next climb is
+announced again. The same crossing sends the account's owner an email unless they
+turned storage warnings off under **Account**.
 
 ## Retries
 
@@ -7489,8 +7715,9 @@ out.
 ## Quotas in practice
 
 **Storage** is per account across every domain and mailbox. One mailbox can use all
-of it. `quota.warning` and `quota.exceeded` webhooks fire before and at the cap,
-so you can tell someone before mail starts being refused.
+of it. `quota.warning` fires when an account crosses 90% and `quota.exceeded` when
+it fills, once per crossing, so you can tell someone before mail starts being
+refused. The owner gets the same news by email unless they turned it off.
 
 **Daily limits** reset on a rolling 24-hour window from `mail_log`. Hitting
 `daily_out` means submission is refused until the window moves; hitting `daily_in`
@@ -8039,6 +8266,21 @@ password. Making either more helpful turns it into a way to enumerate accounts.
 | POST | `/api/account/sessions/revoke-others` | Revoke every other session |
 | GET | `/api/account/referrals` | Referral data |
 
+### Administration
+
+Instance owner only, with a panel session. See
+[Delegating administration](domains.html#delegating-administration) and
+[Logs](monitoring.html#from-the-panel).
+
+| Method | Path | Does |
+| --- | --- | --- |
+| POST | `/api/users` | Create a panel account for a delegate |
+| GET | `/api/admins` | System administrators, the owner first |
+| POST | `/api/admins` | Make an account a system administrator |
+| DELETE | `/api/admins/:user_id` | Revoke it. The owner cannot be demoted |
+| GET | `/api/logs/sources` | Journal units that can be read, and the `since` windows |
+| GET | `/api/logs` | Read one unit's journal. `unit`, `lines`, `since`, `q`, `priority` |
+
 ### Domains
 
 | Method | Path | Does |
@@ -8058,6 +8300,11 @@ password. Making either more helpful turns it into a way to enumerate accounts.
 | POST | `/api/domains/:domain_id/fallback` | Set the fallback domain |
 | GET | `/api/domains/:domain_id/addresses` | Addresses on this domain |
 | POST | `/api/domains/:domain_id/addresses` | Create an address |
+| GET | `/api/domains/:domain_id/reports/dmarc` | Received DMARC reports, totalled. `days` 1 to 180. See [Deliverability](deliverability.html#dmarc-reports) |
+| GET | `/api/domains/:domain_id/reports/tls` | Received TLS reports, totalled. Same `days` |
+| GET | `/api/domains/:domain_id/admins` | Who administers the domain. Owner only |
+| POST | `/api/domains/:domain_id/admins` | Grant by `email`, a mailbox or an account. Owner only |
+| DELETE | `/api/domains/:domain_id/admins/:user_id` | Revoke. Owner only |
 
 The API token posted to `dns/publish` is used for that one call and never stored.
 
@@ -8070,6 +8317,7 @@ The API token posted to `dns/publish` is used for that one call and never stored
 | DELETE | `/api/addresses/:address_id` | Delete, with its mail |
 | POST | `/api/addresses/:address_id/password` | Change the mailbox password |
 | POST | `/api/addresses/:address_id/recovery` | Set the recovery address |
+| POST | `/api/addresses/:address_id/link` | Share the account password, or separate with `password`. See [Addresses](addresses.html#linking-and-separating) |
 | GET | `/api/addresses/:address_id/folders` | Folders with counts |
 | GET | `/api/addresses/:address_id/activity` | Recent mail activity |
 | GET | `/api/addresses/:address_id/app-passwords` | App passwords, without secrets |
@@ -8211,6 +8459,7 @@ Reached by mailbox owners who are not panel users at all, so it lives outside
 | Method | Path | Does |
 | --- | --- | --- |
 | GET | `/api/overview` | Everything the Overview screen renders |
+| GET | `/api/notices` | What needs attention on this account. See [Control panel](control-panel.html#notices) |
 | GET | `/api/client-config` | Hostnames and ports for mail clients |
 
 ### Webmail
@@ -8234,6 +8483,26 @@ The **address** identity, via the `corsair_webmail` cookie. A 12-hour session.
 | POST | `/api/mail/messages/delete` | Delete |
 | POST | `/api/mail/send` | Send |
 | POST | `/api/mail/drafts` | Save a draft |
+| POST | `/api/mail/password` | Change this mailbox's password |
+| POST | `/api/mail/recovery` | Set or clear the recovery address |
+| GET | `/api/mail/notices` | What this mailbox should be told about |
+| GET | `/api/mail/app-passwords` | App passwords, without secrets |
+| POST | `/api/mail/app-passwords` | Create one; needs `current_password`, `password` is returned once |
+| DELETE | `/api/mail/app-passwords/:app_password_id` | Revoke one |
+| GET | `/api/mail/contacts` | Search the address book. See [Contacts](contacts.html#webmail-api) |
+| POST | `/api/mail/contacts` | Create a contact |
+| PATCH | `/api/mail/contacts/:contact_id` | Replace a contact's name and addresses |
+| DELETE | `/api/mail/contacts/:contact_id` | Delete a contact |
+| GET | `/api/mail/admin/domains` | Domains this mailbox administers |
+| GET | `/api/mail/admin/domains/:domain_id/users` | Addresses on one |
+| POST | `/api/mail/admin/domains/:domain_id/users` | Create one |
+| PATCH | `/api/mail/admin/users/:address_id` | Set `name` or `disabled` |
+| POST | `/api/mail/admin/users/:address_id/password` | Set its password |
+| DELETE | `/api/mail/admin/users/:address_id` | Delete it |
+
+The last six are for a mailbox that is a
+[domain administrator](domains.html#delegating-administration); see
+[Webmail](webmail.html#managing-users).
 
 Message bodies are sanitised server-side before this endpoint returns them.
 
@@ -9160,6 +9429,26 @@ contacts.
   kept away from a list that autocompletes into a person's compose.
 - **Sent-to recipients are not added automatically.** The address book holds what
   you put in it.
+
+## Webmail API
+
+The webmail reads and writes the same address book through its own session, so a
+script signed in as the mailbox can too. These routes take the webmail cookie
+and are scoped to that mailbox in SQL; another mailbox's contact id is a 404.
+A disabled mailbox, an alias, a group or an agent mailbox has no address book
+and gets a 403.
+
+| Method | Path | Does |
+| --- | --- | --- |
+| GET | `/api/mail/contacts` | Search. `q` (at most 200 characters) and `limit` (1 to 500, default 20) |
+| POST | `/api/mail/contacts` | Create. 201 |
+| PATCH | `/api/mail/contacts/:contact_id` | Replace the name and addresses |
+| DELETE | `/api/mail/contacts/:contact_id` | Delete; sync clients are told it went |
+
+The body for create and patch is `name` (1 to 200 characters) and `emails` (up to
+20 addresses). A contact is `{ object: "contact", id, name, emails, updated_at }`.
+`PATCH` is conditional on the stored card: if a phone rewrote it in the meantime
+the answer is a 409 rather than a silent overwrite.
 
 ## Authentication
 

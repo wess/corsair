@@ -134,7 +134,10 @@ export const read = async (input: ReadInput): Promise<ReadResult> => {
   const argv = ["journalctl", "-u", unit, "-n", String(lines), "-o", "json", "--no-pager"]
   if (since !== "all") argv.push("--since", SINCE_ARG[since])
 
-  const priority = Number(input.priority)
+  // Number("") is 0, which is "emergencies only": an empty ?priority= would
+  // have filtered every ordinary line out.
+  const priority =
+    input.priority === "" || input.priority == null ? Number.NaN : Number(input.priority)
   if (Number.isInteger(priority) && priority >= 0 && priority <= 7) {
     argv.push("-p", String(priority))
   }

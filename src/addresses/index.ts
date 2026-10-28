@@ -374,6 +374,11 @@ export const linkToAccount = async (addressId: string, userId: string): Promise<
   if (address.type === "alias" || address.type === "group") {
     throw invalidParameter("Forwarding addresses have no password to unify.")
   }
+  // An agent signs in with its token, never a password, and a linked mailbox is
+  // treated as the owner's own: ManageSieve would hand it the owner's filters.
+  if (address.type === "agent") {
+    throw invalidParameter("An agent mailbox signs in with its API key and cannot be linked.")
+  }
 
   await db().execute(
     from(addresses)

@@ -148,12 +148,16 @@ const verify = (secret, headers, body) =&gt; {
 <td>Mailbox changes</td>
 </tr>
 <tr>
+<td><code>admin.granted</code> · <code>admin.revoked</code></td>
+<td>Someone was given, or lost, administration of a domain or of the server</td>
+</tr>
+<tr>
 <td><code>domain.created</code> · <code>domain.verified</code> · <code>domain.verification_failed</code> · <code>domain.deleted</code></td>
 <td>Domain changes</td>
 </tr>
 <tr>
 <td><code>quota.warning</code> · <code>quota.exceeded</code></td>
-<td>Storage</td>
+<td>The account crossed 90% of its storage, or filled it</td>
 </tr>
 <tr>
 <td><code>transfer.completed</code> · <code>transfer.failed</code></td>
@@ -177,6 +181,15 @@ const verify = (secret, headers, body) =&gt; {
     &quot;remote_ip&quot;: &quot;203.0.113.9&quot;
   }
 }</code></pre></figure>
+<p>Every <code>message.*</code> event describes one recipient. A message sent to three people is three <code>message.sent</code> events, then three <code>message.delivered</code> (or deferred, or bounced) as each receiving server answers. <code>message.sent</code> fires for mail sent over SMTP submission, from the webmail, over JMAP, and by an agent mailbox; it does not fire for mail Corsair forwards on someone's behalf.</p>
+<p><code>quota.<em></code> and <code>transfer.</em></code> carry their own fields:</p>
+<figure class="code"><span class="code-lang">json</span><pre><code>{ &quot;type&quot;: &quot;quota.warning&quot;,
+  &quot;data&quot;: { &quot;bytes_used&quot;: 9663676416, &quot;storage_bytes&quot;: 10737418240, &quot;percent&quot;: 90 } }
+
+{ &quot;type&quot;: &quot;transfer.completed&quot;,
+  &quot;data&quot;: { &quot;transfer_id&quot;: &quot;…&quot;, &quot;address&quot;: &quot;me@example.com&quot;, &quot;server&quot;: &quot;imap.old-host.com&quot;,
+            &quot;username&quot;: &quot;me@old-host.com&quot;, &quot;messages&quot;: 18234, &quot;bytes&quot;: 2147483648 } }</code></pre></figure>
+<p>A <code>transfer.failed</code> has <code>error</code> in place of <code>messages</code> and <code>bytes</code>. The quota events fire once per crossing, on the way up: an account that sits at 95% is warned once, not at every delivery. Freeing space resets it, so the next climb is announced again. The same crossing sends the account's owner an email unless they turned storage warnings off under <strong>Account</strong>.</p>
 <h2 id="retries">Retries<a class="anchor" href="#retries" aria-label="Link to this section">#</a></h2>
 <p>Answer with any <code>2xx</code> and quickly — the body is ignored. Anything else is retried after 5s, 30s, 5m, 30m, 2h, 5h, 10h, and 24h, then given up on.</p>
 <p>Retries reuse the same <code>webhook-id</code>, so a receiver that records the id can tell a retry from a new event. Corsair guarantees <em>at least once</em>, not exactly once: your endpoint should be idempotent.</p>

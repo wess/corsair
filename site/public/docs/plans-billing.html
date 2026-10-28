@@ -219,7 +219,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...</code></pre></figure>
 <p><code>past_due</code> still counts as live. Cutting off someone's email the moment a card expires is how you lose a customer who was going to pay you.</p>
 <p>Cancellation sets <code>cancel_at_period_end</code> rather than deleting immediately — a cancelled subscription keeps serving mail until the period it was paid for runs out.</p>
 <h2 id="quotas-in-practice">Quotas in practice<a class="anchor" href="#quotas-in-practice" aria-label="Link to this section">#</a></h2>
-<p><strong>Storage</strong> is per account across every domain and mailbox. One mailbox can use all of it. <code>quota.warning</code> and <code>quota.exceeded</code> webhooks fire before and at the cap, so you can tell someone before mail starts being refused.</p>
+<p><strong>Storage</strong> is per account across every domain and mailbox. One mailbox can use all of it. <code>quota.warning</code> fires when an account crosses 90% and <code>quota.exceeded</code> when it fills, once per crossing, so you can tell someone before mail starts being refused. The owner gets the same news by email unless they turned it off.</p>
 <p><strong>Daily limits</strong> reset on a rolling 24-hour window from <code>mail_log</code>. Hitting <code>daily_out</code> means submission is refused until the window moves; hitting <code>daily_in</code> means inbound is refused, which senders see as a temporary failure and retry.</p>
 <p>Recompute storage by hand if you have restored a backup or deleted a lot:</p>
 <figure class="code"><span class="code-lang">sql</span><pre><code>-- Or let the worker's quota.recompute job do it

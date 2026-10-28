@@ -15,6 +15,7 @@ import { db } from "../../../db/index.ts"
 import { sign } from "../../../dkim/index.ts"
 import { activeDkimKey } from "../../../domains/index.ts"
 import { rfcMessageId, uidValidity } from "../../../ids/index.ts"
+import { recordSent } from "../../../mailsend/index.ts"
 import { authResult, commandName, commands } from "../../../metrics/index.ts"
 import * as mime from "../../../mime/index.ts"
 import { enqueue } from "../../../outbound/index.ts"
@@ -845,6 +846,18 @@ const invoke = async (
           domainId: ctx.identity.domain.id,
         })
         await recordCorrespondents(ctx.identity.address, recipients)
+        const headers = mime.parseMessage(signed).headers
+        await recordSent({
+          owner,
+          domainId: ctx.identity.domain.id,
+          addressId: ctx.identity.address.id,
+          mailFrom,
+          recipients,
+          subject: mime.decodeWords(mime.headerValue(headers, "subject") ?? ""),
+          messageId: mime.headerValue(headers, "message-id"),
+          size: signed.length,
+          signed: Boolean(dkim),
+        })
 
         created[key] = {
           id: message.id,

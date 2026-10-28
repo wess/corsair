@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
-import { createAddress } from "../src/addresses/index.ts"
+import { createAddress, linkToAccount } from "../src/addresses/index.ts"
 import { createAgent, reserveSends, resolveAgent, rotateAgentToken } from "../src/agents/index.ts"
 import { buildFetch } from "../src/api/index.ts"
 import { createApiKey } from "../src/apikeys/index.ts"
@@ -7,8 +7,10 @@ import {
   authenticateAddress,
   hashToken,
   issueMailSession,
+  issueSession,
   MAIL_COOKIE,
   resolveMailSession,
+  SESSION_COOKIE,
 } from "../src/auth/index.ts"
 import { db } from "../src/db/index.ts"
 import type { Address, Agent, Domain } from "../src/schema/index.ts"
@@ -473,4 +475,42 @@ test("agent webmail sessions work and token rotation revokes them", async () => 
   expect((await resolveMailSession(cookie))?.address.id).toBe(agent.id)
   await rotateAgentToken(agent.agent)
   expect(await resolveMailSession(cookie)).toBeNull()
+})
+
+describe("an agent is held to its own inbox", () => {
+  // A linked mailbox is the owner's own account; ManageSieve would hand an
+  // agent signed in with its token the owner's filters.
+  test("it cannot be linked to the owner's account", async () => {
+    const agent = await make("unlinkable")
+    await expect(linkToAccount(agent.id, userId)).rejects.toThrow(/agent/i)
+    const row = await db().one<{ user_id: string | null }>({
+      text: "SELECT user_id FROM addresses WHERE id = $1",
+      values: [agent.id],
+    })
+    expect(row?.user_id).toBeNull()
+  })
+
+  test("it cannot be made a domain administrator", async () => {
+    const agent = await make("not an admin")
+    const cookie = `${SESSION_COOKIE}=${(await issueSession(userId)).token}`
+    const res = await app(
+      new Request(`http://corsair.test/api/domains/${domain.id}/admins`, {
+        method: "POST",
+        headers: { cookie, "content-type": "application/json" },
+        body: JSON.stringify({ email: agent.email }),
+      }),
+    )
+    expect(res.status).toBe(400)
+  })
+
+  test("revoking a grant that does not exist is a 404, not an audit entry", async () => {
+    const cookie = `${SESSION_COOKIE}=${(await issueSession(userId)).token}`
+    const res = await app(
+      new Request(`http://corsair.test/api/domains/${domain.id}/admins/${crypto.randomUUID()}`, {
+        method: "DELETE",
+        headers: { cookie },
+      }),
+    )
+    expect(res.status).toBe(404)
+  })
 })

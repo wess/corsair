@@ -8,6 +8,7 @@ import { checkDomain } from "../domains/index.ts"
 import { emit } from "../events/index.ts"
 import { type Domain, domains, type Job, jobs, type Transfer, transfers } from "../schema/index.ts"
 import { drain, releaseStale } from "../smtp/index.ts"
+import { updateStorageState } from "../storagestate/index.ts"
 import { recomputeUsage } from "../store/index.ts"
 import { poll } from "./poll/index.ts"
 import { runTransfer } from "./transfer/index.ts"
@@ -85,6 +86,68 @@ const finish = async (job: Job, error?: string): Promise<void> => {
   )
 }
 
+/**
+ * Runs one transfer and announces how it ended. A transfer that finished emits
+ * `transfer.completed`; one that threw is marked failed and emits
+ * `transfer.failed` once, however many times the job is retried.
+ */
+export const runTransferJob = async (transferId: string): Promise<void> => {
+  const transfer = await db().one<Transfer>(
+    from(transfers).where((q) => q("id").equals(transferId)),
+  )
+  if (!transfer || ["cancelled", "failed", "done"].includes(transfer.status)) return
+  const announce = async (
+    type: "transfer.completed" | "transfer.failed",
+    data: Record<string, unknown>,
+  ) => {
+    const address = await db().one<{ domain_id: string; email: string }>({
+      text: `SELECT a.domain_id, a.local_part || '@' || d.name AS email
+               FROM addresses a JOIN domains d ON d.id = a.domain_id WHERE a.id = $1`,
+      values: [transfer.address_id],
+    })
+    void emit({
+      userId: transfer.user_id,
+      domainId: address?.domain_id ?? null,
+      type,
+      data: {
+        transfer_id: transfer.id,
+        address: address?.email ?? null,
+        server: transfer.server,
+        username: transfer.username,
+        ...data,
+      },
+    })
+  }
+  try {
+    const result = await runTransfer(transfer)
+    if (result) await announce("transfer.completed", result)
+  } catch (e) {
+    const error = (e as Error).message.slice(0, 1000)
+    // Guarded on the row not already being terminal, so a cancellation that
+    // landed mid-run is not reported as a failure and no failure is announced
+    // twice.
+    const failed = await db().one<{ id: string }>({
+      text: `UPDATE transfers
+                SET status = 'failed', password_enc = NULL, last_error = $2,
+                    finished_at = now(), updated_at = now()
+              WHERE id = $1 AND status NOT IN ('cancelled', 'failed', 'done')
+              RETURNING id`,
+      values: [transfer.id, error],
+    })
+    // The source password is someone else's credential and the transfer is
+    // over either way, so it goes even when the guard skipped the row.
+    if (!failed) {
+      await db().execute({
+        text: "UPDATE transfers SET password_enc = NULL WHERE id = $1",
+        values: [transfer.id],
+      })
+    } else {
+      await announce("transfer.failed", { error })
+    }
+    throw e
+  }
+}
+
 const runJob = async (job: Job): Promise<void> => {
   switch (job.kind) {
     case "domain.verify": {
@@ -126,31 +189,9 @@ const runJob = async (job: Job): Promise<void> => {
       return
     }
 
-    case "transfer.run": {
-      const transfer = await db().one<Transfer>(
-        from(transfers).where((q) => q("id").equals(String(job.payload.transfer_id))),
-      )
-      if (!transfer || transfer.status === "cancelled") return
-      try {
-        await runTransfer(transfer)
-      } catch (e) {
-        await db().execute(
-          from(transfers)
-            .where((q) => [q("id").equals(transfer.id), q("status").notEquals("cancelled")])
-            .update({
-              status: "failed",
-              // Someone else's credential, kept only to run the transfer. A failed
-              // transfer is over, and nothing reads this again.
-              password_enc: null,
-              last_error: (e as Error).message.slice(0, 1000),
-              finished_at: new Date(),
-              updated_at: new Date(),
-            }),
-        )
-        throw e
-      }
+    case "transfer.run":
+      await runTransferJob(String(job.payload.transfer_id))
       return
-    }
 
     case "quota.recompute": {
       const addressId = job.payload.address_id
@@ -171,6 +212,13 @@ const runJob = async (job: Job): Promise<void> => {
                 WHERE d.id = sub.domain_id`,
         values: [],
       })
+      // The sweep is where the accounting is reconciled, so it is where a
+      // crossing made by ordinary deliveries is noticed.
+      const owners = await db().all<{ user_id: string }>({
+        text: "SELECT DISTINCT user_id FROM domains",
+        values: [],
+      })
+      for (const owner of owners) await updateStorageState(owner.user_id)
       return
     }
 

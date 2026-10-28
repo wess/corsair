@@ -6,6 +6,7 @@ import { db } from "../db/index.ts"
 import { sign } from "../dkim/index.ts"
 import { activeDkimKey } from "../domains/index.ts"
 import { dailyQuotaExceeded, forbidden, invalidParameter } from "../errors/index.ts"
+import { emit } from "../events/index.ts"
 import { rfcMessageId } from "../ids/index.ts"
 import * as mime from "../mime/index.ts"
 import { enqueue } from "../outbound/index.ts"
@@ -106,26 +107,74 @@ export const sendFromMailbox = async (
     }).catch((e: unknown) => console.error("[corsair] could not file a copy in Sent:", e))
   }
 
-  for (const recipient of recipients) {
+  await recordSent({
+    owner,
+    domainId: domain.id,
+    addressId: address.id,
+    mailFrom: email,
+    recipients,
+    subject: input.subject,
+    messageId,
+    size: signed.length,
+    signed: Boolean(key),
+  })
+
+  return { queued: recipients.length, messageId }
+}
+
+export type SentRecord = {
+  owner: string | null
+  domainId: string
+  addressId: string
+  mailFrom: string
+  recipients: string[]
+  subject: string
+  messageId: string | null
+  size: number
+  signed: boolean
+}
+
+/**
+ * Journals a message a person (or an agent) just queued, one row per recipient,
+ * and emits `message.sent` for each.
+ *
+ * Every send path calls this after `enqueue`: SMTP submission, `sendFromMailbox`,
+ * and JMAP `EmailSubmission`. The rows are not only the log the panel shows —
+ * `withinDailyLimit` counts them, so a path that skipped this one sent mail
+ * nothing ever counted against the daily limit. JMAP did, until this existed.
+ */
+export const recordSent = async (sent: SentRecord): Promise<void> => {
+  for (const recipient of sent.recipients) {
     await db()
       .execute(
         from(mailLog).insert({
-          user_id: owner,
-          domain_id: domain.id,
-          address_id: address.id,
+          user_id: sent.owner,
+          domain_id: sent.domainId,
+          address_id: sent.addressId,
           direction: "outbound",
           status: "accepted",
-          mail_from: email,
+          mail_from: sent.mailFrom,
           rcpt_to: recipient,
-          subject: input.subject,
-          message_id: messageId,
-          size: signed.length,
-          dkim: key ? "signed" : "unsigned",
+          subject: sent.subject,
+          message_id: sent.messageId,
+          size: sent.size,
+          dkim: sent.signed ? "signed" : "unsigned",
           code: 250,
         }),
       )
-      .catch(() => {})
-  }
+      .catch((e: unknown) => console.error("[corsair] mail_log insert failed:", e))
 
-  return { queued: recipients.length, messageId }
+    void emit({
+      userId: sent.owner,
+      domainId: sent.domainId,
+      type: "message.sent",
+      data: {
+        recipient,
+        sender: sent.mailFrom,
+        subject: sent.subject,
+        message_id: sent.messageId,
+        size: sent.size,
+      },
+    })
+  }
 }

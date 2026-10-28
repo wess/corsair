@@ -145,6 +145,21 @@ owns every domain.
 Change one in the panel: **Addresses → the address → Change password**. Every
 client using it will need updating; there is no way around that.
 
+### Linking and separating
+
+A mailbox that is its owner's own account shares the account's password. Over the
+API, `POST /api/addresses/:address_id/link` switches it either way:
+
+- `{ "use_account_password": true }` makes the mailbox sign in with the account
+  password. Only the domain's owner may do this; a domain administrator gets a 400.
+- `{ "use_account_password": false, "password": "…" }` gives the mailbox a
+  password of its own (8 to 200 characters). Any administrator may do this. The
+  `password` is required, and a mailbox that already has its own is a 400.
+
+Either way the mailbox's webmail sessions end, an alias or group is a 400, and the answer is
+`{ object: "address", id, uses_account_password }`. A linked mailbox refuses
+`POST /api/addresses/:address_id/password`.
+
 ## Recovery
 
 With self-service recovery enabled on the domain, set a **recovery address** per

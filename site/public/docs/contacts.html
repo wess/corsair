@@ -102,6 +102,35 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <ul><li><strong>Discovery</strong>: <code>/.well-known/carddav</code> redirects to <code>/dav/</code>; <code>current-user-principal</code>, <code>addressbook-home-set</code>, and the CalendarServer <code>email-address-set</code> are answered so clients that only know a hostname get the rest of the way.</li><li><strong>PROPFIND</strong> at depth 0 and 1 on the principal, the home set, the book, and each card, including <code>getctag</code> and <code>sync-token</code>.</li><li><strong>REPORT</strong>: <code>addressbook-multiget</code>, <code>addressbook-query</code> (text matches on any property — <code>FN</code>, <code>EMAIL</code>, and the rest — or every card with no filter), and <code>sync-collection</code> (<a href="https://datatracker.ietf.org/doc/html/rfc6578" class="external" rel="noopener">RFC 6578</a>), which reports deletions as well as changes.</li><li><strong>GET, PUT, DELETE</strong> with ETags. <code>If-Match</code> and <code>If-None-Match: *</code> are honoured, so a client editing a stale copy gets a 412 rather than overwriting a newer one.</li><li>vCard <strong>3.0 and 4.0</strong>, up to <strong>256 KB</strong> a card (room for a photo), with a UID unique within the book. Cards are stored and served back byte for byte.</li></ul>
 <h2 id="what-is-not">What is not<a class="anchor" href="#what-is-not" aria-label="Link to this section">#</a></h2>
 <ul><li><strong>One book per mailbox.</strong> Creating a second one (<code>MKCOL</code>) is refused with a 403. The book can be renamed (<code>PROPPATCH</code> on <code>displayname</code>); nothing else on it is writable.</li><li><strong>No sharing</strong> between mailboxes, and no ACLs beyond &quot;the mailbox owns its own book&quot;. Another mailbox's book is a 404, exactly like one that does not exist.</li><li><strong>Alias, group, and agent addresses have no address book.</strong> Aliases and groups are routing entries. An agent mailbox reads mail a stranger can write, so it is kept away from a list that autocompletes into a person's compose.</li><li><strong>Sent-to recipients are not added automatically.</strong> The address book holds what you put in it.</li></ul>
+<h2 id="webmail-api">Webmail API<a class="anchor" href="#webmail-api" aria-label="Link to this section">#</a></h2>
+<p>The webmail reads and writes the same address book through its own session, so a script signed in as the mailbox can too. These routes take the webmail cookie and are scoped to that mailbox in SQL; another mailbox's contact id is a 404. A disabled mailbox, an alias, a group or an agent mailbox has no address book and gets a 403.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/contacts</code></td>
+<td>Search. <code>q</code> (at most 200 characters) and <code>limit</code> (1 to 500, default 20)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/contacts</code></td>
+<td>Create. 201</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/mail/contacts/:contact_id</code></td>
+<td>Replace the name and addresses</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/mail/contacts/:contact_id</code></td>
+<td>Delete; sync clients are told it went</td>
+</tr>
+</tbody></table></div>
+<p>The body for create and patch is <code>name</code> (1 to 200 characters) and <code>emails</code> (up to 20 addresses). A contact is <code>{ object: &quot;contact&quot;, id, name, emails, updated_at }</code>. <code>PATCH</code> is conditional on the stored card: if a phone rewrote it in the meantime the answer is a 409 rather than a silent overwrite.</p>
 <h2 id="authentication">Authentication<a class="anchor" href="#authentication" aria-label="Link to this section">#</a></h2>
 <p>HTTP Basic, checked by the same code as IMAP, POP3, SMTP, and JMAP: failed attempts count towards the same per-IP ban, and a mailbox that is disabled or whose account is terminated cannot sign in here either.</p>
 <p>A browser session cookie is never accepted on <code>/dav/</code>. If it were, any site you visited could write to your address book through your browser. A browser on another site that tries a PUT or DELETE is refused before authentication.</p>
@@ -110,7 +139,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <figure class="code"><pre><code>_carddavs._tcp.example.com.  3600 IN SRV 0 1 443 mail.example.com.
 _carddavs._tcp.example.com.  3600 IN TXT &quot;path=/dav/&quot;</code></pre></figure>
 <p>Optional. Without it, entering the server hostname works on every client above.</p><nav class="pager"><a class="pager-prev" href="./pop3.html"><span>Previous</span><strong>POP3</strong></a><a class="pager-next" href="./cli.html"><span>Next</span><strong>Command line</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#setting-up-a-client">Setting up a client</a></li><li class="toc-h3"><a href="#iphone-and-ipad">iPhone and iPad</a></li><li class="toc-h3"><a href="#macos-contacts">macOS Contacts</a></li><li class="toc-h3"><a href="#thunderbird">Thunderbird</a></li><li class="toc-h3"><a href="#android-davx">Android (DAVx⁵)</a></li><li class="toc-h2"><a href="#what-is-supported">What is supported</a></li><li class="toc-h2"><a href="#what-is-not">What is not</a></li><li class="toc-h2"><a href="#authentication">Authentication</a></li><li class="toc-h2"><a href="#dns-for-discovery-from-the-address-alone">DNS for discovery from the address alone</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#setting-up-a-client">Setting up a client</a></li><li class="toc-h3"><a href="#iphone-and-ipad">iPhone and iPad</a></li><li class="toc-h3"><a href="#macos-contacts">macOS Contacts</a></li><li class="toc-h3"><a href="#thunderbird">Thunderbird</a></li><li class="toc-h3"><a href="#android-davx">Android (DAVx⁵)</a></li><li class="toc-h2"><a href="#what-is-supported">What is supported</a></li><li class="toc-h2"><a href="#what-is-not">What is not</a></li><li class="toc-h2"><a href="#webmail-api">Webmail API</a></li><li class="toc-h2"><a href="#authentication">Authentication</a></li><li class="toc-h2"><a href="#dns-for-discovery-from-the-address-alone">DNS for discovery from the address alone</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

@@ -70,6 +70,48 @@ sudo ss -lntp | grep bun            # every listener came back
 curl -sf localhost:3000/api/plans   # the API answers
 ```
 
+## Upgrading to 0.4
+
+Nothing here needs action to keep running, but read the first two items.
+
+- **Six migrations** (`20261028000015_qresync`, `…017_dmarcreports`,
+  `…019_apppasswords`, `…021_dkimrotate`, `…023_spam`, `…024_contacts`). All are
+  additive and each has a `down.sql`. Run them before restarting, as always.
+  After 0.4.1, `…025_storagestate` adds `users.storage_state`, which is how the
+  storage warnings know they have already been sent.
+- **Corsair can hold ports 25 and 587 itself.** On a runtime that passes the
+  STARTTLS probe (Bun 1.4.4 or later) it upgrades connections without the Rust
+  terminator in `engine/`, which is now an optional fallback. Keeping the terminator
+  works unchanged. To drop it, set `SMTP_MX_PORT=25`, `SMTP_SUBMISSION_PORT=587`,
+  `SMTP_BIND=0.0.0.0`, an empty `SMTP_TRUSTED_PROXIES` and
+  `SMTP_STARTTLS_FRONTED=false`, stop and disable the front, and restart. Empty
+  `SMTP_TRUSTED_PROXIES` matters: only list a proxy you run. See [Listeners](configuration.html#listeners) and
+  [STARTTLS on 25 and 587](configuration.html#starttls-on-25-and-587).
+- **0.4.1 closes connections that pipeline commands behind `STARTTLS`** on SMTP,
+  IMAP, POP3 and ManageSieve, and caps the SMTP listener at 512 connections.
+  A client that sends the next command before the upgrade finishes was never
+  valid, but it will now be disconnected rather than served.
+
+New features. These need no configuration to keep your install behaving as it
+did, but some are on by default:
+
+| Feature | Default | Where |
+| --- | --- | --- |
+| ManageSieve on port 4190 | On (`MANAGESIEVE_ENABLED`). Open the port if you want it | [Filters](filters.html#editing-from-a-mail-client) |
+| IP and domain blocklists | Score only. `SPAM_DNSBL=zen.spamhaus.org`, `SPAM_URIBL=dbl.spamhaus.org`. Set `SPAM_RESOLVER` to a local resolver | [Spam filtering](spam.html#blocklists) |
+| Greylisting | Off (`SPAM_GREYLIST=false`) | [Greylisting](spam.html#greylisting) |
+| DMARC and TLS-RPT reports | On. Sent daily from `REPORTS_FROM`; `DMARC_REPORTS_SEND=false` and `TLSRPT_SEND=false` turn them off | [Reports Corsair sends](deliverability.html#reports-corsair-sends) |
+| DANE for outbound delivery | `DANE=auto`: on only if the resolver is seen to validate DNSSEC. Set `DANE_RESOLVER` | [DANE](deliverability.html#dane) |
+| Built-in ACME | Off (`ACME=on`) | [Built-in ACME](configuration.html#built-in-acme) |
+| DKIM rotation | Off (`DKIM_ROTATE_DAYS=0`) | [DKIM rotation](configuration.html#dkim-rotation) |
+| Metrics at `/metrics` | Off until `METRICS_TOKEN` is set | [Prometheus metrics](monitoring.html#prometheus-metrics) |
+| ARC | Chains are checked and forwarded mail is sealed. `ARC_TRUSTED_SEALERS` is empty, so no DMARC override | [Forwarded mail](configuration.html#forwarded-mail-arc) |
+| App passwords | Per mailbox, none until created | [App passwords](client-setup.html#app-passwords) |
+| CardDAV at `/dav/` | On, with the panel's HTTPS listener | [Contacts](contacts.html) |
+
+If you run the Rust front, no change is required. If a firewall rule allows only
+the ports you used to serve, add 4190 when you want ManageSieve.
+
 ## Upgrading to 0.3
 
 Four things in 0.3 can surprise an existing install:

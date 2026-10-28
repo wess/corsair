@@ -101,6 +101,26 @@ contacts.
 - **Sent-to recipients are not added automatically.** The address book holds what
   you put in it.
 
+## Webmail API
+
+The webmail reads and writes the same address book through its own session, so a
+script signed in as the mailbox can too. These routes take the webmail cookie
+and are scoped to that mailbox in SQL; another mailbox's contact id is a 404.
+A disabled mailbox, an alias, a group or an agent mailbox has no address book
+and gets a 403.
+
+| Method | Path | Does |
+| --- | --- | --- |
+| GET | `/api/mail/contacts` | Search. `q` (at most 200 characters) and `limit` (1 to 500, default 20) |
+| POST | `/api/mail/contacts` | Create. 201 |
+| PATCH | `/api/mail/contacts/:contact_id` | Replace the name and addresses |
+| DELETE | `/api/mail/contacts/:contact_id` | Delete; sync clients are told it went |
+
+The body for create and patch is `name` (1 to 200 characters) and `emails` (up to
+20 addresses). A contact is `{ object: "contact", id, name, emails, updated_at }`.
+`PATCH` is conditional on the stored card: if a phone rewrote it in the meantime
+the answer is a 409 rather than a silent overwrite.
+
 ## Authentication
 
 HTTP Basic, checked by the same code as IMAP, POP3, SMTP, and JMAP: failed

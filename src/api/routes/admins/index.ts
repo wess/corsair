@@ -264,6 +264,12 @@ export const adminRoutes: Route[] = [
             "A forwarding address cannot administer a domain — it has no mailbox to sign into.",
           )
         }
+        // An agent reads mail written by strangers. Handing it the power to make
+        // mailboxes and reset passwords would turn one prompt injection into the
+        // whole domain.
+        if (mailbox.type === "agent") {
+          throw invalidParameter("An agent mailbox cannot administer a domain.")
+        }
         const already = await db().one<{ id: string }>(
           from(domainAdmins)
             .select("id")
@@ -345,11 +351,15 @@ export const adminRoutes: Route[] = [
       const domain = await ownedDomain(principalOf(c).userId, c.params.domain_id)
       // The id names either subject; deleting by both columns covers a grant
       // held by an account and one held by a mailbox without a second route.
-      await db().execute({
+      const removed = await db().all<{ id: string }>({
         text: `DELETE FROM domain_admins
-                WHERE domain_id = $1 AND (user_id = $2 OR address_id = $2)`,
+                WHERE domain_id = $1 AND (user_id = $2 OR address_id = $2)
+            RETURNING id`,
         values: [domain.id, c.params.user_id],
       })
+      // admin.revoked is an audit record; one for a grant that never existed is
+      // a false entry in it.
+      if (!removed.length) throw notFound("That administrator does not exist.")
       void emit({
         userId: principalOf(c).userId,
         domainId: domain.id,

@@ -74,8 +74,10 @@ infected laptop, so it nudges the score rather than deciding it.
 Only the connecting IP is ever checked, never the addresses in `Received:`
 headers. So PBL never counts against someone who sent from home through their
 provider, and mail relayed by a forwarder is judged by the forwarder's IP.
-Submission on 587 and 465 is not checked at all. Behind the STARTTLS terminator,
-the IP checked is the one `XCLIENT` reports, not `127.0.0.1`.
+Submission on 587 and 465 is not checked at all. On a direct listener the IP
+checked is the socket's. Behind the optional STARTTLS terminator every connection
+arrives from `127.0.0.1`, so the IP checked is the one the terminator reports
+with `XCLIENT`.
 
 :::warning Spamhaus will not answer a public resolver
 Spamhaus refuses queries from public DNS services and from most cloud providers'

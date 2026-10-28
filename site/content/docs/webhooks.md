@@ -68,8 +68,9 @@ re-serialising it changes the bytes and the signature will not match.
 | `email.scheduled` · `email.sent` · `email.delivered` · `email.delivery_delayed` | A [sending API](sending.html) email on its way |
 | `email.bounced` · `email.complained` · `email.failed` · `email.suppressed` | A sending API email that did not arrive |
 | `address.created` · `address.deleted` · `address.password_changed` | Mailbox changes |
+| `admin.granted` · `admin.revoked` | Someone was given, or lost, administration of a domain or of the server |
 | `domain.created` · `domain.verified` · `domain.verification_failed` · `domain.deleted` | Domain changes |
-| `quota.warning` · `quota.exceeded` | Storage |
+| `quota.warning` · `quota.exceeded` | The account crossed 90% of its storage, or filled it |
 | `transfer.completed` · `transfer.failed` | Mailbox migration |
 
 Mail from a mailbox reports as `message.*`; mail sent over the sending API reports
@@ -97,6 +98,29 @@ family without you changing anything.
   }
 }
 ```
+
+Every `message.*` event describes one recipient. A message sent to three people
+is three `message.sent` events, then three `message.delivered` (or deferred, or
+bounced) as each receiving server answers. `message.sent` fires for mail sent
+over SMTP submission, from the webmail, over JMAP, and by an agent mailbox; it
+does not fire for mail Corsair forwards on someone's behalf.
+
+`quota.*` and `transfer.*` carry their own fields:
+
+```json
+{ "type": "quota.warning",
+  "data": { "bytes_used": 9663676416, "storage_bytes": 10737418240, "percent": 90 } }
+
+{ "type": "transfer.completed",
+  "data": { "transfer_id": "…", "address": "me@example.com", "server": "imap.old-host.com",
+            "username": "me@old-host.com", "messages": 18234, "bytes": 2147483648 } }
+```
+
+A `transfer.failed` has `error` in place of `messages` and `bytes`. The quota
+events fire once per crossing, on the way up: an account that sits at 95% is warned
+once, not at every delivery. Freeing space resets it, so the next climb is
+announced again. The same crossing sends the account's owner an email unless they
+turned storage warnings off under **Account**.
 
 ## Retries
 

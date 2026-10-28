@@ -152,6 +152,21 @@ password. Making either more helpful turns it into a way to enumerate accounts.
 | POST | `/api/account/sessions/revoke-others` | Revoke every other session |
 | GET | `/api/account/referrals` | Referral data |
 
+### Administration
+
+Instance owner only, with a panel session. See
+[Delegating administration](domains.html#delegating-administration) and
+[Logs](monitoring.html#from-the-panel).
+
+| Method | Path | Does |
+| --- | --- | --- |
+| POST | `/api/users` | Create a panel account for a delegate |
+| GET | `/api/admins` | System administrators, the owner first |
+| POST | `/api/admins` | Make an account a system administrator |
+| DELETE | `/api/admins/:user_id` | Revoke it. The owner cannot be demoted |
+| GET | `/api/logs/sources` | Journal units that can be read, and the `since` windows |
+| GET | `/api/logs` | Read one unit's journal. `unit`, `lines`, `since`, `q`, `priority` |
+
 ### Domains
 
 | Method | Path | Does |
@@ -171,6 +186,11 @@ password. Making either more helpful turns it into a way to enumerate accounts.
 | POST | `/api/domains/:domain_id/fallback` | Set the fallback domain |
 | GET | `/api/domains/:domain_id/addresses` | Addresses on this domain |
 | POST | `/api/domains/:domain_id/addresses` | Create an address |
+| GET | `/api/domains/:domain_id/reports/dmarc` | Received DMARC reports, totalled. `days` 1 to 180. See [Deliverability](deliverability.html#dmarc-reports) |
+| GET | `/api/domains/:domain_id/reports/tls` | Received TLS reports, totalled. Same `days` |
+| GET | `/api/domains/:domain_id/admins` | Who administers the domain. Owner only |
+| POST | `/api/domains/:domain_id/admins` | Grant by `email`, a mailbox or an account. Owner only |
+| DELETE | `/api/domains/:domain_id/admins/:user_id` | Revoke. Owner only |
 
 The API token posted to `dns/publish` is used for that one call and never stored.
 
@@ -183,6 +203,7 @@ The API token posted to `dns/publish` is used for that one call and never stored
 | DELETE | `/api/addresses/:address_id` | Delete, with its mail |
 | POST | `/api/addresses/:address_id/password` | Change the mailbox password |
 | POST | `/api/addresses/:address_id/recovery` | Set the recovery address |
+| POST | `/api/addresses/:address_id/link` | Share the account password, or separate with `password`. See [Addresses](addresses.html#linking-and-separating) |
 | GET | `/api/addresses/:address_id/folders` | Folders with counts |
 | GET | `/api/addresses/:address_id/activity` | Recent mail activity |
 | GET | `/api/addresses/:address_id/app-passwords` | App passwords, without secrets |
@@ -324,6 +345,7 @@ Reached by mailbox owners who are not panel users at all, so it lives outside
 | Method | Path | Does |
 | --- | --- | --- |
 | GET | `/api/overview` | Everything the Overview screen renders |
+| GET | `/api/notices` | What needs attention on this account. See [Control panel](control-panel.html#notices) |
 | GET | `/api/client-config` | Hostnames and ports for mail clients |
 
 ### Webmail
@@ -347,6 +369,26 @@ The **address** identity, via the `corsair_webmail` cookie. A 12-hour session.
 | POST | `/api/mail/messages/delete` | Delete |
 | POST | `/api/mail/send` | Send |
 | POST | `/api/mail/drafts` | Save a draft |
+| POST | `/api/mail/password` | Change this mailbox's password |
+| POST | `/api/mail/recovery` | Set or clear the recovery address |
+| GET | `/api/mail/notices` | What this mailbox should be told about |
+| GET | `/api/mail/app-passwords` | App passwords, without secrets |
+| POST | `/api/mail/app-passwords` | Create one; needs `current_password`, `password` is returned once |
+| DELETE | `/api/mail/app-passwords/:app_password_id` | Revoke one |
+| GET | `/api/mail/contacts` | Search the address book. See [Contacts](contacts.html#webmail-api) |
+| POST | `/api/mail/contacts` | Create a contact |
+| PATCH | `/api/mail/contacts/:contact_id` | Replace a contact's name and addresses |
+| DELETE | `/api/mail/contacts/:contact_id` | Delete a contact |
+| GET | `/api/mail/admin/domains` | Domains this mailbox administers |
+| GET | `/api/mail/admin/domains/:domain_id/users` | Addresses on one |
+| POST | `/api/mail/admin/domains/:domain_id/users` | Create one |
+| PATCH | `/api/mail/admin/users/:address_id` | Set `name` or `disabled` |
+| POST | `/api/mail/admin/users/:address_id/password` | Set its password |
+| DELETE | `/api/mail/admin/users/:address_id` | Delete it |
+
+The last six are for a mailbox that is a
+[domain administrator](domains.html#delegating-administration); see
+[Webmail](webmail.html#managing-users).
 
 Message bodies are sanitised server-side before this endpoint returns them.
 
