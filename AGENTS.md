@@ -282,6 +282,17 @@ writing a second hash, which would silently re-split the credential.
 
 Alias and group addresses have no password at all — they are routing entries.
 
+**App passwords are accepted in `authenticateResolved` and nowhere else**
+(`src/apppasswords`). Every caller of `authenticateAddress` passes `via`, its
+protocol name: it decides the scope check and whether `require_app_passwords`
+applies. `webmail` refuses app passwords and ignores the requirement; a caller
+that passes *nothing* gets the requirement and only an all-scope app password,
+so a new listener that forgets fails closed. A new protocol needs a scope in
+`APP_PASSWORD_SCOPES` (and the column default) or its clients can only use
+unrestricted ones. Refusing the real password under the requirement still calls
+`spendVerifyTime` — `tests/apppasswords.test.ts` fails if it does not. Changing
+a password does not revoke them; disabling the mailbox does.
+
 ## Instance ownership
 
 The first account created owns the instance (`users.is_owner`). The claim is

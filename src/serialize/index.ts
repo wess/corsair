@@ -4,6 +4,7 @@ import type {
   Address,
   Agent,
   ApiKey,
+  AppPassword,
   DkimKey,
   Domain,
   DomainRecord,
@@ -136,6 +137,7 @@ export const addressObject = (
   // its own. Never the account id, and never a hash — the panel only needs to
   // know which password to tell someone to use.
   uses_account_password: Boolean(address.user_id),
+  require_app_passwords: address.require_app_passwords,
   last_login_at: address.last_login_at?.toISOString() ?? null,
   created_at: address.created_at.toISOString(),
 })
@@ -334,6 +336,21 @@ export const agentObject = (
   can_send: agent.can_send,
   last_used_at: agent.last_used_at?.toISOString() ?? null,
   created_at: agent.created_at.toISOString(),
+})
+
+/**
+ * Never the hash, and never the secret: that is returned once, beside this
+ * object, by the create route and nowhere else.
+ */
+export const appPasswordObject = (row: AppPassword) => ({
+  object: "app_password" as const,
+  id: row.id,
+  address_id: row.address_id,
+  name: row.name,
+  scopes: row.scopes,
+  last_used_at: row.last_used_at?.toISOString() ?? null,
+  last_used_ip: row.last_used_ip,
+  created_at: row.created_at.toISOString(),
 })
 
 export const suppressionObject = (row: Suppression) => ({

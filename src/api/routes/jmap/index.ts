@@ -110,7 +110,7 @@ const authenticate = async (conn: { headers: Headers }): Promise<MailIdentity | 
   if (await isBanned(ip, "jmap")) return null
 
   const username = decoded.slice(0, colon)
-  const identity = await authenticateAddress(username, decoded.slice(colon + 1))
+  const identity = await authenticateAddress(username, decoded.slice(colon + 1), ip, "jmap")
   if (!identity) {
     await recordAuthFailure(ip, "jmap", username).catch(() => {})
     return null

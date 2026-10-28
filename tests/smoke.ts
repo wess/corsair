@@ -268,6 +268,68 @@ const run = async () => {
   })
   check("an alias has no password to change", aliasPassword.status === 400, aliasPassword.body)
 
+  section("app passwords")
+  const prematureRequire = await call("PATCH", `/api/addresses/${mailbox.body?.id}`, {
+    require_app_passwords: true,
+  })
+  check(
+    "app passwords cannot be required before one exists",
+    prematureRequire.status === 400,
+    prematureRequire.body,
+  )
+
+  const appPassword = await call("POST", `/api/addresses/${mailbox.body?.id}/app-passwords`, {
+    name: "Smoke phone",
+    scopes: ["imap", "smtp"],
+  })
+  check(
+    "an app password is created and its secret shown once",
+    appPassword.status === 201 &&
+      /^[a-kmnp-z2-9]{4}(-[a-kmnp-z2-9]{4}){4}$/.test(String(appPassword.body?.password)) &&
+      appPassword.body?.token_hash === undefined,
+    appPassword.body,
+  )
+
+  const appPasswords = await call("GET", `/api/addresses/${mailbox.body?.id}/app-passwords`)
+  check(
+    "the list carries no secret and no hash",
+    appPasswords.status === 200 &&
+      appPasswords.body?.data?.length === 1 &&
+      appPasswords.body.data[0].password === undefined &&
+      appPasswords.body.data[0].token_hash === undefined,
+    appPasswords.body,
+  )
+
+  const required = await call("PATCH", `/api/addresses/${mailbox.body?.id}`, {
+    require_app_passwords: true,
+  })
+  check(
+    "a mailbox can then require them",
+    required.status === 200 && required.body?.require_app_passwords === true,
+    required.body,
+  )
+  await call("PATCH", `/api/addresses/${mailbox.body?.id}`, { require_app_passwords: false })
+
+  const aliasAppPassword = await call("POST", `/api/addresses/${alias.body?.id}/app-passwords`, {
+    name: "No",
+  })
+  check("an alias cannot have an app password", aliasAppPassword.status === 400)
+
+  const revokedAppPassword = await call(
+    "DELETE",
+    `/api/addresses/${mailbox.body?.id}/app-passwords/${appPassword.body?.id}`,
+  )
+  check(
+    "an app password can be revoked",
+    revokedAppPassword.status === 200,
+    revokedAppPassword.body,
+  )
+  const revokedAgain = await call(
+    "DELETE",
+    `/api/addresses/${mailbox.body?.id}/app-passwords/${appPassword.body?.id}`,
+  )
+  check("and is gone afterwards", revokedAgain.status === 404)
+
   section("filters")
   const validate = await call("POST", "/api/filters/validate", {
     script: 'if header :contains "subject" "x" { discard; }',

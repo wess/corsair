@@ -104,7 +104,7 @@ export const createManageSieveSession = (hooks: ManageSieveHooks): ManageSieveSe
   }
 
   const finishAuth = async (username: string, password: string): Promise<string> => {
-    const result = await authenticateAddress(username, password, hooks.remoteIp)
+    const result = await authenticateAddress(username, password, hooks.remoteIp, "sieve")
     if (!result) {
       hooks.onAuthFailure?.(username)
       return no("Authentication failed.")

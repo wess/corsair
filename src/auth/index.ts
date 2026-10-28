@@ -2,6 +2,12 @@ import { createHash, randomUUID, timingSafeEqual } from "node:crypto"
 import { hash, verify } from "@wess/atlas/auth/password"
 import * as token from "@wess/atlas/auth/token"
 import { from } from "@wess/atlas/db/query"
+import {
+  type MailVia,
+  matchAppPassword,
+  recordAppPasswordUse,
+  scopeAllows,
+} from "../apppasswords/index.ts"
 import { config } from "../config/index.ts"
 import { db } from "../db/index.ts"
 import { forbidden, rateLimitExceeded, unauthorized } from "../errors/index.ts"
@@ -295,6 +301,8 @@ const authenticateAgent = async (
 const authenticateResolved = async (
   address: Address,
   password: string,
+  via: MailVia | undefined,
+  ip: string | undefined,
 ): Promise<MailIdentity | null> => {
   if (address.disabled) {
     await spendVerifyTime(password)
@@ -324,8 +332,38 @@ const authenticateResolved = async (
     await spendVerifyTime(password)
     return null
   }
-  if (!(await verifyPassword(password, expected))) return null
 
+  /**
+   * App passwords, before Argon2: one is a 100-bit random value, so a SHA-256
+   * compare is the whole check and a client polling IMAP every minute does not
+   * queue behind the verify gate. The webmail is a browser sign-in with the real
+   * password, so it never accepts one — a stolen app password reads mail through
+   * a client, and does not also get a session in the browser.
+   *
+   * A match with the wrong scope is a refusal, not a fall-through: the presenter
+   * holds the secret, so answering quickly tells them nothing.
+   */
+  if (via !== "webmail") {
+    const app = await matchAppPassword(address.id, password)
+    if (app) {
+      if (!scopeAllows(app.scopes, via)) return null
+      recordAppPasswordUse(app.id, ip)
+      return signedIn(address)
+    }
+    // The real password is not accepted here, but a refusal must still cost what
+    // a wrong one does, or the answer's speed says this mailbox exists and has
+    // the requirement on.
+    if (address.require_app_passwords) {
+      await spendVerifyTime(password)
+      return null
+    }
+  }
+
+  if (!(await verifyPassword(password, expected))) return null
+  return signedIn(address)
+}
+
+const signedIn = async (address: Address): Promise<MailIdentity | null> => {
   const domain = await db().one<Domain>(
     from(domains).where((q) => q("id").equals(address.domain_id)),
   )
@@ -362,10 +400,18 @@ export const verifyMailboxPassword = async (
   return expected ? verifyPassword(password, expected) : false
 }
 
+/**
+ * `via` names the protocol, which decides two things: whether an app password's
+ * scopes cover it, and whether `require_app_passwords` applies. Only `webmail`
+ * skips the requirement, and a caller that names nothing is treated as a mail
+ * protocol — so a new listener that forgets to pass it refuses the real password
+ * on a mailbox that asked for that, rather than quietly accepting it.
+ */
 export const authenticateAddress = async (
   username: string,
   password: string,
   ip?: string,
+  via?: MailVia,
 ): Promise<MailIdentity | null> => {
   if (ip && (await isBanned(ip))) return null
   const at = username.lastIndexOf("@")
@@ -381,7 +427,7 @@ export const authenticateAddress = async (
     // Not a hosted domain — but it may still be somebody's panel sign-in
     // address, which opens the one mailbox linked to that account.
     const viaAccount = await mailboxForAccountEmail(username.toLowerCase())
-    if (viaAccount) return authenticateResolved(viaAccount, password)
+    if (viaAccount) return authenticateResolved(viaAccount, password, via, ip)
     await spendVerifyTime(password)
     return null
   }
@@ -396,7 +442,7 @@ export const authenticateAddress = async (
     await spendVerifyTime(password)
     return null
   }
-  return authenticateResolved(address, password)
+  return authenticateResolved(address, password, via, ip)
 }
 
 // webmail sessions

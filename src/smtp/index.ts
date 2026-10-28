@@ -163,7 +163,7 @@ const createListener = (input: {
           input.mode === "submission"
             ? async (username, password) => {
                 if (await isBanned(data.remoteIp, "smtp")) return null
-                const result = await submission.authenticate(username, password)
+                const result = await submission.authenticate(username, password, data.remoteIp)
                 if (result) {
                   data.identity = result
                   await clearAuthFailures(data.remoteIp, "smtp").catch(() => {})

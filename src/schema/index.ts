@@ -151,6 +151,9 @@ export const addresses = defineSchema("addresses", {
   daily_in_limit: column.integer().nullable(),
   daily_out_limit: column.integer().nullable(),
   disabled: column.boolean().default(false),
+  // Refuse the mailbox password over the mail protocols; only an app password
+  // opens them. See `authenticateResolved`.
+  require_app_passwords: column.boolean().default(false),
   last_login_at: column.timestamp().nullable(),
   password_changed_at: column.timestamp().nullable(),
   created_at: now(),
@@ -167,7 +170,23 @@ export const addressDestinations = defineSchema("address_destinations", {
   created_at: now(),
 })
 
+/**
+ * A per-client mailbox credential. Only the hash is stored; the secret is shown
+ * once. `scopes` is the set of protocols it opens — see `src/apppasswords`.
+ */
+export const appPasswords = defineSchema("app_passwords", {
+  id: id(),
+  address_id: column.uuid().ref("addresses", "id"),
+  name: column.text(),
+  token_hash: column.text().unique(),
+  scopes: column.json<string[]>().default(["imap", "pop3", "smtp", "jmap", "dav", "sieve"]),
+  last_used_at: column.timestamp().nullable(),
+  last_used_ip: column.text().nullable(),
+  created_at: now(),
+})
+
 export type Address = RowOf<typeof addresses>
+export type AppPassword = RowOf<typeof appPasswords>
 export type AddressDestination = RowOf<typeof addressDestinations>
 
 // billing
@@ -915,6 +934,7 @@ export const allSchemas = [
   addresses,
   agents,
   apiKeys,
+  appPasswords,
   auditEvents,
   authFailures,
   bans,

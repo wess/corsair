@@ -4928,6 +4928,38 @@ present a second factor, so a stolen mailbox password on its own stops at the
 mailbox — which is the outcome you want. This is the mitigation that makes a
 shared credential a reasonable trade rather than a bad one.
 
+**Then require app passwords on that mailbox.** Two-factor protects the panel,
+but IMAP and SMTP still accept the shared password with no second step. With
+[app passwords](#app-passwords) required, devices hold only per-client secrets
+and the account password opens nothing but the browser sign-ins.
+
+## App passwords
+
+An app password is a per-client mailbox credential: a 100-bit random value the
+server chose, shown once and stored only as a SHA-256 hash.
+
+- **Accepted in exactly one place**, the function every mail protocol funnels
+  through, so IMAP, POP3, SMTP submission, JMAP, and anything added later get it
+  without each implementing it. The webmail is told to refuse them: a stolen app
+  password reads mail through a client and does not also open a browser session.
+- **Checked before the password hash.** The compare is SHA-256 in constant time
+  against each of the mailbox's own app passwords, with no early exit. A random
+  100-bit secret needs no slow hash; offline, 2¹⁰⁰ guesses is out of reach.
+- **No new enumeration signal.** When a mailbox requires app passwords, refusing
+  its real password still spends a full password verify, so the speed of the
+  answer does not reveal that the mailbox exists or has the requirement on.
+- **Scoped.** Each names the protocols it opens. A caller that names no protocol
+  is only satisfied by an app password that opens all of them, so a protocol
+  added later fails closed.
+- **Revocation is a delete.** It stops on every protocol at once. Changing the
+  mailbox or account password deliberately leaves app passwords alone; disabling
+  the mailbox or terminating the account stops them.
+- **Not for agents, aliases, or groups.** An agent's API key is already a
+  revocable token, and forwarding addresses have no mailbox.
+- **Minting one from the webmail requires the current password**, because an app
+  password outlives a password change; an unattended session must not be able to
+  leave one behind.
+
 ## Passwords and tokens
 
 - Passwords are hashed, never stored or logged in the clear.
@@ -5724,9 +5756,49 @@ domain when the addresses match, so there is one password, not two.
 For a mailbox that is not a control-panel account — anyone else on your domain —
 it is that mailbox's own password, which opens mail and never the panel.
 
+Or, better, an **app password** — see [below](#app-passwords).
+
 993 and 465 are encrypted from the first byte. There is no upgrade to negotiate
 and none to get wrong, which is why they are the better ports even on a server
 where STARTTLS works.
+
+## App passwords
+
+An app password is a credential for one mail client. Create one per device in
+the panel (the address's **App passwords** tab) or in the webmail's settings, type
+it into that client's password field, and the client never holds your real
+password.
+
+- It looks like `k7qm-3hxa-pw9d-tn2e-vbc4`. Dashes, spaces, and capitals are
+  ignored, so it survives a phone keyboard.
+- It is shown **once**. A lost one is deleted and replaced, never recovered.
+- Deleting one signs out that device on every protocol at once and leaves every
+  other client alone.
+- Changing the mailbox password does **not** revoke app passwords. That is the
+  point of them: you can rotate a password you think has leaked without
+  re-entering it on every device.
+- Each can be limited to the protocols the client uses — IMAP, POP3, SMTP, JMAP,
+  contacts, or filters. A phone that only reads mail does not need SMTP.
+- They open the mail protocols only. The webmail and the panel are browser
+  sign-ins and always take the real password.
+- Disabling the mailbox stops them, along with everything else.
+
+Agent mailboxes do not have app passwords — their API key is already a revocable
+per-client credential — and aliases and groups have nothing to sign into.
+
+### Requiring them
+
+On an address's App passwords tab, **Require app passwords for mail clients**
+refuses the mailbox password itself over IMAP, POP3, SMTP, and JMAP. Only app
+passwords open those protocols afterwards; the webmail still takes the real
+password. Create one for each client before turning it on — the panel will not
+let you require them while there are none.
+
+tip Using two-step sign-in on the panel? Turn this on.
+Your own mailbox shares your account password, and mail clients send it with no
+second step. With app passwords required, the password guarded by your
+authenticator no longer opens IMAP or SMTP at all. The panel shows a reminder on
+any mailbox where this applies.
 
 ## Automatic configuration
 
@@ -7484,6 +7556,15 @@ The API token posted to `dns/publish` is used for that one call and never stored
 | POST | `/api/addresses/:address_id/recovery` | Set the recovery address |
 | GET | `/api/addresses/:address_id/folders` | Folders with counts |
 | GET | `/api/addresses/:address_id/activity` | Recent mail activity |
+| GET | `/api/addresses/:address_id/app-passwords` | App passwords, without secrets |
+| POST | `/api/addresses/:address_id/app-passwords` | Create one; `password` is returned once |
+| DELETE | `/api/addresses/:address_id/app-passwords/:app_password_id` | Revoke one |
+
+`PATCH` takes `require_app_passwords` to refuse the mailbox password over the mail
+protocols; it is refused while the mailbox has no app passwords. Creating one
+takes a `name` and optional `scopes` (`imap`, `pop3`, `smtp`, `jmap`, `dav`,
+`sieve`; all by default). The webmail has the same three under
+`/api/mail/app-passwords`, where creating one also requires `current_password`.
 
 ### Filters
 

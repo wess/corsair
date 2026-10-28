@@ -15,6 +15,7 @@ import { addressRoutes } from "./routes/addresses/index.ts"
 import { adminRoutes } from "./routes/admins/index.ts"
 import { agentRoutes } from "./routes/agents/index.ts"
 import { apiKeyRoutes } from "./routes/apikeys/index.ts"
+import { appPasswordRoutes } from "./routes/apppasswords/index.ts"
 import { authRoutes } from "./routes/auth/index.ts"
 import { autoconfigRoutes } from "./routes/autoconfig/index.ts"
 import { billingRoutes } from "./routes/billing/index.ts"
@@ -49,6 +50,9 @@ export const allRoutes = (): Route[] => [
   // Addresses register `/api/domains/:domain_id/addresses`, which must not be
   // shadowed by the domain routes' own `:domain_id` patterns.
   ...wrapAll(addressRoutes),
+  // Panel and webmail app passwords. Ahead of the webmail's routes so
+  // `/api/mail/app-passwords` is not taken for anything matching `/api/mail/:x`.
+  ...wrapAll(appPasswordRoutes),
   // Same reason: `/api/domains/:domain_id/admins` must be registered ahead of
   // the domain routes' own `:domain_id` patterns.
   ...wrapAll(adminRoutes),

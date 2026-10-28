@@ -13,6 +13,7 @@ import {
   useLoad,
 } from "../web/components/index.tsx"
 import { del, formatBytes, get, patch, post } from "../web/lib/api.ts"
+import { AppPasswords } from "../web/pages/apppasswords.tsx"
 
 /**
  * Corsair Webmail.
@@ -371,6 +372,9 @@ const Settings = ({
       )}
 
       {focus !== "recovery" && <Recovery mailbox={mailbox} />}
+
+      <h3 style={{ margin: "24px 0 10px", fontSize: "0.95rem" }}>App passwords</h3>
+      <AppPasswords base="/api/mail/app-passwords" email={mailbox.email} confirmWithPassword bare />
     </Dialog>
   )
 }
