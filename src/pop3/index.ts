@@ -1,5 +1,6 @@
 import { clearAuthFailures, isBanned, recordAuthFailure } from "../auth/index.ts"
 import { config } from "../config/index.ts"
+import { connections } from "../metrics/index.ts"
 import { createReader, createWriter, type SocketWriter } from "../socketio/index.ts"
 import { canUpgradeServerSocketToTls, upgradeAcceptedSocket } from "../starttls/index.ts"
 import { tlsOptions } from "../tls/index.ts"
@@ -85,6 +86,7 @@ const createListener = (input: {
   const handlers = {
     open(socket: Bun.Socket<SocketData>) {
       const remoteIp = socket.remoteAddress ?? "unknown"
+      connections.inc({ protocol: "pop3" })
       const data: SocketData = {
         session: null as never,
         remoteIp,
@@ -115,7 +117,7 @@ const createListener = (input: {
         onAuthSuccess: () => {
           data.authed = true
           ;(data.tlsSocket ?? socket).timeout(AUTHED_IDLE)
-          void clearAuthFailures(remoteIp).catch(() => {})
+          void clearAuthFailures(remoteIp, "pop3").catch(() => {})
         },
         onAuthFailure: (username) => {
           void recordAuthFailure(remoteIp, "pop3", username).catch(() => {})
@@ -133,7 +135,7 @@ const createListener = (input: {
       socket.data = data
       socket.timeout(PRE_AUTH_IDLE)
 
-      const ready = isBanned(remoteIp)
+      const ready = isBanned(remoteIp, "pop3")
         .then((banned) => {
           if (banned) {
             data.writer.write(`-ERR Too many failed attempts from ${remoteIp}.\r\n`)
@@ -165,6 +167,7 @@ const createListener = (input: {
 
     close(socket: Bun.Socket<SocketData>) {
       if (socket.data?.tlsSocket && socket !== socket.data.tlsSocket) return
+      if (socket.data) connections.dec({ protocol: "pop3" })
       socket.data?.reader?.close()
       socket.data?.writer?.close()
     },

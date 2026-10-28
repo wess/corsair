@@ -3,6 +3,7 @@ import { authenticateAddress, type MailIdentity } from "../../auth/index.ts"
 import { config } from "../../config/index.ts"
 import { db, num } from "../../db/index.ts"
 import { uidValidity } from "../../ids/index.ts"
+import { commandName, commands } from "../../metrics/index.ts"
 import * as mime from "../../mime/index.ts"
 import { type Folder, folders, type Message, messages } from "../../schema/index.ts"
 import {
@@ -734,6 +735,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
     if (!tag) return `* BAD Missing command tag.${CRLF}`
     const name = reader.word()
     const args = reader.rest()
+    commands.inc({ protocol: "imap", command: commandName("imap", name) })
 
     // any state
     switch (name) {

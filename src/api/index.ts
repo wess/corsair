@@ -5,6 +5,8 @@ import { config } from "../config/index.ts"
 import { errorBody, notFound } from "../errors/index.ts"
 import { checkOrigin, privateResponse } from "../httpguard/index.ts"
 import webmail from "../mail/index.html"
+import { startProcessMetrics } from "../metrics/index.ts"
+import { metricsResponse } from "../metrics/serve/index.ts"
 import panel from "../web/index.html"
 import { allowsWebmailHost, webmailDomain } from "../webmailhost/index.ts"
 import { wrapAll } from "./pipes/index.ts"
@@ -152,6 +154,12 @@ export const buildFetch = (clients: ClientBundle | null): ((req: Request) => Pro
           headers: { "content-type": "application/json" },
         })
     }
+    // Through `fetch`, never `routes`: this is the one response that must not
+    // skip the wrappers, and it is answered ahead of the router so a catch-all
+    // can never shadow it.
+    const metrics = await metricsResponse(req)
+    if (metrics) return metrics
+
     const res = await handle(req)
     if (res.status !== 404) return res
 
@@ -193,6 +201,7 @@ export const buildFetch = (clients: ClientBundle | null): ((req: Request) => Pro
  */
 export const startApi = async (port = config.port, options: { hmr?: boolean } = {}) => {
   const clients = options.hmr ? null : await buildClients()
+  startProcessMetrics()
 
   const fetch = withSecurityHeaders(buildFetch(clients), {
     dev: process.env.NODE_ENV !== "production",

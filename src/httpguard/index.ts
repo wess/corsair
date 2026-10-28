@@ -22,7 +22,12 @@ export const checkOrigin = (req: Request): Response | null => {
 
 export const privateResponse = (req: Request, res: Response): Response => {
   const path = new URL(req.url).pathname
-  if (!path.startsWith("/api/") && !path.startsWith("/jmap") && path !== "/.well-known/jmap")
+  if (
+    !path.startsWith("/api/") &&
+    !path.startsWith("/jmap") &&
+    path !== "/.well-known/jmap" &&
+    path !== "/metrics"
+  )
     return res
   const headers = new Headers(res.headers)
   headers.set("cache-control", "no-store")
