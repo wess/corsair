@@ -21,6 +21,12 @@ export type SpamSignals = {
   spf: string
   dkim: string
   dmarc: string
+  /**
+   * A trusted ARC sealer vouching for a message whose DMARC failed — see
+   * `dmarcOverride` in `src/arc`. It cancels the DMARC penalty and nothing
+   * else: SPF and DKIM failures still count, and it never earns the pass bonus.
+   */
+  dmarcOverride?: string | null
   helo: string
   remoteIp: string
   mailFrom: string
@@ -43,7 +49,9 @@ export const score = (raw: string, signals: SpamSignals): SpamVerdict => {
 
   // identity
 
-  if (signals.dmarc === "fail") add(4, "DMARC alignment failed")
+  if (signals.dmarc === "fail" && signals.dmarcOverride) {
+    add(0, `DMARC failed, overridden: forwarded, ARC sealed by ${signals.dmarcOverride}`)
+  } else if (signals.dmarc === "fail") add(4, "DMARC alignment failed")
   else if (signals.dmarc === "pass") add(-2, "DMARC passed")
 
   if (signals.spf === "fail") add(3, "SPF failed")

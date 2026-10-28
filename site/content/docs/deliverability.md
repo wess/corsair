@@ -148,6 +148,35 @@ for aliases and groups and there is nothing to configure.
 DKIM survives forwarding intact, which is why DMARC passing on **either** SPF or
 DKIM is what makes forwarding workable at all.
 
+SRS fixes SPF but not DMARC alignment: the rewritten sender is in your domain,
+not the author's. For mail that something along the way has changed (a list
+adding a footer, a gateway rewriting a header), DKIM breaks too, and DMARC fails
+on mail that was genuine. ARC ([RFC 8617](https://www.rfc-editor.org/rfc/rfc8617))
+fixes that by having each hop record what it saw and seal it.
+
+**Sending.** When Corsair relays a message to another domain, through an alias,
+a group, or a filter's `redirect`, it adds an ARC set: a copy of its own
+`Authentication-Results`, a signature over the message, and a seal over the
+chain. All three are signed with the forwarding domain's DKIM key, so there is
+nothing new to publish. A domain whose DKIM is not set up relays unsealed. If
+the chain arrived broken, the seal says `cv=fail` and covers only Corsair's own
+set. If the newest seal already says `cv=fail`, or the chain has reached 50
+hops, nothing more is added.
+
+**Receiving.** Every inbound message has its chain checked, and the result goes
+into `Authentication-Results` as `arc=pass`, `arc=fail`, or `arc=none`. A
+passing chain only tells you that the newest sealer saw the message pass, and
+anyone can seal. So a DMARC failure is overridden only when the newest sealer is
+one you named in [`ARC_TRUSTED_SEALERS`](configuration.html#forwarded-mail-arc).
+The override removes the DMARC penalty from the spam score and nothing else.
+The header keeps `dmarc=fail` and adds a note that local policy overrode it.
+
+:::note What is not checked
+Message signatures older than the newest are not verified. They are expected to
+fail once a hop changes the message, which is the case ARC exists for. Only
+`rsa-sha256` is accepted, and a key under 1024 bits verifies nothing.
+:::
+
 ## What damages reputation fastest
 
 1. **Sending to addresses that hard-bounce**, repeatedly

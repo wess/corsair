@@ -105,6 +105,16 @@ export const config = defineConfig({
     trustedProxies: env("SMTP_TRUSTED_PROXIES", { parse: list, default: "" }),
   },
 
+  arc: {
+    /**
+     * Sealers whose passing ARC chain overrides a DMARC failure: a forwarder or
+     * list this installation's users really receive through. Empty by default,
+     * because anyone can seal and the override is worth only what the operator
+     * knows about who is sealing.
+     */
+    trustedSealers: env("ARC_TRUSTED_SEALERS", { parse: list, default: "" }),
+  },
+
   imap: {
     enabled: env("IMAP_ENABLED", { parse: bool, default: "true" }),
     port: env("IMAP_PORT", { parse: Number, default: "2143" }),

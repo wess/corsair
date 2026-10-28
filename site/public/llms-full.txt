@@ -2742,6 +2742,23 @@ A fresh `.env` delivers nothing. That is right for a laptop and wrong for a
 server — set `DELIVERY_TRANSPORT=direct` (or `relay`) as part of going live, or
 mail silently goes to the log.
 
+## Forwarded mail (ARC)
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `ARC_TRUSTED_SEALERS` | *(empty)* | Comma-separated sealer domains whose ARC pass overrides a DMARC failure, e.g. `google.com,outlook.com` |
+
+Every inbound message has its ARC chain checked and the result recorded as
+`arc=` in `Authentication-Results`. That needs no configuration. This setting
+covers one decision: when a message fails DMARC but arrives with a passing ARC
+chain whose newest seal is from a listed domain (or a subdomain of one), the
+DMARC failure no longer counts against its spam score. The header still says
+`dmarc=fail` and notes the override, so it stays visible.
+
+Anyone can seal a message, so a seal is worth only what you know about who made
+it. List the forwarders and mailing lists your users really receive through,
+and nothing else. See [Forwarding](deliverability.html#forwarding).
+
 ## Storage
 
 | Variable | Default | What it does |
@@ -6338,6 +6355,34 @@ for aliases and groups and there is nothing to configure.
 
 DKIM survives forwarding intact, which is why DMARC passing on **either** SPF or
 DKIM is what makes forwarding workable at all.
+
+SRS fixes SPF but not DMARC alignment: the rewritten sender is in your domain,
+not the author's. For mail that something along the way has changed (a list
+adding a footer, a gateway rewriting a header), DKIM breaks too, and DMARC fails
+on mail that was genuine. ARC ([RFC 8617](https://www.rfc-editor.org/rfc/rfc8617))
+fixes that by having each hop record what it saw and seal it.
+
+**Sending.** When Corsair relays a message to another domain, through an alias,
+a group, or a filter's `redirect`, it adds an ARC set: a copy of its own
+`Authentication-Results`, a signature over the message, and a seal over the
+chain. All three are signed with the forwarding domain's DKIM key, so there is
+nothing new to publish. A domain whose DKIM is not set up relays unsealed. If
+the chain arrived broken, the seal says `cv=fail` and covers only Corsair's own
+set. If the newest seal already says `cv=fail`, or the chain has reached 50
+hops, nothing more is added.
+
+**Receiving.** Every inbound message has its chain checked, and the result goes
+into `Authentication-Results` as `arc=pass`, `arc=fail`, or `arc=none`. A
+passing chain only tells you that the newest sealer saw the message pass, and
+anyone can seal. So a DMARC failure is overridden only when the newest sealer is
+one you named in [`ARC_TRUSTED_SEALERS`](configuration.html#forwarded-mail-arc).
+The override removes the DMARC penalty from the spam score and nothing else.
+The header keeps `dmarc=fail` and adds a note that local policy overrode it.
+
+note What is not checked
+Message signatures older than the newest are not verified. They are expected to
+fail once a hop changes the message, which is the case ARC exists for. Only
+`rsa-sha256` is accepted, and a key under 1024 bits verifies nothing.
 
 ## What damages reputation fastest
 
