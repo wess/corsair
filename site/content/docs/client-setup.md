@@ -22,9 +22,10 @@ The settings, then the clients that need help.
 Filters can be edited from Thunderbird, Roundcube, and K-9 over ManageSieve on
 port **4190** with STARTTLS; see [Filters](filters.html).
 
-Port **587 with STARTTLS** also works when the operator runs the STARTTLS
-terminator described in [Configuration](configuration.html). 465 is listed above
-because it works on every install and needs no upgrade to get wrong.
+Port **587 with STARTTLS** also works on any install whose runtime can perform
+the upgrade, which includes Bun 1.4.4 (see [Configuration](configuration.html)).
+465 is listed above because it works on every install and needs no upgrade to
+get wrong.
 
 :::tip Let your client configure itself.
 Autoconfig and autodiscover name the ports this particular server offers, which
@@ -39,7 +40,7 @@ accepted. Corsair **tests this at startup** rather than assuming it, and never
 advertises what it cannot perform: advertising and then failing loses mail
 outright, because a peer that has committed to the upgrade cannot fall back.
 
-Where the terminator is not deployed and the runtime cannot upgrade, **587, 143,
+Where the runtime cannot upgrade and the terminator is not deployed, **587, 143,
 and 110 cannot authenticate** — Corsair refuses a credential on an unencrypted
 connection, and those ports have no way to become encrypted.
 

@@ -133,6 +133,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
   let command = ""
   let awaitingLiteral = 0
   let closing = false
+  let upgrade = false
   let identity: MailIdentity | null = null
   let selected: Selected | null = null
   let idleTag: string | null = null
@@ -996,7 +997,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
         case "STARTTLS":
           if (!hooks.startTls) return no(tag, "STARTTLS is not available.")
           if (hooks.isSecure()) return bad(tag, "TLS is already active.")
-          hooks.startTls()
+          upgrade = true
           return ok(tag, "Begin TLS negotiation now.")
 
         case "LOGIN": {
@@ -1278,9 +1279,22 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
           }
         }
         command = ""
-        if (closing) break
+        if (closing || upgrade) break
       }
 
+      // Bytes pipelined behind STARTTLS were sent in the clear, before the
+      // handshake; whoever injected them is not who ends up on the TLS side
+      // (CVE-2011-0411). The upgrade waits for the end of the chunk, and anything
+      // still buffered then closes the connection instead.
+      if (upgrade) {
+        upgrade = false
+        if (buffer) {
+          buffer = ""
+          closing = true
+          return `${out}* BYE Commands were pipelined after STARTTLS.${CRLF}`
+        }
+        hooks.startTls?.()
+      }
       return out
     },
 

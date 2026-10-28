@@ -49,6 +49,7 @@ type Entry = { message: Message; size: number; deleted: boolean }
 export const createPop3Session = (hooks: Pop3Hooks): Pop3Session => {
   let buffer = ""
   let closing = false
+  let upgrade = false
   let identity: MailIdentity | null = null
   let pendingUser: string | null = null
   let entries: Entry[] = []
@@ -117,7 +118,7 @@ export const createPop3Session = (hooks: Pop3Hooks): Pop3Session => {
       case "STLS":
         if (!hooks.startTls) return err("STLS is not available.")
         if (hooks.isSecure()) return err("TLS is already active.")
-        hooks.startTls()
+        upgrade = true
         return ok("Begin TLS negotiation.")
 
       case "USER":
@@ -271,9 +272,22 @@ export const createPop3Session = (hooks: Pop3Hooks): Pop3Session => {
         const response = await handle(line.trim())
         if (hooks.stream) await hooks.stream(response)
         else out += response
-        if (closing) break
+        if (closing || upgrade) break
       }
 
+      // Bytes pipelined behind STARTTLS were sent in the clear, before the
+      // handshake; whoever injected them is not who ends up on the TLS side
+      // (CVE-2011-0411). The upgrade waits for the end of the chunk, and anything
+      // still buffered then closes the connection instead.
+      if (upgrade) {
+        upgrade = false
+        if (buffer) {
+          buffer = ""
+          closing = true
+          return `${out}${err("Commands were pipelined after STLS; closing.")}`
+        }
+        hooks.startTls?.()
+      }
       return out
     },
 
