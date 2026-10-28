@@ -28,6 +28,7 @@ Defaults below are what the shipped code uses, not suggestions.
 | `MAIL_WEBMAIL_HOST` | *(empty)* | Optional CNAME target for customer webmail URLs; requires [HTTPS proxy setup](webmail.html#for-operators) |
 | `SIGNUPS` | `open` | `open` lets anyone sign up; `closed` allows only the first account |
 | `TRUSTED_PROXIES` | *(empty)* | Proxies whose `X-Forwarded-For` is believed |
+| `METRICS_TOKEN` | *(empty)* | Bearer token for `GET /metrics`; unset, the endpoint answers 404. See [Monitoring](monitoring.html#prometheus-metrics) |
 
 :::danger JWT_SECRET
 Anyone who knows it can mint a session for any account. Generate 48 random bytes
@@ -90,6 +91,18 @@ single-host install, point them all at the same name.
 per selector pointing at these names and this server answers the lookup — three
 selectors let a key be rotated without a gap in signing.
 
+### DKIM rotation
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `DKIM_ROTATE_DAYS` | `0` | Start a rotation when the active key is this old. `0` never starts one |
+| `DKIM_SOAK_HOURS` | `48` | How long a new key sits in DNS before anything signs with it |
+| `DKIM_RETIRE_DAYS` | `7` | How long the replaced key stays published |
+
+Off by default because every rotation needs you to publish a TXT record, and an
+install that does that by hand should not find one begun under it. See
+[Key rotation](dns-setup.html#key-rotation).
+
 ## Listeners
 
 | Variable | Default (dev) | Production |
@@ -133,9 +146,11 @@ opposed to what Corsair listens on.
 | `IMAP_TLS_PORT` | `2993` | `993` |
 | `POP3_PORT` | `2110` | `110` |
 | `POP3_TLS_PORT` | `2995` | `995` |
+| `MANAGESIEVE_PORT` | `4190` | `4190` |
 | `SMTP_ENABLED` | `true` | |
 | `IMAP_ENABLED` | `true` | |
 | `POP3_ENABLED` | `true` | |
+| `MANAGESIEVE_ENABLED` | `true` | |
 
 The defaults are unprivileged so development needs no root. Ports below 1024 need
 `CAP_NET_BIND_SERVICE` — granted in the systemd unit with `AmbientCapabilities`,
@@ -159,6 +174,21 @@ unencrypted connection when a certificate is configured.
 
 See [TLS certificates](tls.html).
 
+### Built-in ACME
+
+Off unless you turn it on. For an install with no reverse proxy and no certbot;
+see [Built-in ACME](tls.html#built-in-acme-optional).
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `ACME` | `off` | `on` to obtain and renew the mail certificate over ACME. `TLS_CERT_PATH`/`TLS_KEY_PATH` are then ignored |
+| `ACME_EMAIL` | *(empty)* | Contact address for the CA. Required with `ACME=on` |
+| `ACME_AGREE_TOS` | `false` | Must be `true` with `ACME=on`: you agree to the CA's terms |
+| `ACME_DOMAINS` | `CORSAIR_HOSTNAME` | Comma-separated names on the certificate |
+| `ACME_DIRECTORY` | Let's Encrypt production | Staging: `https://acme-staging-v02.api.letsencrypt.org/directory` |
+| `ACME_DIR` | `./data/acme` | Account key and certificate, mode 0600 |
+| `ACME_HTTP_PORT` | `0` | Port for a challenge-only listener (normally `80`). `0` means none: port 80 must then reach `PORT` |
+
 ## Delivery
 
 | Variable | Default | What it does |
@@ -169,6 +199,9 @@ See [TLS certificates](tls.html).
 | `SMTP_RELAY_USER` | *(empty)* | |
 | `SMTP_RELAY_PASS` | *(empty)* | |
 | `SMTP_RELAY_SECURE` | `starttls` | |
+| `DANE` | `auto` | `auto`, `on`, or `off`. DANE for `direct` delivery; `auto` enables it only if the resolver is seen to validate DNSSEC at startup |
+| `DANE_RESOLVER` | *(resolv.conf)* | Validating resolver whose AD bit is trusted, as `host` or `host:port`. Defaults to the first `nameserver` in `/etc/resolv.conf` |
+| `DANE_TRUST_REMOTE_RESOLVER` | `false` | Accept a resolver that is not on loopback. Its AD bit can be forged in transit; see [Deliverability](deliverability.html#dane) |
 
 | Transport | Behaviour |
 | --- | --- |
@@ -181,6 +214,23 @@ A fresh `.env` delivers nothing. That is right for a laptop and wrong for a
 server — set `DELIVERY_TRANSPORT=direct` (or `relay`) as part of going live, or
 mail silently goes to the log.
 :::
+
+## Forwarded mail (ARC)
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `ARC_TRUSTED_SEALERS` | *(empty)* | Comma-separated sealer domains whose ARC pass overrides a DMARC failure, e.g. `google.com,outlook.com` |
+
+Every inbound message has its ARC chain checked and the result recorded as
+`arc=` in `Authentication-Results`. That needs no configuration. This setting
+covers one decision: when a message fails DMARC but arrives with a passing ARC
+chain whose newest seal is from a listed domain (or a subdomain of one), the
+DMARC failure no longer counts against its spam score. The header still says
+`dmarc=fail` and notes the override, so it stays visible.
+
+Anyone can seal a message, so a seal is worth only what you know about who made
+it. List the forwarders and mailing lists your users really receive through,
+and nothing else. See [Forwarding](deliverability.html#forwarding).
 
 ## Storage
 
@@ -222,6 +272,22 @@ Card details never reach this server. The customer enters them on the provider's
 hosted page; a brand, four digits, and an opaque reference come back. There is no
 code path here that could accept a card number.
 
+## Spam filtering
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `SPAM_DNSBL` | `zen.spamhaus.org` | IP blocklists checked against the connecting client on port 25. Comma-separated; empty disables |
+| `SPAM_URIBL` | `dbl.spamhaus.org` | Domain blocklists checked against the sender's domains and up to 20 link domains. Comma-separated; empty disables |
+| `SPAM_DNSBL_REJECT` | `false` | Refuse clients on SBL, CSS, DROP, or XBL at `RCPT` instead of only scoring them |
+| `SPAM_RESOLVER` | system resolver | Resolver addresses for blocklist queries. Spamhaus refuses public and cloud resolvers, so set this to a local one |
+| `SPAM_GREYLIST` | `false` | Defer first contact from an unknown client, sender, and recipient with `451 4.7.1` |
+| `SPAM_GREYLIST_DELAY` | `300` | Seconds a greylisted sender must wait before its retry is accepted |
+
+If the log says a list "refused a query", blocklists are doing nothing until
+`SPAM_RESOLVER` points at a resolver the list will answer. See
+[Spam filtering](./spam.html) for what each setting scores and why the defaults
+are what they are.
+
 ## Mailbox transfers
 
 | Variable | Default | Purpose |
@@ -255,6 +321,17 @@ A 429 carries `retry-after`, `ratelimit-limit`, `ratelimit-remaining`, and
 
 `MAX_MESSAGE_BYTES` is the wire size after encoding. Base64 costs about a third,
 so 25 MB on the wire is roughly an 18 MB attachment.
+
+## Authentication reports
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DMARC_REPORTS_SEND` | `true` | Record inbound DMARC results and send daily aggregate reports |
+| `TLSRPT_SEND` | `true` | Record outbound TLS outcomes and send daily TLS reports |
+| `REPORTS_DAILY_CAP` | `1000` | Reports of each kind sent per UTC day |
+| `REPORTS_FROM` | `noreply-dmarc@<CORSAIR_HOSTNAME>` | Sender of outgoing reports. Put it on a hosted domain so reports are DKIM-signed |
+
+See [Deliverability](deliverability.html#reports-corsair-sends).
 
 ## Seeding
 

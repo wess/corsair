@@ -53,11 +53,11 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">04</span>Using Corsair</p>
-<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li><li><a href="./agents.html">Agent email</a></li><li><a href="./agent-tools.html">Tools for agents</a></li></ul>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./spam.html">Spam filtering</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li><li><a href="./agents.html">Agent email</a></li><li><a href="./agent-tools.html">Tools for agents</a></li></ul>
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">05</span>Reference</p>
-<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./contacts.html">Contacts (CardDAV)</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
 </div></nav>
 <main class="prose"><div class="page-head"><p class="eyebrow">Install and operate</p></div><h1 id="configuration">Configuration</h1>
 <p>Everything is configured through environment variables, read once at startup from the process environment or <code>.env</code>. There is no configuration file and no settings table — a mail server's behaviour should be reproducible from its deployment, not from a row somebody edited.</p>
@@ -112,6 +112,11 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td><code>TRUSTED_PROXIES</code></td>
 <td><em>(empty)</em></td>
 <td>Proxies whose <code>X-Forwarded-For</code> is believed</td>
+</tr>
+<tr>
+<td><code>METRICS_TOKEN</code></td>
+<td><em>(empty)</em></td>
+<td>Bearer token for <code>GET /metrics</code>; unset, the endpoint answers 404. See <a href="monitoring.html#prometheus-metrics">Monitoring</a></td>
 </tr>
 </tbody></table></div>
 <aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>JWT_SECRET</p><p>Anyone who knows it can mint a session for any account. Generate 48 random bytes and treat it as a credential:</p>
@@ -174,6 +179,29 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tr>
 </tbody></table></div>
 <p><code>MAIL_DKIM_HOSTS</code> is a comma-separated list of three. Customers publish a CNAME per selector pointing at these names and this server answers the lookup — three selectors let a key be rotated without a gap in signing.</p>
+<h3 id="dkim-rotation">DKIM rotation<a class="anchor" href="#dkim-rotation" aria-label="Link to this section">#</a></h3>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr></thead><tbody>
+<tr>
+<td><code>DKIM_ROTATE_DAYS</code></td>
+<td><code>0</code></td>
+<td>Start a rotation when the active key is this old. <code>0</code> never starts one</td>
+</tr>
+<tr>
+<td><code>DKIM_SOAK_HOURS</code></td>
+<td><code>48</code></td>
+<td>How long a new key sits in DNS before anything signs with it</td>
+</tr>
+<tr>
+<td><code>DKIM_RETIRE_DAYS</code></td>
+<td><code>7</code></td>
+<td>How long the replaced key stays published</td>
+</tr>
+</tbody></table></div>
+<p>Off by default because every rotation needs you to publish a TXT record, and an install that does that by hand should not find one begun under it. See <a href="dns-setup.html#key-rotation">Key rotation</a>.</p>
 <h2 id="listeners">Listeners<a class="anchor" href="#listeners" aria-label="Link to this section">#</a></h2>
 <div class='table-wrap'><table><thead><tr>
 <th>Variable</th>
@@ -225,7 +253,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p>Bun cannot upgrade a socket it accepted, so Corsair alone cannot answer STARTTLS: port 25 carries cleartext and port 587 cannot authenticate. <code>engine/</code> is a small Rust process that holds those two ports, performs the upgrade, and relays to Corsair on loopback. It makes no policy decisions — every rejection, every check, and the whole mail path stay in Corsair.</p>
 <p>Deploying it means four settings, and all four matter:</p>
 <ul><li><code>SMTP_MX_PORT=2525</code> and <code>SMTP_SUBMISSION_PORT=2587</code> move Corsair off the public ports so the terminator can take them.</li><li><code>SMTP_BIND=127.0.0.1</code> keeps those listeners off the internet. Without it the backend still answers on a public address, which is a way to reach this server without TLS. Submission on 465 is unaffected — it has no plaintext phase.</li><li><code>SMTP_TRUSTED_PROXIES=127.0.0.1</code> lets the terminator say which address a session is really from, using <code>XCLIENT</code>. Leave it empty and every relayed message appears to come from loopback, which breaks SPF for everyone. <strong>Only list a proxy you run.</strong> Anything in this list can claim to be any sender.</li><li><code>SMTP_STARTTLS_FRONTED=true</code> tells the server to describe itself accurately: it changes nothing about what Corsair does, but without it autoconfig steers clients away from 587 and the MTA-STS policy stays at <code>mode: none</code>.</li></ul>
-<p><code>SMTP_PUBLIC_SUBMISSION_PORT=587</code> is what clients are told to connect to, as opposed to what Corsair listens on. | <code>IMAP_PORT</code> | <code>2143</code> | <code>143</code> | | <code>IMAP_TLS_PORT</code> | <code>2993</code> | <code>993</code> | | <code>POP3_PORT</code> | <code>2110</code> | <code>110</code> | | <code>POP3_TLS_PORT</code> | <code>2995</code> | <code>995</code> | | <code>SMTP_ENABLED</code> | <code>true</code> | | | <code>IMAP_ENABLED</code> | <code>true</code> | | | <code>POP3_ENABLED</code> | <code>true</code> | |</p>
+<p><code>SMTP_PUBLIC_SUBMISSION_PORT=587</code> is what clients are told to connect to, as opposed to what Corsair listens on. | <code>IMAP_PORT</code> | <code>2143</code> | <code>143</code> | | <code>IMAP_TLS_PORT</code> | <code>2993</code> | <code>993</code> | | <code>POP3_PORT</code> | <code>2110</code> | <code>110</code> | | <code>POP3_TLS_PORT</code> | <code>2995</code> | <code>995</code> | | <code>MANAGESIEVE_PORT</code> | <code>4190</code> | <code>4190</code> | | <code>SMTP_ENABLED</code> | <code>true</code> | | | <code>IMAP_ENABLED</code> | <code>true</code> | | | <code>POP3_ENABLED</code> | <code>true</code> | | | <code>MANAGESIEVE_ENABLED</code> | <code>true</code> | |</p>
 <p>The defaults are unprivileged so development needs no root. Ports below 1024 need <code>CAP_NET_BIND_SERVICE</code> — granted in the systemd unit with <code>AmbientCapabilities</code>, or with <code>setcap</code> on the binary when running outside a service manager. See <a href="installation.html">Installation</a>; the two are not interchangeable.</p>
 <p>The <code>*_ENABLED</code> flags accept <code>true</code>, <code>1</code>, or <code>yes</code>. Turning listeners off is how you <a href="installation.html">split the deployment</a>.</p>
 <h2 id="tls">TLS<a class="anchor" href="#tls" aria-label="Link to this section">#</a></h2>
@@ -247,6 +275,49 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tbody></table></div>
 <p>Used by the implicit-TLS listeners and by STARTTLS. Leave them empty to run plaintext-only, which is fine locally and unacceptable anywhere else — Corsair advertises <code>LOGINDISABLED</code> and refuses SMTP <code>AUTH</code> and IMAP <code>LOGIN</code> on an unencrypted connection when a certificate is configured.</p>
 <p>See <a href="tls.html">TLS certificates</a>.</p>
+<h3 id="built-in-acme">Built-in ACME<a class="anchor" href="#built-in-acme" aria-label="Link to this section">#</a></h3>
+<p>Off unless you turn it on. For an install with no reverse proxy and no certbot; see <a href="tls.html#built-in-acme-optional">Built-in ACME</a>.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>ACME</code></td>
+<td><code>off</code></td>
+<td><code>on</code> to obtain and renew the mail certificate over ACME. <code>TLS_CERT_PATH</code>/<code>TLS_KEY_PATH</code> are then ignored</td>
+</tr>
+<tr>
+<td><code>ACME_EMAIL</code></td>
+<td><em>(empty)</em></td>
+<td>Contact address for the CA. Required with <code>ACME=on</code></td>
+</tr>
+<tr>
+<td><code>ACME_AGREE_TOS</code></td>
+<td><code>false</code></td>
+<td>Must be <code>true</code> with <code>ACME=on</code>: you agree to the CA's terms</td>
+</tr>
+<tr>
+<td><code>ACME_DOMAINS</code></td>
+<td><code>CORSAIR_HOSTNAME</code></td>
+<td>Comma-separated names on the certificate</td>
+</tr>
+<tr>
+<td><code>ACME_DIRECTORY</code></td>
+<td>Let's Encrypt production</td>
+<td>Staging: <code>https://acme-staging-v02.api.letsencrypt.org/directory</code></td>
+</tr>
+<tr>
+<td><code>ACME_DIR</code></td>
+<td><code>./data/acme</code></td>
+<td>Account key and certificate, mode 0600</td>
+</tr>
+<tr>
+<td><code>ACME_HTTP_PORT</code></td>
+<td><code>0</code></td>
+<td>Port for a challenge-only listener (normally <code>80</code>). <code>0</code> means none: port 80 must then reach <code>PORT</code></td>
+</tr>
+</tbody></table></div>
 <h2 id="delivery">Delivery<a class="anchor" href="#delivery" aria-label="Link to this section">#</a></h2>
 <div class='table-wrap'><table><thead><tr>
 <th>Variable</th>
@@ -283,6 +354,21 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td><code>starttls</code></td>
 <td></td>
 </tr>
+<tr>
+<td><code>DANE</code></td>
+<td><code>auto</code></td>
+<td><code>auto</code>, <code>on</code>, or <code>off</code>. DANE for <code>direct</code> delivery; <code>auto</code> enables it only if the resolver is seen to validate DNSSEC at startup</td>
+</tr>
+<tr>
+<td><code>DANE_RESOLVER</code></td>
+<td><em>(resolv.conf)</em></td>
+<td>Validating resolver whose AD bit is trusted, as <code>host</code> or <code>host:port</code>. Defaults to the first <code>nameserver</code> in <code>/etc/resolv.conf</code></td>
+</tr>
+<tr>
+<td><code>DANE_TRUST_REMOTE_RESOLVER</code></td>
+<td><code>false</code></td>
+<td>Accept a resolver that is not on loopback. Its AD bit can be forged in transit; see <a href="deliverability.html#dane">Deliverability</a></td>
+</tr>
 </tbody></table></div>
 <div class='table-wrap'><table><thead><tr>
 <th>Transport</th>
@@ -302,6 +388,20 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tr>
 </tbody></table></div>
 <aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span><code>console</code> is the default</p><p>A fresh <code>.env</code> delivers nothing. That is right for a laptop and wrong for a server — set <code>DELIVERY_TRANSPORT=direct</code> (or <code>relay</code>) as part of going live, or mail silently goes to the log.</p></aside>
+<h2 id="forwarded-mail-arc">Forwarded mail (ARC)<a class="anchor" href="#forwarded-mail-arc" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>ARC_TRUSTED_SEALERS</code></td>
+<td><em>(empty)</em></td>
+<td>Comma-separated sealer domains whose ARC pass overrides a DMARC failure, e.g. <code>google.com,outlook.com</code></td>
+</tr>
+</tbody></table></div>
+<p>Every inbound message has its ARC chain checked and the result recorded as <code>arc=</code> in <code>Authentication-Results</code>. That needs no configuration. This setting covers one decision: when a message fails DMARC but arrives with a passing ARC chain whose newest seal is from a listed domain (or a subdomain of one), the DMARC failure no longer counts against its spam score. The header still says <code>dmarc=fail</code> and notes the override, so it stays visible.</p>
+<p>Anyone can seal a message, so a seal is worth only what you know about who made it. List the forwarders and mailing lists your users really receive through, and nothing else. See <a href="deliverability.html#forwarding">Forwarding</a>.</p>
 <h2 id="storage">Storage<a class="anchor" href="#storage" aria-label="Link to this section">#</a></h2>
 <div class='table-wrap'><table><thead><tr>
 <th>Variable</th>
@@ -377,6 +477,44 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tbody></table></div>
 <p>Leave both empty and Corsair runs unmetered: plans still gate features and an operator can record payment methods by hand, but nothing is charged. That is the right default for hosting mail for yourself.</p>
 <p>Card details never reach this server. The customer enters them on the provider's hosted page; a brand, four digits, and an opaque reference come back. There is no code path here that could accept a card number.</p>
+<h2 id="spam-filtering">Spam filtering<a class="anchor" href="#spam-filtering" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>SPAM_DNSBL</code></td>
+<td><code>zen.spamhaus.org</code></td>
+<td>IP blocklists checked against the connecting client on port 25. Comma-separated; empty disables</td>
+</tr>
+<tr>
+<td><code>SPAM_URIBL</code></td>
+<td><code>dbl.spamhaus.org</code></td>
+<td>Domain blocklists checked against the sender's domains and up to 20 link domains. Comma-separated; empty disables</td>
+</tr>
+<tr>
+<td><code>SPAM_DNSBL_REJECT</code></td>
+<td><code>false</code></td>
+<td>Refuse clients on SBL, CSS, DROP, or XBL at <code>RCPT</code> instead of only scoring them</td>
+</tr>
+<tr>
+<td><code>SPAM_RESOLVER</code></td>
+<td>system resolver</td>
+<td>Resolver addresses for blocklist queries. Spamhaus refuses public and cloud resolvers, so set this to a local one</td>
+</tr>
+<tr>
+<td><code>SPAM_GREYLIST</code></td>
+<td><code>false</code></td>
+<td>Defer first contact from an unknown client, sender, and recipient with <code>451 4.7.1</code></td>
+</tr>
+<tr>
+<td><code>SPAM_GREYLIST_DELAY</code></td>
+<td><code>300</code></td>
+<td>Seconds a greylisted sender must wait before its retry is accepted</td>
+</tr>
+</tbody></table></div>
+<p>If the log says a list &quot;refused a query&quot;, blocklists are doing nothing until <code>SPAM_RESOLVER</code> points at a resolver the list will answer. See <a href="./spam.html">Spam filtering</a> for what each setting scores and why the defaults are what they are.</p>
 <h2 id="mailbox-transfers">Mailbox transfers<a class="anchor" href="#mailbox-transfers" aria-label="Link to this section">#</a></h2>
 <div class='table-wrap'><table><thead><tr>
 <th>Variable</th>
@@ -422,6 +560,34 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p>Authenticated requests are limited per user; unauthenticated ones per IP. Sign-in and sign-up have their own tighter limit of <strong>5 per second per IP</strong>, since there is no principal yet.</p>
 <p>A 429 carries <code>retry-after</code>, <code>ratelimit-limit</code>, <code>ratelimit-remaining</code>, and <code>ratelimit-reset</code>.</p>
 <p><code>MAX_MESSAGE_BYTES</code> is the wire size after encoding. Base64 costs about a third, so 25 MB on the wire is roughly an 18 MB attachment.</p>
+<h2 id="authentication-reports">Authentication reports<a class="anchor" href="#authentication-reports" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>DMARC_REPORTS_SEND</code></td>
+<td><code>true</code></td>
+<td>Record inbound DMARC results and send daily aggregate reports</td>
+</tr>
+<tr>
+<td><code>TLSRPT_SEND</code></td>
+<td><code>true</code></td>
+<td>Record outbound TLS outcomes and send daily TLS reports</td>
+</tr>
+<tr>
+<td><code>REPORTS_DAILY_CAP</code></td>
+<td><code>1000</code></td>
+<td>Reports of each kind sent per UTC day</td>
+</tr>
+<tr>
+<td><code>REPORTS_FROM</code></td>
+<td><code>noreply-dmarc@&lt;CORSAIR_HOSTNAME&gt;</code></td>
+<td>Sender of outgoing reports. Put it on a hosted domain so reports are DKIM-signed</td>
+</tr>
+</tbody></table></div>
+<p>See <a href="deliverability.html#reports-corsair-sends">Deliverability</a>.</p>
 <h2 id="seeding">Seeding<a class="anchor" href="#seeding" aria-label="Link to this section">#</a></h2>
 <div class='table-wrap'><table><thead><tr>
 <th>Variable</th>
@@ -478,7 +644,7 @@ STORAGE_SECRET_ACCESS_KEY=...</code></pre></figure>
 # or
 docker compose up -d</code></pre></figure>
 <p>There is no reload signal. A mail server that reconfigures itself mid-connection is a source of bugs nobody enjoys.</p><nav class="pager"><a class="pager-prev" href="./installation.html"><span>Previous</span><strong>Installation</strong></a><a class="pager-next" href="./dns-setup.html"><span>Next</span><strong>DNS setup</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#core">Core</a></li><li class="toc-h2"><a href="#mail-identity">Mail identity</a></li><li class="toc-h2"><a href="#listeners">Listeners</a></li><li class="toc-h3"><a href="#starttls-on-25-and-587">STARTTLS on 25 and 587</a></li><li class="toc-h2"><a href="#tls">TLS</a></li><li class="toc-h2"><a href="#delivery">Delivery</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#workers">Workers</a></li><li class="toc-h2"><a href="#payments">Payments</a></li><li class="toc-h2"><a href="#mailbox-transfers">Mailbox transfers</a></li><li class="toc-h2"><a href="#webhooks">Webhooks</a></li><li class="toc-h2"><a href="#limits">Limits</a></li><li class="toc-h2"><a href="#seeding">Seeding</a></li><li class="toc-h2"><a href="#a-production-starting-point">A production starting point</a></li><li class="toc-h2"><a href="#changing-configuration">Changing configuration</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#core">Core</a></li><li class="toc-h2"><a href="#mail-identity">Mail identity</a></li><li class="toc-h3"><a href="#dkim-rotation">DKIM rotation</a></li><li class="toc-h2"><a href="#listeners">Listeners</a></li><li class="toc-h3"><a href="#starttls-on-25-and-587">STARTTLS on 25 and 587</a></li><li class="toc-h2"><a href="#tls">TLS</a></li><li class="toc-h3"><a href="#built-in-acme">Built-in ACME</a></li><li class="toc-h2"><a href="#delivery">Delivery</a></li><li class="toc-h2"><a href="#forwarded-mail-arc">Forwarded mail (ARC)</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#workers">Workers</a></li><li class="toc-h2"><a href="#payments">Payments</a></li><li class="toc-h2"><a href="#spam-filtering">Spam filtering</a></li><li class="toc-h2"><a href="#mailbox-transfers">Mailbox transfers</a></li><li class="toc-h2"><a href="#webhooks">Webhooks</a></li><li class="toc-h2"><a href="#limits">Limits</a></li><li class="toc-h2"><a href="#authentication-reports">Authentication reports</a></li><li class="toc-h2"><a href="#seeding">Seeding</a></li><li class="toc-h2"><a href="#a-production-starting-point">A production starting point</a></li><li class="toc-h2"><a href="#changing-configuration">Changing configuration</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

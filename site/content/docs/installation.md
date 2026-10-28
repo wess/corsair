@@ -86,6 +86,11 @@ docker compose logs -f corsair
 docker compose restart corsair
 ```
 
+Without certbot or a proxy holding a certificate, Corsair can fetch its own:
+set `ACME=on`, publish `80:80`, and add `ACME_HTTP_PORT: 80`,
+`ACME_EMAIL`, `ACME_AGREE_TOS: "true"`, and `ACME_DOMAINS` to the environment,
+with `ACME_DIR` on a volume. See [Built-in ACME](tls.html#built-in-acme-optional).
+
 :::warning Mount certificates, do not bake them in
 `./certs` is a bind mount so renewal on the host is picked up by restarting the
 container. A certificate copied into the image expires inside it.
@@ -154,6 +159,11 @@ capability.
 Use `setcap` only when running Corsair **outside** systemd — by hand, or under a
 supervisor that does not set `NoNewPrivileges`.
 :::
+
+With the [built-in ACME client](tls.html#built-in-acme-optional), add
+`ACME_DIR=/opt/corsair/acme` to the environment and that directory to
+`ReadWritePaths`, and set `ACME_HTTP_PORT=80` — the capability above already lets
+it bind there.
 
 ## Split deployment
 

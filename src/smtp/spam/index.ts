@@ -1,4 +1,5 @@
 import * as mime from "../../mime/index.ts"
+import type { Listing } from "../dnsbl/index.ts"
 
 /**
  * A small heuristic spam scorer.
@@ -13,6 +14,12 @@ import * as mime from "../../mime/index.ts"
  *
  * Anything above `JUNK_THRESHOLD` is filed in Junk rather than rejected.
  * Rejecting on a heuristic score loses real mail silently.
+ *
+ * Two inputs come from outside this function and keep to the same rule:
+ * blocklist listings (`src/smtp/dnsbl`), which are someone else's published
+ * fact about the client or a link, and a trusted correspondent (`adjust`, from
+ * the inbound path), which is this mailbox's own history and only counts when
+ * the sender is authenticated as the address it claims.
  */
 
 export const JUNK_THRESHOLD = 5
@@ -21,18 +28,33 @@ export type SpamSignals = {
   spf: string
   dkim: string
   dmarc: string
+  /**
+   * A trusted ARC sealer vouching for a message whose DMARC failed — see
+   * `dmarcOverride` in `src/arc`. It cancels the DMARC penalty and nothing
+   * else: SPF and DKIM failures still count, and it never earns the pass bonus.
+   */
+  dmarcOverride?: string | null
   helo: string
   remoteIp: string
   mailFrom: string
   reverseDns: string | null
+  listings?: readonly Listing[]
 }
 
 export type SpamVerdict = { score: number; reasons: string[] }
 
 const SHOUTY = /^[^a-z]*$/
 
-export const score = (raw: string, signals: SpamSignals): SpamVerdict => {
-  const parsed = mime.parseMessage(raw)
+/**
+ * `prepared` lets a caller that has already parsed the message and decoded its
+ * bodies hand them over; a 25 MB message is not decoded twice for one verdict.
+ */
+export const score = (
+  raw: string,
+  signals: SpamSignals,
+  prepared?: { parsed: mime.ParsedMessage; bodies: { text: string; html: string } },
+): SpamVerdict => {
+  const parsed = prepared?.parsed ?? mime.parseMessage(raw)
   const reasons: string[] = []
   let total = 0
 
@@ -43,7 +65,9 @@ export const score = (raw: string, signals: SpamSignals): SpamVerdict => {
 
   // identity
 
-  if (signals.dmarc === "fail") add(4, "DMARC alignment failed")
+  if (signals.dmarc === "fail" && signals.dmarcOverride) {
+    add(0, `DMARC failed, overridden: forwarded, ARC sealed by ${signals.dmarcOverride}`)
+  } else if (signals.dmarc === "fail") add(4, "DMARC alignment failed")
   else if (signals.dmarc === "pass") add(-2, "DMARC passed")
 
   if (signals.spf === "fail") add(3, "SPF failed")
@@ -86,7 +110,7 @@ export const score = (raw: string, signals: SpamSignals): SpamVerdict => {
 
   // bodies
 
-  const { text, html } = mime.bodyText(raw, parsed)
+  const { text, html } = prepared?.bodies ?? mime.bodyText(raw, parsed)
   const body = text || html
 
   if (!body.trim()) add(1, "empty body")
@@ -109,8 +133,43 @@ export const score = (raw: string, signals: SpamSignals): SpamVerdict => {
     }
   }
 
+  // blocklists
+
+  // Every IP listing counts — SBL and XBL on one address are two facts. A domain
+  // list counts once, at its strongest hit, so a message is not scored by how
+  // many links it repeats.
+  const strongest = new Map<string, Listing>()
+  for (const l of signals.listings ?? []) {
+    if (l.kind === "ip") add(l.points, `client ${l.subject} is on ${l.zone} (${l.category})`)
+    else if ((strongest.get(l.zone)?.points ?? 0) < l.points) strongest.set(l.zone, l)
+  }
+  for (const l of strongest.values()) add(l.points, `${l.subject} is on ${l.zone} (${l.category})`)
+
   const rounded = Math.round(total * 10) / 10
   return { score: rounded, reasons }
+}
+
+/** A verdict with one more signal, for the parts decided per recipient. */
+export const adjust = (verdict: SpamVerdict, points: number, reason: string): SpamVerdict => ({
+  score: Math.round((verdict.score + points) * 10) / 10,
+  reasons: [...verdict.reasons, `${points > 0 ? "+" : ""}${points} ${reason}`],
+})
+
+/**
+ * The verdict as headers, so a client — and a Sieve script — can see why a
+ * message was filed where it was. Prepended above anything the sender wrote, so
+ * a forged `X-Spam-Score: 0` further down is never the first one read.
+ */
+export const spamHeaders = (verdict: SpamVerdict): string => {
+  const lines = [
+    `X-Spam-Status: ${isJunk(verdict) ? "Yes" : "No"}, score=${verdict.score} required=${JUNK_THRESHOLD}`,
+  ]
+  if (verdict.reasons.length) {
+    lines.push(
+      `X-Spam-Reasons: ${verdict.reasons.map((r) => mime.stripControls(r).replace(/;/g, ",")).join(";\r\n\t")}`,
+    )
+  }
+  return lines.join("\r\n")
 }
 
 export const isJunk = (verdict: SpamVerdict): boolean => verdict.score >= JUNK_THRESHOLD

@@ -101,6 +101,45 @@ dig +short TXT   corsair-1._domainkey.example.com
 
 The TXT lookup should follow the CNAME and return `v=DKIM1; k=rsa; p=…`.
 
+### Key rotation
+
+Customers publish the CNAMEs once and never touch them again. **You** publish the
+key itself: the three `MAIL_DKIM_HOSTS` names are in your zone, each holds one TXT
+record, and Corsair has no credentials for your zone (the DNS tokens it is handed
+are for customers' zones and are never stored). A host holds one key, so a rotation
+moves signing to a *different* selector, which is why all three CNAMEs should be
+published. Domains created before this existed may only have the first; they keep
+their current key until their next selector resolves, and nothing breaks.
+
+Each host moves through these phases:
+
+| Phase | Meaning |
+| --- | --- |
+| `spare` | Idle. Not signing, nothing to publish |
+| `staged` | A new key exists. **You publish its TXT record** |
+| `published` | Seen in DNS. Waits `DKIM_SOAK_HOURS` (48) so resolver caches expire |
+| `active` | Signing. Each domain moves only when its *own* `corsair-N._domainkey` name resolves to this key |
+| `retiring` | Replaced, but still published for `DKIM_RETIRE_DAYS` (7) so in-flight mail verifies |
+| `revoked` | Publish `v=DKIM1; k=rsa; p=` (empty), which tells verifiers the key is withdrawn |
+
+```sh
+bun run dkim status    # every host, its phase, and exactly which TXT to publish where
+bun run dkim rotate    # start now: stage a new key on the next host
+bun run dkim advance   # run the worker's pass immediately
+```
+
+`status` prints lines such as `publish at dkim-2.mail.example.com: TXT "v=DKIM1; k=rsa; p=…"`,
+already split into 255-character strings for DNS panels that need it. Publish it,
+and the worker (hourly) does the rest. Set `DKIM_ROTATE_DAYS` to start cycles
+automatically; the default `0` never starts one, so an operator who publishes by
+hand is not surprised. A cycle started with `rotate` is advanced either way.
+
+Corsair never switches signing to a key it has not seen resolve. A host whose TXT
+does not match stays `staged`; a domain whose own selector does not resolve to the
+new key keeps signing with the old one, and the old host is not revoked while any
+domain still signs with it. `status` lists those domains. Activating a key by hand
+from the panel is held to the same check.
+
 :::danger Some providers flatten CNAMEs
 Cloudflare's proxy and a few managed DNS products will resolve a CNAME at
 publish time and store the result. That freezes the key, and rotation then
@@ -111,7 +150,7 @@ the `_domainkey` records.
 ## DMARC
 
 ```
-v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com
+v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@example.com;
 ```
 
 Tells receivers what to do when a message claiming to be from you passes neither
@@ -129,6 +168,30 @@ platform, the ticketing system, and whatever else sends as you.
 
 `rua=` gives you aggregate reports, which is how you find the sender you forgot.
 Add it before tightening the policy, not after.
+
+The generated record points `rua` at `dmarc-reports@` on the domain itself. That
+address needs no mailbox: Corsair accepts mail for it, reads the reports
+(gzip, zip, or plain XML), and files them under the domain, where
+**Reports** in the control panel totals them by sending IP and by reporting
+organisation. If you do create a mailbox or alias called `dmarc-reports`, it
+receives the messages as well — the parse is in addition to delivery, not
+instead of it.
+
+Two rules decide what is filed:
+
+- **A report must be about the domain it was sent to**, or a subdomain of it.
+  A report mailed to `dmarc-reports@a.example` about `b.example` is dropped, so
+  one domain cannot fill another's dashboard.
+- **The sender must authenticate** — SPF or DKIM passed. Every large reporter
+  signs its reports; without the check anyone could invent traffic by mailing an
+  XML file.
+
+You can keep your own `rua` instead, or as well
+(`rua=mailto:dmarc-reports@example.com,mailto:you@dmarc-service.example`). A
+destination on another domain has to publish a TXT record authorising it —
+`example.com._report._dmarc.dmarc-service.example` with `v=DMARC1` — or
+receivers will not send to it. Commercial report services publish theirs for
+you.
 
 **DMARC passes if *either* SPF or DKIM passes and aligns with the From domain.**
 One is enough by design — that is what makes forwarding survivable, since
@@ -189,11 +252,31 @@ senders refuse to deliver rather than falling back. Watch the reports, confirm
 the MX list is right, and only then change it.
 :::
 
+## TLS reporting
+
+```
+_smtp._tls.example.com.  TXT  "v=TLSRPTv1; rua=mailto:tlsrpt@example.com"
+```
+
+Optional. Asks senders for a daily report (RFC 8460) of how their TLS sessions to
+your MX went — how many negotiated TLS, and why any did not. It is the feedback
+loop that makes [MTA-STS](#mta-sts) safe to tighten: an expired certificate shows
+up as `certificate-expired` failures before it becomes lost mail.
+
+Like `dmarc-reports@`, the `tlsrpt@` address needs no mailbox; Corsair files the
+JSON reports under the domain and shows them beside the DMARC ones. Entries in a
+report about any other domain are dropped.
+
 ## autoconfig and autodiscover
 
 CNAMEs that let Thunderbird and Outlook configure themselves from an email address
 alone. Optional, and worth publishing — the alternative is telling every user six
 hostnames.
+
+For contacts, a client that starts from an email address looks for a
+`_carddavs._tcp` SRV record on the domain (RFC 6764). Publish one only if the
+bare domain is not served by Corsair; the records are in
+[Contacts (CardDAV)](contacts.html#dns-for-discovery-from-the-address-alone).
 
 ## Checking everything
 

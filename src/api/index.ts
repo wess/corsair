@@ -1,10 +1,14 @@
 import { withSecurityHeaders } from "@wess/atlas/security"
 import { type Route, router } from "@wess/atlas/server"
+import { challengeResponse } from "../acme/challenge/index.ts"
 import { assetResponse, buildClients, type ClientBundle } from "../bundle/index.ts"
+import { handleDav } from "../carddav/index.ts"
 import { config } from "../config/index.ts"
 import { errorBody, notFound } from "../errors/index.ts"
 import { checkOrigin, privateResponse } from "../httpguard/index.ts"
 import webmail from "../mail/index.html"
+import { startProcessMetrics } from "../metrics/index.ts"
+import { metricsResponse } from "../metrics/serve/index.ts"
 import panel from "../web/index.html"
 import { allowsWebmailHost, webmailDomain } from "../webmailhost/index.ts"
 import { wrapAll } from "./pipes/index.ts"
@@ -13,9 +17,12 @@ import { addressRoutes } from "./routes/addresses/index.ts"
 import { adminRoutes } from "./routes/admins/index.ts"
 import { agentRoutes } from "./routes/agents/index.ts"
 import { apiKeyRoutes } from "./routes/apikeys/index.ts"
+import { appPasswordRoutes } from "./routes/apppasswords/index.ts"
 import { authRoutes } from "./routes/auth/index.ts"
+import { authReportRoutes } from "./routes/authreports/index.ts"
 import { autoconfigRoutes } from "./routes/autoconfig/index.ts"
 import { billingRoutes } from "./routes/billing/index.ts"
+import { contactRoutes } from "./routes/contacts/index.ts"
 import { dashboardRoutes } from "./routes/dashboard/index.ts"
 import { domainRoutes } from "./routes/domains/index.ts"
 import { emailRoutes } from "./routes/emails/index.ts"
@@ -47,9 +54,14 @@ export const allRoutes = (): Route[] => [
   // Addresses register `/api/domains/:domain_id/addresses`, which must not be
   // shadowed by the domain routes' own `:domain_id` patterns.
   ...wrapAll(addressRoutes),
+  // Panel and webmail app passwords. Ahead of the webmail's routes so
+  // `/api/mail/app-passwords` is not taken for anything matching `/api/mail/:x`.
+  ...wrapAll(appPasswordRoutes),
   // Same reason: `/api/domains/:domain_id/admins` must be registered ahead of
   // the domain routes' own `:domain_id` patterns.
   ...wrapAll(adminRoutes),
+  // And `/api/domains/:domain_id/reports/...`, for the same reason.
+  ...wrapAll(authReportRoutes),
   ...wrapAll(domainRoutes),
   ...wrapAll(recoveryRoutes),
   ...wrapAll(hookRoutes),
@@ -67,6 +79,7 @@ export const allRoutes = (): Route[] => [
   // Ahead of the webmail's own routes: `/api/mail/admin/...` must not be
   // shadowed by anything matching `/api/mail/:something`.
   ...wrapAll(mailAdminRoutes),
+  ...wrapAll(contactRoutes),
   ...wrapAll(webmailRoutes),
   ...wrapAll(webmailHostRoutes),
   ...wrapAll(jmapRoutes),
@@ -131,6 +144,10 @@ export const buildFetch = (clients: ClientBundle | null): ((req: Request) => Pro
     if (rejected) return rejected
     const url = new URL(req.url)
     const pathname = url.pathname
+    // Ahead of the webmail-host branch: the CA asks for the challenge under
+    // whichever name it is validating, and that can be a customer's host.
+    const challenge = challengeResponse(req, pathname)
+    if (challenge) return challenge
     if (url.hostname !== new URL(config.publicUrl).hostname && webmailDomain(url.hostname)) {
       if (!(await allowsWebmailHost(url.hostname)))
         return new Response(notFoundBody, {
@@ -152,6 +169,16 @@ export const buildFetch = (clients: ClientBundle | null): ((req: Request) => Pro
           headers: { "content-type": "application/json" },
         })
     }
+    // Through `fetch`, never `routes`: this is the one response that must not
+    // skip the wrappers, and it is answered ahead of the router so a catch-all
+    // can never shadow it.
+    const metrics = await metricsResponse(req)
+    if (metrics) return metrics
+
+    // Ahead of the router, which has no notion of PROPFIND or an XML body.
+    const dav = await handleDav(req)
+    if (dav) return dav
+
     const res = await handle(req)
     if (res.status !== 404) return res
 
@@ -193,6 +220,7 @@ export const buildFetch = (clients: ClientBundle | null): ((req: Request) => Pro
  */
 export const startApi = async (port = config.port, options: { hmr?: boolean } = {}) => {
   const clients = options.hmr ? null : await buildClients()
+  startProcessMetrics()
 
   const fetch = withSecurityHeaders(buildFetch(clients), {
     dev: process.env.NODE_ENV !== "production",

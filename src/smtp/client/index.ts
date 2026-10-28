@@ -1,5 +1,15 @@
 import { resolveMx } from "node:dns/promises"
+import type { TlsSessionResult } from "../../authreports/outbound/index.ts"
 import { config } from "../../config/index.ts"
+import {
+  type DanePolicy,
+  daneStatus,
+  matchChain,
+  peerChain,
+  policyForHost,
+  secureMx,
+  type TlsResult,
+} from "../../dane/index.ts"
 import { createWriter, type SocketWriter } from "../../socketio/index.ts"
 import { peerError } from "../../tlsverify/index.ts"
 
@@ -21,6 +31,17 @@ export type SendResult = {
   code: number
   message: string
   host: string | null
+  /**
+   * The transport-security verdict for the session, shaped for TLS-RPT. Absent
+   * when no session was attempted (console transport, no MX).
+   */
+  tls?: TlsResult
+  /**
+   * What happened to TLS on each session that got as far as EHLO, for the
+   * TLS reports in `src/authreports`. A session that never reached EHLO says
+   * nothing about TLS and is not counted.
+   */
+  sessions?: TlsSessionResult[]
 }
 
 /**
@@ -52,12 +73,21 @@ export type SendInput = {
   implicitTls?: boolean
   auth?: { user: string; pass: string }
   timeoutMs?: number
+  /**
+   * A DANE policy for this host. STARTTLS becomes mandatory and, when the policy
+   * has usable records, the certificate must match one. See `src/dane`.
+   */
+  dane?: DanePolicy
 }
+
+type DaneVerdict = { ok: boolean; outcome: TlsResult["outcome"]; reason: string }
 
 type Conn = {
   read: (expect?: number) => Promise<{ code: number; text: string }>
   write: (line: string) => void
   upgrade: () => Promise<void>
+  /** Set by `upgrade` when a DANE check ran. */
+  dane: () => DaneVerdict | null
   close: () => void
   secure: () => boolean
 }
@@ -108,11 +138,13 @@ const connect = async (input: {
   tls: boolean
   timeoutMs: number
   verifyTls: boolean
+  dane?: DanePolicy
 }): Promise<Conn> => {
   let buffer = ""
   let closed = false
   let secure = input.tls
   let notify: (() => void) | null = null
+  const verdict: { dane: DaneVerdict | null } = { dane: null }
 
   /**
    * Set the instant a TLS upgrade begins, and never cleared.
@@ -239,8 +271,28 @@ const connect = async (input: {
             onClosed()
           },
           handshake(socket: Bun.Socket<unknown>, success: boolean, error: Error | null) {
+            if (input.dane) {
+              // DANE replaces PKIX rather than adding to it: the certificate is
+              // judged against the TLSA records alone, so the handshake runs
+              // with rejectUnauthorized off and Bun's verdict is not consulted.
+              if (!input.dane.records.length) {
+                verdict.dane = {
+                  ok: true,
+                  outcome: "tlsa-invalid",
+                  reason: "no usable TLSA records; encrypted without authentication",
+                }
+              } else {
+                const match = matchChain(peerChain(socket), input.dane)
+                verdict.dane = match.ok
+                  ? { ok: true, outcome: "success", reason: match.reason }
+                  : { ok: false, outcome: match.outcome, reason: match.reason }
+                if (!match.ok) outcome.error = new Error(`DANE: ${match.reason}`)
+              }
+              settle()
+              return
+            }
             const invalid = input.verifyTls ? peerError(socket, input.host, error) : null
-            if (!success || invalid)
+            if (input.verifyTls && (!success || invalid))
               outcome.error = invalid ?? error ?? new Error("TLS handshake failed")
             settle()
           },
@@ -253,7 +305,11 @@ const connect = async (input: {
         // refusing to deliver on that basis loses real mail. Opportunistic TLS
         // is about passive eavesdropping, not authentication, so the connection
         // is encrypted but the certificate is not enforced.
-        tls: { rejectUnauthorized: input.verifyTls, serverName: input.host },
+        // Under DANE the SNI is the TLSA base domain (RFC 7672 §8.1).
+        tls: {
+          rejectUnauthorized: input.verifyTls && !input.dane,
+          serverName: input.dane?.serverName ?? input.host,
+        },
       } as never)
 
       socket = tls as never
@@ -275,9 +331,13 @@ const connect = async (input: {
       ]).finally(() => clearTimeout(timer))
 
       if (outcome.error) {
-        throw new SmtpFailure(421, `TLS handshake failed: ${outcome.error.message}`, true)
+        // 4.7.5 under DANE: temporary, so the queue retries rather than bounces,
+        // and never a fallback to cleartext.
+        const status = input.dane ? "4.7.5 " : ""
+        throw new SmtpFailure(421, `${status}TLS handshake failed: ${outcome.error.message}`, true)
       }
     },
+    dane: () => verdict.dane,
     close: () => {
       try {
         socket.end()
@@ -316,6 +376,43 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
   // remote server's opinion of *us*; only after it can a rejection be about who
   // the mail is for. See REPUTATION_BLOCK.
   let namedRecipient = false
+  // Set when DANE refuses the session before a handshake could judge it.
+  let daneRefusal: TlsResult | null = null
+
+  const tlsResult = (): TlsResult => {
+    if (input.dane) {
+      const verdict = conn?.dane()
+      if (verdict) return { policy: "dane", outcome: verdict.outcome, reason: verdict.reason }
+      return (
+        daneRefusal ?? { policy: "dane", outcome: "validation-failure", reason: "no TLS session" }
+      )
+    }
+    return {
+      policy: "none",
+      outcome: "success",
+      reason: !conn?.secure()
+        ? "cleartext"
+        : input.auth
+          ? "TLS with a verified certificate"
+          : "TLS without certificate checks",
+    }
+  }
+  let session: TlsSessionResult | undefined
+  let reachedEhlo = false
+  // Under DANE the report speaks for the TLSA policy and its verdict; otherwise
+  // it says how opportunistic STARTTLS went.
+  const sessions = (): { sessions?: TlsSessionResult[] } => {
+    if (input.dane) {
+      if (!reachedEhlo) return {}
+      const verdict = tlsResult()
+      return {
+        sessions: [
+          { host: input.host, policy: "tlsa", result: verdict.outcome, detail: verdict.reason },
+        ],
+      }
+    }
+    return session ? { sessions: [session] } : {}
+  }
 
   try {
     conn = await connect({
@@ -324,19 +421,63 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
       tls: Boolean(input.implicitTls),
       timeoutMs,
       verifyTls: Boolean(input.auth),
+      dane: input.dane,
     })
 
     await conn.read(220)
 
     conn.write(`EHLO ${config.hostname}${CRLF}`)
     let greeting = await conn.read(250)
+    reachedEhlo = true
 
-    if (!conn.secure() && /\bSTARTTLS\b/i.test(greeting.text)) {
+    const offersStartTls = /\bSTARTTLS\b/i.test(greeting.text)
+    if (input.dane && !conn.secure() && !offersStartTls) {
+      // The capability is exactly what an attacker on the path strips, and the
+      // signed TLSA record is the receiver saying it would never omit it.
+      daneRefusal = {
+        policy: "dane",
+        outcome: "starttls-not-supported",
+        reason: "TLSA records are published but STARTTLS was not offered",
+      }
+      throw new SmtpFailure(421, `4.7.5 ${daneRefusal.reason}.`, true)
+    }
+
+    if (!conn.secure() && offersStartTls) {
       conn.write(`STARTTLS${CRLF}`)
-      await conn.read(220)
-      await conn.upgrade()
+      try {
+        await conn.read(220)
+      } catch (e) {
+        // Under DANE even a 5xx here is a deferral: the mail is fine, the
+        // session just cannot be made safe right now.
+        if (!input.dane || !(e instanceof SmtpFailure)) throw e
+        daneRefusal = {
+          policy: "dane",
+          outcome: "starttls-not-supported",
+          reason: `STARTTLS refused: ${e.message}`,
+        }
+        throw new SmtpFailure(421, `4.7.5 ${daneRefusal.reason}`, true)
+      }
+      try {
+        await conn.upgrade()
+      } catch (e) {
+        session = {
+          host: input.host,
+          policy: "no-policy-found",
+          result: "validation-failure",
+          detail: (e as Error).message,
+        }
+        throw e
+      }
+      session = { host: input.host, policy: "no-policy-found", result: "success", detail: "" }
       conn.write(`EHLO ${config.hostname}${CRLF}`)
       greeting = await conn.read(250)
+    } else if (!input.implicitTls) {
+      session = {
+        host: input.host,
+        policy: "no-policy-found",
+        result: "starttls-not-supported",
+        detail: "",
+      }
     }
 
     if (input.auth) {
@@ -367,6 +508,8 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
       code: accepted.code,
       message: accepted.text,
       host: input.host,
+      tls: tlsResult(),
+      ...sessions(),
     }
   } catch (e) {
     if (e instanceof SmtpFailure) {
@@ -379,6 +522,8 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
         code: e.code,
         message: e.message,
         host: input.host,
+        tls: tlsResult(),
+        ...sessions(),
       }
     }
     // A DNS or TCP failure is transient by definition — the remote end never
@@ -389,6 +534,8 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
       code: 421,
       message: (e as Error).message,
       host: input.host,
+      tls: tlsResult(),
+      ...sessions(),
     }
   } finally {
     conn?.close()
@@ -454,7 +601,44 @@ export const deliverToDomain = async (input: {
     })
   }
 
-  const hosts = await mxHostsOf(input.domain)
+  return deliverToMx(input)
+}
+
+/**
+ * The direct-to-MX half of `deliverToDomain`. With DANE on, the MX and TLSA
+ * lookups go through the validating resolver and each host gets its own policy;
+ * a host whose DNSSEC answer is broken is skipped as a deferral, so the walk can
+ * still reach a healthy one. `port` exists for tests; the internet uses 25.
+ */
+export const deliverToMx = async (input: {
+  domain: string
+  mailFrom: string
+  rcptTo: string
+  raw: string
+  port?: number
+  timeoutMs?: number
+}): Promise<SendResult> => {
+  const dane = daneStatus().enabled
+  let hosts: string[]
+  let mxSecure = false
+  if (dane) {
+    const mx = await secureMx(input.domain)
+    if (mx.kind === "error") {
+      return {
+        ok: false,
+        retryable: true,
+        code: 421,
+        message: `4.4.3 MX lookup for ${input.domain} failed: ${mx.reason}`,
+        host: null,
+        tls: { policy: "dane", outcome: "dnssec-invalid", reason: mx.reason },
+      }
+    }
+    hosts = mx.hosts
+    mxSecure = mx.secure
+  } else {
+    hosts = await mxHostsOf(input.domain)
+  }
+
   let last: SendResult = {
     ok: false,
     retryable: true,
@@ -463,15 +647,32 @@ export const deliverToDomain = async (input: {
     host: null,
   }
 
+  const sessions: TlsSessionResult[] = []
   for (const host of hosts) {
+    const policy = dane ? await policyForHost(host, { domain: input.domain, mxSecure }) : null
+    if (policy?.kind === "defer") {
+      last = {
+        ok: false,
+        retryable: true,
+        code: 421,
+        message: `4.7.5 ${host}: ${policy.reason}`,
+        host,
+        tls: { policy: "dane", outcome: "dnssec-invalid", reason: policy.reason },
+      }
+      sessions.push({ host, policy: "tlsa", result: "dnssec-invalid", detail: policy.reason })
+      continue
+    }
     last = await sendMessage({
       host,
+      port: input.port,
+      timeoutMs: input.timeoutMs,
       mailFrom: input.mailFrom,
       rcptTo: input.rcptTo,
       raw: input.raw,
+      dane: policy?.kind === "dane" ? policy.policy : undefined,
     })
-    if (last.ok) return last
-    if (!last.retryable) return last
+    sessions.push(...(last.sessions ?? []))
+    if (last.ok || !last.retryable) break
   }
-  return last
+  return { ...last, sessions }
 }

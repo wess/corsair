@@ -201,7 +201,8 @@
   border-bottom: 1px solid var(--border);
   padding: 8px 0;
 }
-.compose-row > span {
+.compose-row > span,
+.compose-row > label {
   flex: none;
   width: 60px;
   font-size: 13px;
@@ -215,6 +216,39 @@
 }
 .compose-row input:focus {
   outline: none;
+}
+.recipient {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.recipient > input {
+  width: 100%;
+}
+.recipient-list {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+.recipient-list [role="option"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.recipient-list [role="option"].active {
+  background: var(--accent-soft);
 }
 .compose-body {
   min-height: 260px;

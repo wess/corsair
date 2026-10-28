@@ -1,8 +1,9 @@
 import { clearAuthFailures, isBanned, recordAuthFailure } from "../auth/index.ts"
 import { config } from "../config/index.ts"
+import { connections } from "../metrics/index.ts"
 import { createReader, createWriter, type SocketWriter } from "../socketio/index.ts"
 import { canUpgradeServerSocketToTls, upgradeAcceptedSocket } from "../starttls/index.ts"
-import { tlsOptions } from "../tls/index.ts"
+import { currentTls, serveImplicitTls, tlsOptions } from "../tls/index.ts"
 import { createPop3Session, type Pop3Session } from "./session/index.ts"
 
 export { createPop3Session } from "./session/index.ts"
@@ -33,7 +34,10 @@ const createListener = (input: {
   // Never advertise STARTTLS the runtime cannot actually perform: a sender
   // that takes us up on it gets its connection dropped mid-handshake and
   // defers rather than falling back. See src/starttls.
-  const canStartTls = Boolean(input.tls) && !input.implicitTls && canUpgradeServerSocketToTls()
+  // Asked per connection, not once: with ACME the first certificate can arrive
+  // after the listener is already up.
+  const tlsNow = () => currentTls() ?? input.tls
+  const canStartTls = () => Boolean(tlsNow()) && !input.implicitTls && canUpgradeServerSocketToTls()
 
   const handleChunk = async (socket: Bun.Socket<SocketData>, chunk: Uint8Array) => {
     const state = socket.data
@@ -53,7 +57,7 @@ const createListener = (input: {
       state.upgradeRequested = false
       try {
         const [, tlsSocket] = upgradeAcceptedSocket<SocketData>(socket, {
-          tls: input.tls!,
+          tls: tlsNow()!,
           // NOT `handlers`. Bun runs `open` on the upgraded socket, and this
           // listener's `open` builds fresh state, starts a new session, and
           // writes a second greeting — so reusing it silently replaced the
@@ -85,6 +89,7 @@ const createListener = (input: {
   const handlers = {
     open(socket: Bun.Socket<SocketData>) {
       const remoteIp = socket.remoteAddress ?? "unknown"
+      connections.inc({ protocol: "pop3" })
       const data: SocketData = {
         session: null as never,
         remoteIp,
@@ -105,7 +110,7 @@ const createListener = (input: {
           data.writer.write(response)
           await data.writer.settled()
         },
-        ...(canStartTls
+        ...(canStartTls()
           ? {
               startTls: () => {
                 data.upgradeRequested = true
@@ -115,7 +120,7 @@ const createListener = (input: {
         onAuthSuccess: () => {
           data.authed = true
           ;(data.tlsSocket ?? socket).timeout(AUTHED_IDLE)
-          void clearAuthFailures(remoteIp).catch(() => {})
+          void clearAuthFailures(remoteIp, "pop3").catch(() => {})
         },
         onAuthFailure: (username) => {
           void recordAuthFailure(remoteIp, "pop3", username).catch(() => {})
@@ -133,7 +138,7 @@ const createListener = (input: {
       socket.data = data
       socket.timeout(PRE_AUTH_IDLE)
 
-      const ready = isBanned(remoteIp)
+      const ready = isBanned(remoteIp, "pop3")
         .then((banned) => {
           if (banned) {
             data.writer.write(`-ERR Too many failed attempts from ${remoteIp}.\r\n`)
@@ -165,6 +170,7 @@ const createListener = (input: {
 
     close(socket: Bun.Socket<SocketData>) {
       if (socket.data?.tlsSocket && socket !== socket.data.tlsSocket) return
+      if (socket.data) connections.dec({ protocol: "pop3" })
       socket.data?.reader?.close()
       socket.data?.writer?.close()
     },
@@ -193,7 +199,7 @@ export const startPop3 = async (): Promise<void> => {
   }
 
   createListener({ port: config.pop3.port, implicitTls: false, tls, label: "pop3" })
-  if (tls) {
-    createListener({ port: config.pop3.tlsPort, implicitTls: true, tls, label: "pop3s" })
-  }
+  serveImplicitTls("pop3s", (current) =>
+    createListener({ port: config.pop3.tlsPort, implicitTls: true, tls: current, label: "pop3s" }),
+  )
 }

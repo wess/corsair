@@ -7,7 +7,11 @@ import {
   type Route,
   resolveRecipient,
 } from "../../addresses/index.ts"
+import { type ArcChain, dmarcOverride, seal, verifyChain } from "../../arc/index.ts"
+import { ingestReports, reportTarget } from "../../authreports/index.ts"
+import { recordDmarc } from "../../authreports/outbound/index.ts"
 import { config } from "../../config/index.ts"
+import { isCorrespondent } from "../../correspondents/index.ts"
 import { db } from "../../db/index.ts"
 import { aligned, fromDomainOf, verifySignature } from "../../dkim/index.ts"
 import { activeDkimKey } from "../../domains/index.ts"
@@ -16,14 +20,23 @@ import { queueId, uidValidity } from "../../ids/index.ts"
 import * as mime from "../../mime/index.ts"
 import { enqueue } from "../../outbound/index.ts"
 import { assertStorageAvailable, withinDailyLimit } from "../../plans/index.ts"
-import { type Filter, type Folder, filters, folders, mailLog } from "../../schema/index.ts"
+import {
+  type Domain,
+  type Filter,
+  type Folder,
+  filters,
+  folders,
+  mailLog,
+} from "../../schema/index.ts"
 import { applyReport, bounceTarget } from "../../sending/index.ts"
 import * as sieve from "../../sieve/index.ts"
-import { checkSpf, lookupDmarc, spfAligned } from "../../spf/index.ts"
+import { checkSpf, type DmarcPolicy, lookupDmarc, spfAligned } from "../../spf/index.ts"
 import { deliver } from "../../store/index.ts"
 import { sendBounce } from "../bounce/index.ts"
+import { checkDomains, checkIp, extractDomains, rejectable } from "../dnsbl/index.ts"
+import { checkGreylist } from "../greylist/index.ts"
 import type { Envelope, Reply } from "../session/index.ts"
-import { isJunk, type SpamVerdict, score } from "../spam/index.ts"
+import { adjust, isJunk, type SpamVerdict, score, spamHeaders } from "../spam/index.ts"
 import { rewrite } from "../srs/index.ts"
 
 /**
@@ -49,16 +62,65 @@ export type InboundContext = {
 
 // recipients
 
+/** What the listener knows about the client at RCPT time. */
+export type RcptContext = { remoteIp: string; local?: boolean }
+
+// RFC 5321 §4.5.1 and RFC 2142: a listed sender still has to be able to reach
+// the people who can tell them why.
+const ROLE = /^(postmaster|abuse)@/i
+
+/**
+ * The two checks that refuse or defer at RCPT rather than score. A blocklist
+ * refusal is opt-in (`SPAM_DNSBL_REJECT`) and only for listings that describe
+ * the host itself; greylisting is opt-in (`SPAM_GREYLIST`) and only defers.
+ */
+const screen = async (
+  address: string,
+  route: Route,
+  identity: unknown,
+  envelope: Envelope,
+  ctx: RcptContext,
+): Promise<Reply | null> => {
+  const local = spfExempt(ctx)
+  if (config.spam.dnsblReject && !local && !ROLE.test(address)) {
+    const listed = rejectable(await checkIp(ctx.remoteIp))
+    if (listed) {
+      return {
+        code: 554,
+        enhanced: "5.7.1",
+        message: `Service unavailable; client host [${listed.subject}] blocked using ${listed.zone} (${listed.category}).`,
+      }
+    }
+  }
+  if (config.spam.greylist) {
+    return checkGreylist({
+      remoteIp: ctx.remoteIp,
+      local,
+      authenticated: Boolean(identity),
+      helo: envelope.helo,
+      mailFrom: envelope.mailFrom,
+      recipient: address,
+      addressId: route.kind === "mailbox" ? route.address.id : null,
+    })
+  }
+  return null
+}
+
 export const validateRecipient = async (
   address: string,
-  _identity: unknown,
-  _envelope: Envelope,
+  identity: unknown,
+  envelope: Envelope,
+  ctx?: RcptContext,
 ): Promise<Reply | null> => {
   // A report for an API send, addressed to its bounce address. Accepted before
   // routing, and whether or not any mailbox by that name exists.
   if (await bounceTarget(address)) return null
 
   const route = await resolveRecipient(address)
+
+  // A domain's report address takes mail whether or not a mailbox answers for
+  // it, so pointing `rua` at it works without creating one.
+  if (route.kind === "unknown" && route.domain && (await reportTarget(address))) return null
 
   if (route.kind === "unknown") {
     // The domain distinction matters to the sender: "we do not host this
@@ -84,7 +146,7 @@ export const validateRecipient = async (
     }
   }
 
-  return null
+  return ctx ? screen(address, route, identity, envelope, ctx) : null
 }
 
 // authentication
@@ -110,7 +172,55 @@ type AuthResults = {
   dmarc: string
   dkimDomain: string | null
   reverseDns: string | null
+  arc: ArcChain
+  /** The trusted sealer whose ARC pass overrides a DMARC failure, if any. */
+  dmarcOverride: string | null
+  /** The inputs to the DMARC verdict, kept for the aggregate report. */
+  dmarcDetail: {
+    policy: DmarcPolicy
+    fromDomain: string
+    spfDomain: string
+    spfAligned: boolean
+    dkimAligned: boolean
+  } | null
 }
+
+/**
+ * The From address, when SPF or DKIM authenticates its domain — aligned the
+ * way DMARC aligns, relaxed. Null otherwise.
+ *
+ * This is what the trusted-correspondent bonus is keyed on, so it must not be
+ * the bare header: a known correspondent's address in a forged From is the
+ * oldest trick there is, and it is exactly the mail that bonus would wave in.
+ */
+export const authenticatedFrom = (
+  parsed: mime.ParsedMessage,
+  mailFrom: string,
+  results: Pick<AuthResults, "spf" | "dkim" | "dkimDomain">,
+): string | null => {
+  const address = mime
+    .parseAddressList(mime.headerValue(parsed.headers, "from"))[0]
+    ?.address.toLowerCase()
+  const domain = address?.split("@")[1]
+  if (!address || !domain) return null
+  const envelopeDomain = mailFrom.split("@")[1]
+  const dkimOk =
+    results.dkim === "pass" && !!results.dkimDomain && aligned(domain, results.dkimDomain)
+  const spfOk = results.spf === "pass" && !!envelopeDomain && spfAligned(domain, envelopeDomain)
+  return dkimOk || spfOk ? address : null
+}
+
+/** Mail back from someone this mailbox wrote to. Large enough to outweigh most heuristics. */
+export const CORRESPONDENT_POINTS = -5
+
+const forMailbox = async (
+  verdict: SpamVerdict,
+  addressId: string,
+  sender: string | null,
+): Promise<SpamVerdict> =>
+  sender && (await isCorrespondent(addressId, sender).catch(() => false))
+    ? adjust(verdict, CORRESPONDENT_POINTS, `${sender} is a correspondent of this mailbox`)
+    : verdict
 
 /**
  * A connection from this machine to itself.
@@ -147,7 +257,7 @@ const authenticate = async (
   envelope: Envelope,
   ctx: InboundContext,
 ): Promise<AuthResults> => {
-  const [spf, dkim, ptr] = await Promise.all([
+  const [spf, dkim, ptr, arc] = await Promise.all([
     spfExempt(ctx)
       ? Promise.resolve({ result: "pass" as const, domain: ctx.helo })
       : checkSpf({ ip: ctx.remoteIp, mailFrom: envelope.mailFrom, helo: ctx.helo }),
@@ -156,10 +266,12 @@ const authenticate = async (
       (names) => names[0] ?? null,
       () => null,
     ),
+    verifyChain(raw, parsed),
   ])
 
   const fromDomain = fromDomainOf(parsed)
   let dmarc = "none"
+  let dmarcDetail: AuthResults["dmarcDetail"] = null
 
   if (fromDomain) {
     const policy = await lookupDmarc(fromDomain)
@@ -173,6 +285,13 @@ const authenticate = async (
           ? aligned(fromDomain, dkim.domain, policy.adkim)
           : false
       dmarc = spfOk || dkimOk ? "pass" : "fail"
+      dmarcDetail = {
+        policy,
+        fromDomain,
+        spfDomain: spf.domain,
+        spfAligned: spfAligned(fromDomain, spf.domain, policy.aspf),
+        dkimAligned: dkim.domain ? aligned(fromDomain, dkim.domain, policy.adkim) : false,
+      }
     }
   }
 
@@ -182,18 +301,69 @@ const authenticate = async (
     dmarc,
     dkimDomain: dkim.domain,
     reverseDns: ptr,
+    arc,
+    dmarcOverride: dmarcOverride(dmarc, arc, config.arc.trustedSealers),
+    dmarcDetail,
   }
 }
 
-const authenticationResults = (results: AuthResults, envelope: Envelope): string => {
+// A domain from the message goes into a header we emit, so anything but a
+// hostname's characters is dropped rather than quoted.
+const hostnameOnly = (value: string | null): string | null =>
+  value && /^[a-z0-9.-]{1,253}$/i.test(value) ? value : null
+
+/** The Authentication-Results payload after the authserv-id, shared with the ARC copy. */
+const resultsPayload = (results: AuthResults, envelope: Envelope): string => {
+  const sealer = hostnameOnly(results.arc.sealer)
   const parts = [
     `spf=${results.spf} smtp.mailfrom=${envelope.mailFrom || "<>"}`,
     results.dkimDomain
       ? `dkim=${results.dkim} header.d=${results.dkimDomain}`
       : `dkim=${results.dkim}`,
-    `dmarc=${results.dmarc}`,
+    // The failure is recorded as it was; the override is local policy (RFC 7489
+    // §6.7) and says so, rather than rewriting the result into a pass.
+    results.dmarcOverride
+      ? `dmarc=${results.dmarc} (overridden by local policy: forwarded, arc=pass by ${hostnameOnly(results.dmarcOverride) ?? "a trusted sealer"})`
+      : `dmarc=${results.dmarc}`,
+    results.arc.result === "pass" && sealer
+      ? `arc=pass (i=${results.arc.instance} d=${sealer})`
+      : `arc=${results.arc.result}`,
   ]
-  return `Authentication-Results: ${config.hostname}; ${parts.join("; ")}`
+  return mime.stripControls(parts.join("; "))
+}
+
+const authenticationResults = (results: AuthResults, envelope: Envelope): string =>
+  `Authentication-Results: ${config.hostname}; ${resultsPayload(results, envelope)}`
+
+/**
+ * Adds our ARC set to a message we are relaying to another domain, signed with
+ * the forwarding domain's DKIM key — the same key and selector its outbound mail
+ * uses, so the receiver resolves it under `d=` exactly as it would a DKIM
+ * signature. A domain with no active key relays unsealed, and so does a seal
+ * that throws: the mail is the product and the seal is a courtesy to the next hop.
+ */
+const sealForRelay = async (
+  stamped: string,
+  domain: Domain,
+  results: AuthResults,
+  envelope: Envelope,
+): Promise<string> => {
+  const key = await activeDkimKey(domain.id)
+  if (!key) return stamped
+  try {
+    return seal({
+      raw: stamped,
+      chain: results.arc,
+      authservId: config.hostname,
+      results: resultsPayload(results, envelope),
+      domain: domain.name,
+      selector: key.selector,
+      privateKey: key.private_key,
+    })
+  } catch (e) {
+    console.error(`[corsair] could not ARC-seal for ${domain.name}:`, (e as Error).message)
+    return stamped
+  }
 }
 
 const receivedHeader = (ctx: InboundContext, recipient: string): string => {
@@ -231,6 +401,7 @@ const folderNamed = async (
         "uid_validity",
         "uid_next",
         "highest_modseq",
+        "vanished_floor",
         "subscribed",
         "created_at",
         "updated_at",
@@ -251,7 +422,7 @@ const deliverToMailbox = async (
   verdict: SpamVerdict,
 ): Promise<DeliveryOutcome> => {
   const userId = await ownerOfDomain(route.domain.id)
-  const stamped = `${receivedHeader(ctx, `${route.address.local_part}@${route.domain.name}`)}\r\n${authenticationResults(results, envelope)}\r\n${raw}`
+  const stamped = `${receivedHeader(ctx, `${route.address.local_part}@${route.domain.name}`)}\r\n${authenticationResults(results, envelope)}\r\n${spamHeaders(verdict)}\r\n${raw}`
 
   if (userId) {
     try {
@@ -304,9 +475,12 @@ const deliverToMailbox = async (
     return { code: 550, status: "rejected", detail: decision.reject }
   }
 
+  const redirected = decision.redirect.length
+    ? await sealForRelay(stamped, route.domain, results, envelope)
+    : stamped
   for (const target of decision.redirect) {
     await enqueue({
-      raw: stamped,
+      raw: redirected,
       mailFrom: rewrite(envelope.mailFrom, route.domain.name),
       recipients: [target],
       domainId: route.domain.id,
@@ -362,9 +536,10 @@ const deliverToForward = async (
 
   // The envelope sender is rewritten into the forwarding domain so the next hop
   // sees a sender whose SPF we actually satisfy. Without this, forwarding to
-  // any large provider fails.
+  // any large provider fails. SRS fixes SPF but not DMARC alignment, which is
+  // what the ARC seal is for.
   await enqueue({
-    raw: stamped,
+    raw: await sealForRelay(stamped, route.domain, results, envelope),
     mailFrom: rewrite(envelope.mailFrom, route.domain.name),
     recipients: route.destinations,
     domainId: route.domain.id,
@@ -408,20 +583,65 @@ export const handleMessage = async (
     }
   }
   const parsed = mime.parseMessage(normalized)
-  const results = await authenticate(normalized, parsed, envelope, ctx)
+  const bodies = mime.bodyText(normalized, parsed)
 
-  const verdict = score(normalized, {
-    spf: results.spf,
-    dkim: results.dkim,
-    dmarc: results.dmarc,
-    helo: ctx.helo,
-    remoteIp: ctx.remoteIp,
-    mailFrom: envelope.mailFrom,
-    reverseDns: results.reverseDns,
-  })
+  // Blocklists run beside authentication rather than after it; each has its own
+  // budget and neither waits on the other. Skipped for this server talking to
+  // itself, which no list has anything to say about.
+  const screened = !spfExempt(ctx)
+  const [results, ipListings, domainListings] = await Promise.all([
+    authenticate(normalized, parsed, envelope, ctx),
+    screened ? checkIp(ctx.remoteIp) : [],
+    screened
+      ? checkDomains(
+          extractDomains({
+            senders: [fromDomainOf(parsed), envelope.mailFrom.split("@")[1]],
+            ...bodies,
+          }),
+        )
+      : [],
+  ])
+
+  const verdict = score(
+    normalized,
+    {
+      spf: results.spf,
+      dkim: results.dkim,
+      dmarc: results.dmarc,
+      dmarcOverride: results.dmarcOverride,
+      helo: ctx.helo,
+      remoteIp: ctx.remoteIp,
+      mailFrom: envelope.mailFrom,
+      reverseDns: results.reverseDns,
+      listings: [...ipListings, ...domainListings],
+    },
+    { parsed, bodies },
+  )
+  const sender = authenticatedFrom(parsed, envelope.mailFrom, results)
 
   const subject = mime.decodeWords(mime.headerValue(parsed.headers, "subject") ?? "")
   const messageId = mime.headerValue(parsed.headers, "message-id")
+
+  // Counted toward the From domain's daily aggregate report. Not for this
+  // machine talking to itself: 127.0.0.1 is not a source anyone can act on.
+  const detail = results.dmarcDetail
+  if (detail && !spfExempt(ctx)) {
+    void recordDmarc({
+      policy: detail.policy,
+      headerFrom: detail.fromDomain,
+      sourceIp: ctx.remoteIp,
+      envelopeFrom: envelope.mailFrom,
+      spf: { result: results.spf, domain: detail.spfDomain, aligned: detail.spfAligned },
+      dkim: { result: results.dkim, domain: results.dkimDomain, aligned: detail.dkimAligned },
+      // What was done, not what was asked for: nothing is refused on DMARC
+      // here, and a failing message is quarantined only if it scored as junk.
+      disposition: results.dmarc === "fail" && isJunk(verdict) ? "quarantine" : "none",
+    })
+  }
+
+  // Reports are filed for each domain at most once, however many of its report
+  // addresses the message was sent to.
+  const ingested = new Set<string>()
 
   let accepted = 0
   let lastFailure: DeliveryOutcome | null = null
@@ -462,11 +682,29 @@ export const handleMessage = async (
       continue
     }
 
+    const reportDomain = await reportTarget(recipient)
+    let reportDetail: string | null = null
+    if (reportDomain && !ingested.has(reportDomain.id)) {
+      ingested.add(reportDomain.id)
+      const filed = await ingestReports(reportDomain, normalized, parsed, mayBounceTo(results))
+      reportDetail = filed.stored
+        ? `Filed ${filed.stored} report(s).`
+        : filed.refused.length
+          ? `No report filed: ${filed.refused[0]}`.slice(0, 300)
+          : null
+    }
+
     const route = await resolveRecipient(recipient)
     let outcome: DeliveryOutcome
+    // The one part of the verdict that depends on the recipient: whether this
+    // mailbox has written to the (authenticated) sender.
+    const own =
+      route.kind === "mailbox" ? await forMailbox(verdict, route.address.id, sender) : verdict
 
-    if (route.kind === "mailbox") {
-      outcome = await deliverToMailbox(route, normalized, envelope, ctx, results, verdict)
+    if (reportDomain && route.kind === "unknown") {
+      outcome = { code: 250, status: "accepted", detail: reportDetail ?? "Report address." }
+    } else if (route.kind === "mailbox") {
+      outcome = await deliverToMailbox(route, normalized, envelope, ctx, results, own)
     } else if (route.kind === "forward") {
       outcome = await deliverToForward(route, normalized, envelope, ctx, results)
     } else {
@@ -475,12 +713,13 @@ export const handleMessage = async (
       outcome = { code: 550, status: "rejected", detail: "No such user here." }
     }
 
-    const userId = route.kind === "unknown" ? null : await ownerOfDomain(route.domain.id)
+    const loggedDomain = route.kind === "unknown" ? (reportDomain ?? null) : route.domain
+    const userId = loggedDomain ? await ownerOfDomain(loggedDomain.id) : null
     await db()
       .execute(
         from(mailLog).insert({
           user_id: userId,
-          domain_id: route.kind === "unknown" ? null : route.domain.id,
+          domain_id: loggedDomain?.id ?? null,
           address_id: route.kind === "unknown" ? null : (route.address?.id ?? null),
           direction: "inbound",
           status: outcome.status,
@@ -494,7 +733,7 @@ export const handleMessage = async (
           spf: results.spf,
           dkim: results.dkim,
           dmarc: results.dmarc,
-          spam_score: verdict.score,
+          spam_score: own.score,
           code: outcome.code,
           detail: outcome.detail,
         }),
@@ -505,11 +744,11 @@ export const handleMessage = async (
     // transaction, and a failure to notify must never fail a delivery.
     void emit({
       userId,
-      domainId: route.kind === "unknown" ? null : route.domain.id,
+      domainId: loggedDomain?.id ?? null,
       type:
         outcome.code >= 400
           ? "message.rejected"
-          : isJunk(verdict)
+          : isJunk(own)
             ? "message.spam"
             : "message.received",
       data: {
@@ -518,7 +757,7 @@ export const handleMessage = async (
         subject,
         message_id: messageId,
         size: normalized.length,
-        spam_score: verdict.score,
+        spam_score: own.score,
         authentication: { spf: results.spf, dkim: results.dkim, dmarc: results.dmarc },
         remote_ip: ctx.remoteIp,
         ...(outcome.code >= 400 ? { reason: outcome.detail, code: outcome.code } : {}),

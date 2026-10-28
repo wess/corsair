@@ -529,6 +529,7 @@ the store affects every protocol at once, which is the trade you are making.
 | SMTP (submission) | 587, 465 | Address | Requires TLS |
 | IMAP | 143, 993 | Address | [Reference](imap.html) |
 | POP3 | 110, 995 | Address | [Reference](pop3.html) |
+| ManageSieve | 4190 | Address (owner's own mailbox) | [Filters](filters.html) |
 | JMAP | 443 (HTTP) | Address, via Basic or cookie | [Reference](jmap.html) |
 | Webmail | 443 (HTTP) | Address, via cookie | [Guide](webmail.html) |
 | Panel API | 443 (HTTP) | User, via cookie | [Reference](api.html) |
@@ -2382,6 +2383,11 @@ docker compose logs -f corsair
 docker compose restart corsair
 ```
 
+Without certbot or a proxy holding a certificate, Corsair can fetch its own:
+set `ACME=on`, publish `80:80`, and add `ACME_HTTP_PORT: 80`,
+`ACME_EMAIL`, `ACME_AGREE_TOS: "true"`, and `ACME_DOMAINS` to the environment,
+with `ACME_DIR` on a volume. See [Built-in ACME](tls.html#built-in-acme-optional).
+
 warning Mount certificates, do not bake them in
 `./certs` is a bind mount so renewal on the host is picked up by restarting the
 container. A certificate copied into the image expires inside it.
@@ -2448,6 +2454,11 @@ capability.
 
 Use `setcap` only when running Corsair **outside** systemd — by hand, or under a
 supervisor that does not set `NoNewPrivileges`.
+
+With the [built-in ACME client](tls.html#built-in-acme-optional), add
+`ACME_DIR=/opt/corsair/acme` to the environment and that directory to
+`ReadWritePaths`, and set `ACME_HTTP_PORT=80` — the capability above already lets
+it bind there.
 
 ## Split deployment
 
@@ -2574,6 +2585,7 @@ Defaults below are what the shipped code uses, not suggestions.
 | `MAIL_WEBMAIL_HOST` | *(empty)* | Optional CNAME target for customer webmail URLs; requires [HTTPS proxy setup](webmail.html#for-operators) |
 | `SIGNUPS` | `open` | `open` lets anyone sign up; `closed` allows only the first account |
 | `TRUSTED_PROXIES` | *(empty)* | Proxies whose `X-Forwarded-For` is believed |
+| `METRICS_TOKEN` | *(empty)* | Bearer token for `GET /metrics`; unset, the endpoint answers 404. See [Monitoring](monitoring.html#prometheus-metrics) |
 
 danger JWT_SECRET
 Anyone who knows it can mint a session for any account. Generate 48 random bytes
@@ -2635,6 +2647,18 @@ single-host install, point them all at the same name.
 per selector pointing at these names and this server answers the lookup — three
 selectors let a key be rotated without a gap in signing.
 
+### DKIM rotation
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `DKIM_ROTATE_DAYS` | `0` | Start a rotation when the active key is this old. `0` never starts one |
+| `DKIM_SOAK_HOURS` | `48` | How long a new key sits in DNS before anything signs with it |
+| `DKIM_RETIRE_DAYS` | `7` | How long the replaced key stays published |
+
+Off by default because every rotation needs you to publish a TXT record, and an
+install that does that by hand should not find one begun under it. See
+[Key rotation](dns-setup.html#key-rotation).
+
 ## Listeners
 
 | Variable | Default (dev) | Production |
@@ -2678,9 +2702,11 @@ opposed to what Corsair listens on.
 | `IMAP_TLS_PORT` | `2993` | `993` |
 | `POP3_PORT` | `2110` | `110` |
 | `POP3_TLS_PORT` | `2995` | `995` |
+| `MANAGESIEVE_PORT` | `4190` | `4190` |
 | `SMTP_ENABLED` | `true` | |
 | `IMAP_ENABLED` | `true` | |
 | `POP3_ENABLED` | `true` | |
+| `MANAGESIEVE_ENABLED` | `true` | |
 
 The defaults are unprivileged so development needs no root. Ports below 1024 need
 `CAP_NET_BIND_SERVICE` — granted in the systemd unit with `AmbientCapabilities`,
@@ -2704,6 +2730,21 @@ unencrypted connection when a certificate is configured.
 
 See [TLS certificates](tls.html).
 
+### Built-in ACME
+
+Off unless you turn it on. For an install with no reverse proxy and no certbot;
+see [Built-in ACME](tls.html#built-in-acme-optional).
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `ACME` | `off` | `on` to obtain and renew the mail certificate over ACME. `TLS_CERT_PATH`/`TLS_KEY_PATH` are then ignored |
+| `ACME_EMAIL` | *(empty)* | Contact address for the CA. Required with `ACME=on` |
+| `ACME_AGREE_TOS` | `false` | Must be `true` with `ACME=on`: you agree to the CA's terms |
+| `ACME_DOMAINS` | `CORSAIR_HOSTNAME` | Comma-separated names on the certificate |
+| `ACME_DIRECTORY` | Let's Encrypt production | Staging: `https://acme-staging-v02.api.letsencrypt.org/directory` |
+| `ACME_DIR` | `./data/acme` | Account key and certificate, mode 0600 |
+| `ACME_HTTP_PORT` | `0` | Port for a challenge-only listener (normally `80`). `0` means none: port 80 must then reach `PORT` |
+
 ## Delivery
 
 | Variable | Default | What it does |
@@ -2714,6 +2755,9 @@ See [TLS certificates](tls.html).
 | `SMTP_RELAY_USER` | *(empty)* | |
 | `SMTP_RELAY_PASS` | *(empty)* | |
 | `SMTP_RELAY_SECURE` | `starttls` | |
+| `DANE` | `auto` | `auto`, `on`, or `off`. DANE for `direct` delivery; `auto` enables it only if the resolver is seen to validate DNSSEC at startup |
+| `DANE_RESOLVER` | *(resolv.conf)* | Validating resolver whose AD bit is trusted, as `host` or `host:port`. Defaults to the first `nameserver` in `/etc/resolv.conf` |
+| `DANE_TRUST_REMOTE_RESOLVER` | `false` | Accept a resolver that is not on loopback. Its AD bit can be forged in transit; see [Deliverability](deliverability.html#dane) |
 
 | Transport | Behaviour |
 | --- | --- |
@@ -2725,6 +2769,23 @@ warning `console` is the default
 A fresh `.env` delivers nothing. That is right for a laptop and wrong for a
 server — set `DELIVERY_TRANSPORT=direct` (or `relay`) as part of going live, or
 mail silently goes to the log.
+
+## Forwarded mail (ARC)
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `ARC_TRUSTED_SEALERS` | *(empty)* | Comma-separated sealer domains whose ARC pass overrides a DMARC failure, e.g. `google.com,outlook.com` |
+
+Every inbound message has its ARC chain checked and the result recorded as
+`arc=` in `Authentication-Results`. That needs no configuration. This setting
+covers one decision: when a message fails DMARC but arrives with a passing ARC
+chain whose newest seal is from a listed domain (or a subdomain of one), the
+DMARC failure no longer counts against its spam score. The header still says
+`dmarc=fail` and notes the override, so it stays visible.
+
+Anyone can seal a message, so a seal is worth only what you know about who made
+it. List the forwarders and mailing lists your users really receive through,
+and nothing else. See [Forwarding](deliverability.html#forwarding).
 
 ## Storage
 
@@ -2766,6 +2827,22 @@ Card details never reach this server. The customer enters them on the provider's
 hosted page; a brand, four digits, and an opaque reference come back. There is no
 code path here that could accept a card number.
 
+## Spam filtering
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `SPAM_DNSBL` | `zen.spamhaus.org` | IP blocklists checked against the connecting client on port 25. Comma-separated; empty disables |
+| `SPAM_URIBL` | `dbl.spamhaus.org` | Domain blocklists checked against the sender's domains and up to 20 link domains. Comma-separated; empty disables |
+| `SPAM_DNSBL_REJECT` | `false` | Refuse clients on SBL, CSS, DROP, or XBL at `RCPT` instead of only scoring them |
+| `SPAM_RESOLVER` | system resolver | Resolver addresses for blocklist queries. Spamhaus refuses public and cloud resolvers, so set this to a local one |
+| `SPAM_GREYLIST` | `false` | Defer first contact from an unknown client, sender, and recipient with `451 4.7.1` |
+| `SPAM_GREYLIST_DELAY` | `300` | Seconds a greylisted sender must wait before its retry is accepted |
+
+If the log says a list "refused a query", blocklists are doing nothing until
+`SPAM_RESOLVER` points at a resolver the list will answer. See
+[Spam filtering](./spam.html) for what each setting scores and why the defaults
+are what they are.
+
 ## Mailbox transfers
 
 | Variable | Default | Purpose |
@@ -2799,6 +2876,17 @@ A 429 carries `retry-after`, `ratelimit-limit`, `ratelimit-remaining`, and
 
 `MAX_MESSAGE_BYTES` is the wire size after encoding. Base64 costs about a third,
 so 25 MB on the wire is roughly an 18 MB attachment.
+
+## Authentication reports
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DMARC_REPORTS_SEND` | `true` | Record inbound DMARC results and send daily aggregate reports |
+| `TLSRPT_SEND` | `true` | Record outbound TLS outcomes and send daily TLS reports |
+| `REPORTS_DAILY_CAP` | `1000` | Reports of each kind sent per UTC day |
+| `REPORTS_FROM` | `noreply-dmarc@<CORSAIR_HOSTNAME>` | Sender of outgoing reports. Put it on a hosted domain so reports are DKIM-signed |
+
+See [Deliverability](deliverability.html#reports-corsair-sends).
 
 ## Seeding
 
@@ -2962,6 +3050,45 @@ dig +short TXT   corsair-1._domainkey.example.com
 
 The TXT lookup should follow the CNAME and return `v=DKIM1; k=rsa; p=…`.
 
+### Key rotation
+
+Customers publish the CNAMEs once and never touch them again. **You** publish the
+key itself: the three `MAIL_DKIM_HOSTS` names are in your zone, each holds one TXT
+record, and Corsair has no credentials for your zone (the DNS tokens it is handed
+are for customers' zones and are never stored). A host holds one key, so a rotation
+moves signing to a *different* selector, which is why all three CNAMEs should be
+published. Domains created before this existed may only have the first; they keep
+their current key until their next selector resolves, and nothing breaks.
+
+Each host moves through these phases:
+
+| Phase | Meaning |
+| --- | --- |
+| `spare` | Idle. Not signing, nothing to publish |
+| `staged` | A new key exists. **You publish its TXT record** |
+| `published` | Seen in DNS. Waits `DKIM_SOAK_HOURS` (48) so resolver caches expire |
+| `active` | Signing. Each domain moves only when its *own* `corsair-N._domainkey` name resolves to this key |
+| `retiring` | Replaced, but still published for `DKIM_RETIRE_DAYS` (7) so in-flight mail verifies |
+| `revoked` | Publish `v=DKIM1; k=rsa; p=` (empty), which tells verifiers the key is withdrawn |
+
+```sh
+bun run dkim status    # every host, its phase, and exactly which TXT to publish where
+bun run dkim rotate    # start now: stage a new key on the next host
+bun run dkim advance   # run the worker's pass immediately
+```
+
+`status` prints lines such as `publish at dkim-2.mail.example.com: TXT "v=DKIM1; k=rsa; p=…"`,
+already split into 255-character strings for DNS panels that need it. Publish it,
+and the worker (hourly) does the rest. Set `DKIM_ROTATE_DAYS` to start cycles
+automatically; the default `0` never starts one, so an operator who publishes by
+hand is not surprised. A cycle started with `rotate` is advanced either way.
+
+Corsair never switches signing to a key it has not seen resolve. A host whose TXT
+does not match stays `staged`; a domain whose own selector does not resolve to the
+new key keeps signing with the old one, and the old host is not revoked while any
+domain still signs with it. `status` lists those domains. Activating a key by hand
+from the panel is held to the same check.
+
 danger Some providers flatten CNAMEs
 Cloudflare's proxy and a few managed DNS products will resolve a CNAME at
 publish time and store the result. That freezes the key, and rotation then
@@ -2971,7 +3098,7 @@ the `_domainkey` records.
 ## DMARC
 
 ```
-v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com
+v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@example.com;
 ```
 
 Tells receivers what to do when a message claiming to be from you passes neither
@@ -2989,6 +3116,30 @@ platform, the ticketing system, and whatever else sends as you.
 
 `rua=` gives you aggregate reports, which is how you find the sender you forgot.
 Add it before tightening the policy, not after.
+
+The generated record points `rua` at `dmarc-reports@` on the domain itself. That
+address needs no mailbox: Corsair accepts mail for it, reads the reports
+(gzip, zip, or plain XML), and files them under the domain, where
+**Reports** in the control panel totals them by sending IP and by reporting
+organisation. If you do create a mailbox or alias called `dmarc-reports`, it
+receives the messages as well — the parse is in addition to delivery, not
+instead of it.
+
+Two rules decide what is filed:
+
+- **A report must be about the domain it was sent to**, or a subdomain of it.
+  A report mailed to `dmarc-reports@a.example` about `b.example` is dropped, so
+  one domain cannot fill another's dashboard.
+- **The sender must authenticate** — SPF or DKIM passed. Every large reporter
+  signs its reports; without the check anyone could invent traffic by mailing an
+  XML file.
+
+You can keep your own `rua` instead, or as well
+(`rua=mailto:dmarc-reports@example.com,mailto:you@dmarc-service.example`). A
+destination on another domain has to publish a TXT record authorising it —
+`example.com._report._dmarc.dmarc-service.example` with `v=DMARC1` — or
+receivers will not send to it. Commercial report services publish theirs for
+you.
 
 **DMARC passes if *either* SPF or DKIM passes and aligns with the From domain.**
 One is enough by design — that is what makes forwarding survivable, since
@@ -3047,11 +3198,31 @@ Going to `enforce` with a wrong MX list silently blackholes your inbound mail �
 senders refuse to deliver rather than falling back. Watch the reports, confirm
 the MX list is right, and only then change it.
 
+## TLS reporting
+
+```
+_smtp._tls.example.com.  TXT  "v=TLSRPTv1; rua=mailto:tlsrpt@example.com"
+```
+
+Optional. Asks senders for a daily report (RFC 8460) of how their TLS sessions to
+your MX went — how many negotiated TLS, and why any did not. It is the feedback
+loop that makes [MTA-STS](#mta-sts) safe to tighten: an expired certificate shows
+up as `certificate-expired` failures before it becomes lost mail.
+
+Like `dmarc-reports@`, the `tlsrpt@` address needs no mailbox; Corsair files the
+JSON reports under the domain and shows them beside the DMARC ones. Entries in a
+report about any other domain are dropped.
+
 ## autoconfig and autodiscover
 
 CNAMEs that let Thunderbird and Outlook configure themselves from an email address
 alone. Optional, and worth publishing — the alternative is telling every user six
 hostnames.
+
+For contacts, a client that starts from an email address looks for a
+`_carddavs._tcp` SRV record on the domain (RFC 6764). Publish one only if the
+bare domain is not served by Corsair; the records are in
+[Contacts (CardDAV)](contacts.html#dns-for-discovery-from-the-address-alone).
 
 ## Checking everything
 
@@ -3169,6 +3340,105 @@ files. Caddy stores them under its data directory:
 
 Copy or symlink, and make sure the `corsair` user can read them.
 
+## Built-in ACME (optional)
+
+For an install with **no reverse proxy and no certbot** — one box, Corsair on its
+own — Corsair can obtain and renew the mail listeners' certificate itself over
+ACME (RFC 8555). If you already run certbot or Caddy, keep doing that and leave
+this off: it is off by default and nothing about the paths above changes.
+
+```sh
+ACME=on
+ACME_EMAIL=postmaster@example.com      # the CA writes here about expiry
+ACME_AGREE_TOS=true                    # you have read the CA's terms
+ACME_DOMAINS=mail.example.com,smtp.example.com,imap.example.com
+ACME_HTTP_PORT=80                      # answer the challenge on port 80
+```
+
+Corsair refuses to start with `ACME=on` unless `ACME_EMAIL` is set and
+`ACME_AGREE_TOS` is literally `true`. Agreeing to a CA's terms is the
+operator's decision, not a default.
+
+With `ACME=on`, `TLS_CERT_PATH` and `TLS_KEY_PATH` are ignored.
+
+### What it does
+
+- **HTTP-01 only.** TLS-ALPN-01 would need Corsair to hold port 443, and DNS-01
+  would need a DNS API credential kept on disk, which Corsair deliberately does
+  not keep. For wildcards or a host that cannot take inbound port 80, use
+  certbot with DNS-01 above.
+- **Names.** `ACME_DOMAINS` defaults to `CORSAIR_HOSTNAME`. List every name
+  clients dial — the `MAIL_SMTP_HOST`, `MAIL_IMAP_HOST`, `MAIL_POP_HOST`, and if
+  you want them covered, the autoconfig, MTA-STS, and webmail hosts. Nothing is
+  added for you: a name whose DNS does not point here fails the whole order.
+  Adding a name later triggers a new certificate on the next check.
+- **Storage.** `ACME_DIR` (default `./data/acme`) holds `account.key` and
+  `certificate.pem` — the private key followed by the full chain, in one file so
+  that replacing it is a single atomic rename. Both are mode 0600. Back the
+  directory up or not; losing it costs a fresh issue, nothing more.
+- **Renewal.** Checked at startup and daily after. A certificate with 30 days or
+  less left is renewed. A failure is logged loudly on every attempt and retried
+  after 1 h, 2 h, 4 h … up to daily; the working certificate is never removed or
+  replaced by anything that has not validated.
+- **No restart.** A renewed certificate is picked up in place. STARTTLS reads the
+  current certificate on every upgrade. The implicit-TLS ports (465, 993, 995)
+  are rebound: the old listener stops accepting, leaves its open sessions alone,
+  and a new one binds the same port — so an IMAP IDLE survives a renewal.
+  (Bun cannot swap the certificate on a running listener; `reload({ tls })` is
+  accepted and ignored.)
+
+### Port 80
+
+Let's Encrypt validates HTTP-01 **on port 80**, and Corsair's HTTP tier listens on
+`PORT` (3000). Either:
+
+- set `ACME_HTTP_PORT=80`. Corsair opens a small listener there that answers
+  only `/.well-known/acme-challenge/` and redirects everything else to
+  `https://`. Under systemd the unit's `CAP_NET_BIND_SERVICE` already covers it;
+  in Docker publish `80:80` and set `ACME_HTTP_PORT=80`; or
+- forward port 80 to `PORT` yourself (a NAT rule). The same path is served on
+  `PORT` through the normal request path.
+
+Only tokens for an order in flight are served; any other token is a 404.
+
+### First start
+
+With no certificate yet, Corsair starts without one — the panel, and port 25
+unencrypted, as on any install without a certificate — and requests one
+straight away. When it arrives, 465, 993, and 995 open and the
+[STARTTLS probe](#which-ports-use-which) runs again, so nothing needs restarting.
+If issuance fails, the log says why and it retries on the backoff above.
+
+Test against the staging CA first. Its certificates are not trusted, but its rate
+limits are generous and a mistake costs nothing:
+
+```sh
+ACME_DIRECTORY=https://acme-staging-v02.api.letsencrypt.org/directory
+```
+
+Delete `ACME_DIR/certificate.pem` before switching to production, or the staging
+certificate stays until it is due.
+
+### Status and manual renewal
+
+```sh
+bun run acme status            # names, expiry, whether renewal is due
+bun run acme renew [--force]   # issue now
+```
+
+`renew` answers the challenge itself on `ACME_HTTP_PORT`, so it only works when
+that port is free — before the server starts, or with it stopped. A running
+server renews on its own and adopts a certificate written by `renew` at its next
+daily check.
+
+### What it does not cover
+
+- **The panel's HTTPS.** The certificate is for the mail listeners. Corsair's HTTP
+  tier is plain HTTP on `PORT`; browsers still want something terminating TLS in
+  front of it.
+- **A split deployment.** The client runs in `start.ts`, beside the listeners it
+  reloads. `server.ts` on its own ignores `ACME`.
+
 ## Permissions
 
 Let's Encrypt writes `privkey.pem` root-owned and mode 600. Corsair does not run
@@ -3211,6 +3481,12 @@ Test the whole path before you depend on it:
 ```sh
 sudo certbot renew --dry-run
 ```
+
+danger If you publish TLSA records, keep the key
+A `3 1 1` TLSA record pins the certificate's key, and certbot makes a new key on
+every renewal by default. The first renewal then stops mail from every sender
+that checks DANE. Issue and renew with `--reuse-key`, and change keys only with
+both records published — see [DANE](deliverability.html#dane).
 
 warning Restarting drops connections
 A restart disconnects every IMAP IDLE session and every in-flight SMTP
@@ -3310,6 +3586,7 @@ Real clients will refuse a self-signed certificate, and they are right to.
 | Client: "name does not match" | Certificate is for a different host than the client dialled |
 | Corsair starts but TLS ports do not listen | Paths wrong, or the `corsair` user cannot read the key |
 | Worked, then stopped after ~90 days | Renewal ran; the restart did not. Add the deploy hook |
+| `ACME RENEWAL FAILED` in the log | Port 80 does not reach Corsair, or a name in `ACME_DOMAINS` does not resolve here. The old certificate stays in service |
 
 The last one is the common one. Renewal without a reload is the failure mode of
 almost every mail server on the internet.
@@ -3479,6 +3756,10 @@ Three passes. Then send *to* the domain from outside and confirm it lands.
 
 - [ ] **Monitoring** on: the process, the queue depth, certificate expiry, disk,
   and the bounce rate. See [Monitoring](monitoring.html).
+
+- [ ] **Metrics scraped** if you run Prometheus: set `METRICS_TOKEN` and add the
+  alerts in [Monitoring](monitoring.html#prometheus-metrics). The endpoint is
+  off, and 404s, until the token exists.
 
 - [ ] **Log retention** decided. Mail logs contain sender and recipient addresses.
 
@@ -3939,6 +4220,94 @@ FROM jobs GROUP BY 1, 2;
 ```
 
 Jobs stuck in `running` with an old `updated_at` mean a worker died mid-job.
+
+## Prometheus metrics
+
+Corsair serves its own counters at `GET /metrics` in the Prometheus text format.
+It is off until you set a token:
+
+```sh
+# .env
+METRICS_TOKEN=$(openssl rand -hex 32)
+```
+
+With no `METRICS_TOKEN` the path answers 404, as if it did not exist. With one,
+every request needs `Authorization: Bearer <token>`; a wrong or missing token is a
+401. There is no "trust loopback" shortcut, because behind a reverse proxy every
+request arrives from `127.0.0.1`. Metrics live in the process that serves them and
+reset on restart, which is what `rate()` expects.
+
+```yaml
+scrape_configs:
+  - job_name: corsair
+    scheme: https
+    metrics_path: /metrics
+    authorization:
+      credentials_file: /etc/prometheus/corsair.token
+    static_configs:
+      - targets: ["mail.example.com"]
+```
+
+None of the labels carry an address, a domain or an IP, so the number of series
+stays small however much mail you handle.
+
+| Metric | Labels | Meaning |
+| --- | --- | --- |
+| `corsair_smtp_sessions_total` | `listener` (`mx`, `submission`, `submissions`) | Connections accepted |
+| `corsair_smtp_messages_total` | `listener`, `result`, `reason` | Messages finished at DATA; `reason` is `spam`, `auth`, `policy`, `size`, `other`, or `none` when accepted |
+| `corsair_smtp_recipients_rejected_total` | `listener`, `reason` | RCPT refusals |
+| `corsair_smtp_message_size_bytes` | `listener` | Histogram of message sizes |
+| `corsair_delivery_attempts_total` | `outcome` (`delivered`, `deferred`, `bounced`) | Outbound attempts |
+| `corsair_delivery_deferrals_total` | `reason` (`blocklist`, `tls`, `connect`, `4xx`, `other`) | Why attempts were deferred |
+| `corsair_queue_depth` | `status` (`queued`, `deferred`, `sending`) | Deliveries waiting, read at scrape time |
+| `corsair_queue_oldest_age_seconds` | | Age of the oldest queued or deferred delivery |
+| `corsair_queue_overdue_age_seconds` | | How long the longest-waiting due delivery has been due |
+| `corsair_auth_attempts_total` | `protocol`, `result` (`ok`, `fail`, `banned`) | Logins |
+| `corsair_bans_active` | | IPs currently banned |
+| `corsair_connections_active` | `protocol` (`imap`, `pop3`) | Open client connections |
+| `corsair_commands_total` | `protocol`, `command` | Protocol commands; unknown names are `other` |
+| `corsair_webhook_deliveries_total` | `outcome` (`delivered`, `failed`, `exhausted`) | Webhook attempts |
+| `corsair_storage_errors_total` | `op` (`read`, `write`, `delete`) | Object store failures |
+| `corsair_process_*`, `corsair_event_loop_lag_seconds`, `corsair_build_info` | | Uptime, memory, loop lag, version |
+
+The queue gauges come from two small queries run when you scrape, cached for five
+seconds with a two-second deadline. If the database is slow they keep their last
+values instead of failing the scrape.
+
+Counters are per process. On a split deployment, scrape the web tier and the
+process that runs the worker and listeners separately, and sum across them.
+
+Alerts worth starting with:
+
+```yaml
+groups:
+  - name: corsair
+    rules:
+      - alert: CorsairQueueGrowing
+        expr: deriv(sum(corsair_queue_depth{status!="sending"})[30m:]) > 0 and sum(corsair_queue_depth{status!="sending"}) > 50
+        for: 30m
+      - alert: CorsairOldestQueuedTooOld
+        expr: corsair_queue_oldest_age_seconds > 3600
+        for: 10m
+      - alert: CorsairWorkerBehind
+        expr: corsair_queue_overdue_age_seconds > 300
+        for: 5m
+      - alert: CorsairDeferralsBlocklist
+        expr: sum(increase(corsair_delivery_deferrals_total{reason="blocklist"}[15m])) > 0
+      - alert: CorsairDeferralRateHigh
+        expr: |
+          sum(rate(corsair_delivery_attempts_total{outcome="deferred"}[15m]))
+            / sum(rate(corsair_delivery_attempts_total[15m])) > 0.3
+        for: 15m
+      - alert: CorsairAuthFailureSpike
+        expr: sum by (protocol) (rate(corsair_auth_attempts_total{result="fail"}[5m])) > 1
+        for: 10m
+      - alert: CorsairStorageErrors
+        expr: sum(increase(corsair_storage_errors_total[10m])) > 0
+      - alert: CorsairDown
+        expr: up{job="corsair"} == 0
+        for: 2m
+```
 
 ## External checks
 
@@ -4764,6 +5133,38 @@ present a second factor, so a stolen mailbox password on its own stops at the
 mailbox — which is the outcome you want. This is the mitigation that makes a
 shared credential a reasonable trade rather than a bad one.
 
+**Then require app passwords on that mailbox.** Two-factor protects the panel,
+but IMAP and SMTP still accept the shared password with no second step. With
+[app passwords](#app-passwords) required, devices hold only per-client secrets
+and the account password opens nothing but the browser sign-ins.
+
+## App passwords
+
+An app password is a per-client mailbox credential: a 100-bit random value the
+server chose, shown once and stored only as a SHA-256 hash.
+
+- **Accepted in exactly one place**, the function every mail protocol funnels
+  through, so IMAP, POP3, SMTP submission, JMAP, and anything added later get it
+  without each implementing it. The webmail is told to refuse them: a stolen app
+  password reads mail through a client and does not also open a browser session.
+- **Checked before the password hash.** The compare is SHA-256 in constant time
+  against each of the mailbox's own app passwords, with no early exit. A random
+  100-bit secret needs no slow hash; offline, 2¹⁰⁰ guesses is out of reach.
+- **No new enumeration signal.** When a mailbox requires app passwords, refusing
+  its real password still spends a full password verify, so the speed of the
+  answer does not reveal that the mailbox exists or has the requirement on.
+- **Scoped.** Each names the protocols it opens. A caller that names no protocol
+  is only satisfied by an app password that opens all of them, so a protocol
+  added later fails closed.
+- **Revocation is a delete.** It stops on every protocol at once. Changing the
+  mailbox or account password deliberately leaves app passwords alone; disabling
+  the mailbox or terminating the account stops them.
+- **Not for agents, aliases, or groups.** An agent's API key is already a
+  revocable token, and forwarding addresses have no mailbox.
+- **Minting one from the webmail requires the current password**, because an app
+  password outlives a password change; an unattended session must not be able to
+  leave one behind.
+
 ## Passwords and tokens
 
 - Passwords are hashed, never stored or logged in the clear.
@@ -4966,7 +5367,8 @@ the server cannot read.
 
 **Not a spam-filtering product.** The scorer is heuristic and deliberately
 conservative: a false positive on real mail is far worse than a false negative.
-For aggressive filtering, put a dedicated filter in front.
+For aggressive filtering, put a dedicated filter in front. [Spam
+filtering](./spam.html) describes what it does check.
 
 **Not hardened against a hostile operator.** An operator can read every mailbox on
 the instance. That is inherent to running a mail server, and it is why you should
@@ -5051,6 +5453,14 @@ without a gap.
 ### Settings
 
 The catch-all, the fallback domain, and self-service recovery.
+
+## Reports
+
+The DMARC aggregate and TLS reports other mail servers sent about one domain,
+over the last 7 to 180 days: how many messages were reported and how many passed,
+a table by sending IP, a table by reporting organisation, and TLS failures by
+type. Reports arrive at `dmarc-reports@` and `tlsrpt@` on the domain, which the
+generated DNS records already name. See [Deliverability](deliverability.html#dmarc-reports).
 
 ## Addresses
 
@@ -5224,6 +5634,11 @@ form, and a CNAME lets the key rotate on the server without you touching DNS
 again.
 
 ### Rotating without a gap
+
+Rotation is automated on the operator's side; see
+[Key rotation](dns-setup.html#key-rotation). What follows is the manual order, which
+the panel's activate button still follows: it now refuses unless the selector
+resolves to the key.
 
 1. **Publish the CNAME for the next selector** — `corsair-2._domainkey` — and wait
    for it to resolve. Signing has not changed; you are only making the key
@@ -5514,6 +5929,9 @@ The settings, then the clients that need help.
 | POP3 | **995** | SSL/TLS | Normal password |
 | SMTP | **465** | SSL/TLS (implicit) | Normal password |
 
+Filters can be edited from Thunderbird, Roundcube, and K-9 over ManageSieve on
+port **4190** with STARTTLS; see [Filters](filters.html).
+
 Port **587 with STARTTLS** also works when the operator runs the STARTTLS
 terminator described in [Configuration](configuration.html). 465 is listed above
 because it works on every install and needs no upgrade to get wrong.
@@ -5552,9 +5970,49 @@ domain when the addresses match, so there is one password, not two.
 For a mailbox that is not a control-panel account — anyone else on your domain —
 it is that mailbox's own password, which opens mail and never the panel.
 
+Or, better, an **app password** — see [below](#app-passwords).
+
 993 and 465 are encrypted from the first byte. There is no upgrade to negotiate
 and none to get wrong, which is why they are the better ports even on a server
 where STARTTLS works.
+
+## App passwords
+
+An app password is a credential for one mail client. Create one per device in
+the panel (the address's **App passwords** tab) or in the webmail's settings, type
+it into that client's password field, and the client never holds your real
+password.
+
+- It looks like `k7qm-3hxa-pw9d-tn2e-vbc4`. Dashes, spaces, and capitals are
+  ignored, so it survives a phone keyboard.
+- It is shown **once**. A lost one is deleted and replaced, never recovered.
+- Deleting one signs out that device on every protocol at once and leaves every
+  other client alone.
+- Changing the mailbox password does **not** revoke app passwords. That is the
+  point of them: you can rotate a password you think has leaked without
+  re-entering it on every device.
+- Each can be limited to the protocols the client uses — IMAP, POP3, SMTP, JMAP,
+  contacts, or filters. A phone that only reads mail does not need SMTP.
+- They open the mail protocols only. The webmail and the panel are browser
+  sign-ins and always take the real password.
+- Disabling the mailbox stops them, along with everything else.
+
+Agent mailboxes do not have app passwords — their API key is already a revocable
+per-client credential — and aliases and groups have nothing to sign into.
+
+### Requiring them
+
+On an address's App passwords tab, **Require app passwords for mail clients**
+refuses the mailbox password itself over IMAP, POP3, SMTP, and JMAP. Only app
+passwords open those protocols afterwards; the webmail still takes the real
+password. Create one for each client before turning it on — the panel will not
+let you require them while there are none.
+
+tip Using two-step sign-in on the panel? Turn this on.
+Your own mailbox shares your account password, and mail clients send it with no
+second step. With app passwords required, the password guarded by your
+authenticator no longer opens IMAP or SMTP at all. The panel shows a reminder on
+any mailbox where this applies.
 
 ## Automatic configuration
 
@@ -5634,6 +6092,14 @@ Corsair advertises `IDLE`, so `set imap_idle = yes` works.
 
 Session resource at `https://mail.example.com/.well-known/jmap`, authenticated
 with HTTP Basic using the address and mailbox password. See [JMAP](jmap.html).
+
+## Contacts
+
+Your address book syncs over CardDAV on the same HTTPS address as the panel —
+`https://mail.example.com/dav/`, the full address as the username, the mailbox
+password as the password. iOS, macOS Contacts, Thunderbird, and DAVx⁵ on Android
+all work; most need only the hostname. Step-by-step setup is in
+[Contacts (CardDAV)](contacts.html).
 
 ## Roundcube, SnappyMail, and other webmail
 
@@ -5879,6 +6345,38 @@ delivery path at all.
 
 A filter belongs to the account and can be attached to any number of mailboxes.
 
+## Editing from a mail client
+
+Corsair speaks ManageSieve (RFC 5804) on port **4190**, so Thunderbird's Sieve
+add-on, Roundcube's filters plugin, and K-9 can edit the same scripts the panel
+shows. There is no second copy: a script saved from a client is a row in the
+panel's filter list, and the other way round.
+
+| Setting | Value |
+| --- | --- |
+| Server | your mail hostname |
+| Port | **4190** |
+| Security | STARTTLS |
+| Authentication | PLAIN, with your mailbox address and password |
+
+- **Active script.** A mailbox runs one filter, the one set on the address in
+  the panel. `SETACTIVE` from a client sets the same field, and an empty name
+  turns filtering off. The active script cannot be deleted; deactivate it first.
+- **Whose scripts.** Filters belong to the account, so ManageSieve is open only
+  to a mailbox that is its owner's own account. Other mailboxes on the domain
+  and agent mailboxes sign in correctly and are then told no.
+- **TLS first.** Like IMAP and POP3, Corsair refuses the password until the
+  connection is encrypted, so a server whose runtime cannot do STARTTLS (see
+  [Client settings](client-setup.html)) cannot offer ManageSieve either.
+- **Plans.** Saving, replacing, and renaming scripts needs the custom filters
+  feature, as in the panel. Reading and `CHECKSCRIPT` work on every plan.
+- **Limits.** A script is at most 64,000 bytes and an account holds at most
+  100. Scripts are UTF-8. `MANAGESIEVE_PORT` and `MANAGESIEVE_ENABLED` change
+  the listener.
+
+Thunderbird's autoconfig format has no ManageSieve entry, so clients are not
+configured for it automatically; enter the port above.
+
 ## Supported
 
 **Control** — `if` / `elsif` / `else`, `stop`, `require` (accepted and ignored).
@@ -6008,6 +6506,151 @@ generate one there and use it here.
 
 ---
 
+# Spam filtering
+
+Source: https://wess.io/corsair/docs/spam.html
+
+# Spam filtering
+
+Corsair scores every message arriving on port 25 and files anything at or above
+**5** in `Junk`. It does not reject on a score: a heuristic that refuses mail loses
+real mail silently, and nobody finds out until someone asks why they never got a
+reply.
+
+What it scores is deliberately narrow. There is no Bayesian filter, no rules
+engine, and no AI classifier — each of those needs training data and a feedback
+loop, and a half-built one produces exactly the false positives that make people
+stop trusting the Junk folder. What is here are signals that are cheap, stable,
+and mostly about *who sent the message* rather than what it says.
+
+## What is scored
+
+| Signal | Points |
+| --- | --- |
+| DMARC fails / passes | +4 / −2 |
+| SPF fails, soft-fails / passes | +3, +1 / −1 |
+| DKIM fails, absent / passes | +2, +0.5 / −1 |
+| No reverse DNS for the client | +1.5 |
+| HELO is not a hostname | +1.5 |
+| Missing From, Message-ID, or Date | +2, +1, +1 |
+| A link whose text names a different host than its target | +3 |
+| Client on an IP blocklist | see below |
+| A sender or link domain on a domain blocklist | see below |
+| Sender is someone this mailbox has written to | −5 |
+
+Every message carries the verdict in two headers, written above anything the
+sender supplied:
+
+```
+X-Spam-Status: Yes, score=7.5 required=5
+X-Spam-Reasons: +3 SPF failed;
+	+0.5 no DKIM signature;
+	+3 client 198.51.100.7 is on zen.spamhaus.org (PBL)
+```
+
+A [filter](./filters.html) can match on either. A filter's own `fileinto` always
+wins over the Junk decision.
+
+## Blocklists
+
+The connecting client's IP is looked up on `SPAM_DNSBL` (default
+`zen.spamhaus.org`), and the sender's domains plus up to 20 domains from links in
+the body are looked up on `SPAM_URIBL` (default `dbl.spamhaus.org`). Lookups run in
+parallel with SPF and DKIM, share a 1.5 second budget, and are cached for ten
+minutes. A list that does not answer in time counts as no listing.
+
+| Listing | Points | Refused with `SPAM_DNSBL_REJECT` |
+| --- | --- | --- |
+| ZEN SBL, DROP, XBL | +9 | yes |
+| ZEN CSS | +5 | yes |
+| ZEN PBL | +3 | no |
+| DBL phishing, malware, botnet | +9 | no |
+| DBL spam domain | +6 | no |
+| DBL abused legitimate domain | +1.5 | no |
+| Any other list, `127.0.0.x` | +3 | no |
+
+The host listings outweigh every authentication bonus together, on purpose: SPF
+and DKIM prove whose mail it is, and a spam operation authenticates its own domain
+like anyone else. PBL does not. It means "this range is not meant to send mail
+directly", which describes a self-hoster on a home connection as well as an
+infected laptop, so it nudges the score rather than deciding it.
+
+Only the connecting IP is ever checked, never the addresses in `Received:`
+headers. So PBL never counts against someone who sent from home through their
+provider, and mail relayed by a forwarder is judged by the forwarder's IP.
+Submission on 587 and 465 is not checked at all. Behind the STARTTLS terminator,
+the IP checked is the one `XCLIENT` reports, not `127.0.0.1`.
+
+warning Spamhaus will not answer a public resolver
+Spamhaus refuses queries from public DNS services and from most cloud providers'
+default resolvers. It does not answer with an error. It answers with
+`127.255.255.254`, which looks exactly like a listing to anything that only asks
+whether the name resolved. Corsair reads every `127.255.255.x` answer as "no
+answer", and logs this once per list:
+
+```
+[corsair] zen.spamhaus.org refused a query (answered 127.255.255.254) ...
+```
+
+If you see it, blocklists are doing nothing. Run a local recursive resolver
+(`unbound` is the usual choice) and set `SPAM_RESOLVER=127.0.0.1`.
+
+An answer outside `127.0.0.0/24` and `127.0.1.0/24` is ignored too. Some ISP
+resolvers rewrite "no such name" into the address of their own search page, and
+reading that as a listing would put every message in Junk.
+
+### Refusing listed clients
+
+`SPAM_DNSBL_REJECT=true` refuses a client on SBL, CSS, DROP, or XBL at `RCPT` with
+`554 5.7.1 Service unavailable; client host [...] blocked using zen.spamhaus.org`.
+It is off by default. A listing is a third party's judgement, not Corsair's, and
+listings do sometimes land on shared infrastructure that also sends real mail.
+Scoring files that mail in Junk, where someone can still find it. Refusing bounces
+it. Turn it on if you trust the list more than you fear the bounce. `postmaster@`
+and `abuse@` are never refused, so a listed sender can still reach someone about
+it.
+
+## Greylisting
+
+`SPAM_GREYLIST=true` defers the first message on each (client network, envelope
+sender, recipient) triplet with `451 4.7.1` and accepts a retry after
+`SPAM_GREYLIST_DELAY` seconds (default 300), as long as the retry comes within 24
+hours. A real mail server retries. Most spam software does not. Once a triplet has
+passed, it is accepted without delay until it has been unused for 36 days. The
+client network is the /24 for IPv4 and the /64 for IPv6, because large senders
+retry from a different machine in the same pool.
+
+It is off by default because your users pay for it. The first message from anyone
+new arrives at least five minutes late, and a sign-in code can expire in that
+time. These skip it:
+
+- The null sender (`MAIL FROM:<>`): bounces and delivery reports
+- Authenticated sessions, and this server delivering to itself
+- Clients on private addresses
+- A client network that has passed greylisting for any recipient in the last 36
+  days
+- A sender whose SPF passes, if their domain has passed greylisting before
+- A sender whose SPF passes, if the recipient has written to them
+
+## Correspondents
+
+Whenever a mailbox sends mail, over SMTP submission, the webmail, or JMAP, its
+recipients are remembered as that mailbox's correspondents. Each mailbox keeps its
+most recent 5,000. A message to more than 100 recipients at once is not recorded,
+because a mailing list is not a list of people you trust. Agent mailboxes are not
+recorded either: what an agent sends may be a prompt injection's choice.
+
+Mail from a correspondent gets −5 and skips greylisting, **but only when the sender
+is authenticated**. SPF or DKIM must pass for the domain in the From header,
+aligned the way DMARC aligns. Putting a known contact's address in a forged From
+is the oldest phishing trick there is, and without that check this feature would
+wave it straight into the inbox.
+
+Replies are matched by address, not by `In-Reply-To`. A reply almost always comes
+from someone you wrote to, so the address already covers it.
+
+---
+
 # Deliverability
 
 Source: https://wess.io/corsair/docs/deliverability.html
@@ -6097,18 +6740,63 @@ is correct behaviour; do not shorten it.
 
 ## DMARC reports
 
-Add `rua=` to your DMARC record before tightening the policy:
+Add `rua=` to your DMARC record before tightening the policy. The record Corsair
+generates already has one:
 
 ```
-v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com
+v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@example.com;
 ```
 
 The aggregate reports tell you which senders are failing alignment — which is how
 you discover the marketing platform, the ticketing system, or the CI server that
 also sends as your domain and that you had forgotten about.
 
+Reports sent to `dmarc-reports@` (and TLS reports sent to `tlsrpt@`) are read and
+filed under the domain — no mailbox needed. **Reports** in the control panel shows
+the last 7 to 180 days: messages, pass rate, a table by sending IP, and a table by
+reporting organisation. An IP you do not recognise with a high failure count is
+either a sender you forgot or somebody forging you; the reporter column says who
+saw it. See [DNS setup](dns-setup.html#dmarc) for what is and is not accepted.
+
 Move to `p=reject` only once those reports are clean. Going straight there means
 silently killing a legitimate sender you did not know you had.
+
+### Reports Corsair sends
+
+Corsair is also a receiver, and reports what it sees to everyone else:
+
+- **DMARC aggregate reports.** For every message whose From domain publishes a
+  DMARC record with `rua`, the result (source IP, SPF and DKIM outcomes and
+  alignment, what was done with it) is counted. Once a UTC day ends, each such
+  domain gets one gzipped RFC 7489 report from `noreply-dmarc@<CORSAIR_HOSTNAME>`.
+  A `rua` on a different domain from the policy's is only used once that domain
+  has published `<policy-domain>._report._dmarc.<its-domain>` (RFC 7489 §7.1);
+  otherwise anyone could point a record at a stranger and have this server mail
+  them daily.
+- **SMTP TLS reports.** For every domain this server delivers to, each session's
+  TLS outcome is counted — negotiated, `starttls-not-supported`, or
+  `validation-failure`. Domains that publish `_smtp._tls` with a `mailto:` or
+  `https:` `rua` get a daily RFC 8460 report. Sessions where a DNSSEC-signed TLSA
+  record applied are reported under policy type `tlsa`, with DANE's verdict
+  (`certificate-host-mismatch`, `dnssec-invalid`, and so on). Every other session
+  is `no-policy-found`, because outbound delivery does not apply MTA-STS.
+
+Disposition is reported as what Corsair actually did. It never refuses mail on a
+DMARC failure; a failing message is reported `quarantine` only when it also scored
+as spam.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DMARC_REPORTS_SEND` | `true` | Record DMARC results and send aggregate reports. Off records nothing |
+| `TLSRPT_SEND` | `true` | Record outbound TLS outcomes and send TLS reports. Off records nothing |
+| `REPORTS_DAILY_CAP` | `1000` | Reports of each kind sent per UTC day |
+| `REPORTS_FROM` | `noreply-dmarc@<CORSAIR_HOSTNAME>` | The From and envelope sender of outgoing reports |
+
+RFC 8460 requires a TLS report sent by mail to be DKIM-signed, and receivers
+discard unsigned ones. Reports are signed when `REPORTS_FROM` is on a domain hosted
+on this server — point it at one (say `noreply-dmarc@example.com`) if you want them
+read. The raw counts are deleted once a day's report is built, and anything left
+unsent is dropped after seven days.
 
 ## MTA-STS
 
@@ -6141,6 +6829,106 @@ A wrong MX list under `enforce` silently blackholes your inbound mail — sender
 refuse to deliver rather than falling back to plaintext, and you get no bounce
 because they never connected.
 
+## DANE
+
+DANE (RFC 7672) is the other way a domain says "never send me mail in the clear".
+Instead of a policy fetched over HTTPS, it publishes TLSA records next to its MX
+host in a DNSSEC-signed zone, and the records pin the MX's certificate or key.
+When those records are authenticated, a sender must use STARTTLS and the
+certificate must match one of them — or it does not deliver.
+
+### Sending to DANE domains
+
+With `DELIVERY_TRANSPORT=direct`, Corsair looks up the MX and TLSA records through
+a **validating resolver** and reads the DNSSEC result from the AD bit of each
+reply. Node's resolver does not expose that bit, so these lookups use a small DNS
+client of Corsair's own, asking `DANE_RESOLVER`.
+
+| What DNS says | What Corsair does |
+| --- | --- |
+| MX not signed | No DANE. Ordinary opportunistic STARTTLS |
+| MX signed, MX host's address not signed | No DANE for that host |
+| TLSA signed, with usable records | STARTTLS required; certificate must match |
+| TLSA signed, but no usable records | STARTTLS required; certificate not checked |
+| TLSA signed "does not exist", or not signed | No DANE. Opportunistic STARTTLS |
+| TLSA lookup fails (SERVFAIL, timeout) | That host is deferred; the next MX is tried |
+
+A failed match, a missing STARTTLS, or a broken DNSSEC answer is a **deferral**
+(`4.7.5`), never a bounce and never a fallback to plaintext. The queue retries
+it like any other temporary failure, and the reason is in the delivery log.
+
+Usages `3` (DANE-EE) and `2` (DANE-TA) are supported, with selectors `0` and `1`
+and matching types `0`, `1`, and `2`. A DANE-EE record pins the certificate
+alone: name and expiry are not checked, which is what the RFC asks for. A DANE-TA
+record pins an issuer; the chain up to it must verify, every certificate on it
+must be current, and the certificate must name the MX host, its CNAME target, or
+the recipient domain. Usages `0` and `1` are ignored, as RFC 7672 requires for
+SMTP. When a domain has both DANE and MTA-STS, DANE wins.
+
+warning The resolver is the trust anchor
+Corsair does not validate signatures itself. It believes the resolver's AD bit,
+and anyone between Corsair and the resolver can set that bit on a forged reply.
+Run a validating resolver **on the same machine** — unbound listening on
+`127.0.0.1` is the usual choice — and point `DANE_RESOLVER` at it. A resolver
+that is not on loopback is refused unless you set
+`DANE_TRUST_REMOTE_RESOLVER=true`, which you should only do for a resolver on a
+network path you control.
+
+```sh
+apt install unbound          # validates DNSSEC out of the box
+echo 'DANE_RESOLVER=127.0.0.1' >> .env
+```
+
+At startup Corsair asks the resolver for the root zone (which must come back with
+AD set) and for `dnssec-failed.org` (which must not come back at all, because its
+signatures are deliberately broken). Passing both is what `DANE=auto` means by "a
+validating resolver". The log says which way it went:
+
+```text
+[corsair] dane        on — resolver 127.0.0.1:53 validates DNSSEC
+[corsair] dane        off — resolver 192.168.1.1:53 is not on loopback; ...
+```
+
+`DANE=on` skips the probe but not the loopback rule. `DANE=off` disables it.
+
+### Publishing TLSA for your own MX
+
+DANE for mail *arriving* here is DNS you publish; Corsair has nothing to switch
+on. It needs a DNSSEC-signed zone for the MX host's name and STARTTLS on port 25
+(see [TLS](tls.html)). Then publish a `3 1 1` record — the SHA-256 of the
+certificate's public key — at `_25._tcp.` plus the MX hostname:
+
+```sh
+openssl x509 -in /etc/corsair/certs/fullchain.pem -noout -pubkey \
+  | openssl pkey -pubin -outform DER \
+  | openssl dgst -sha256 -binary | xxd -p -c 64
+```
+
+```text
+_25._tcp.mx1.example.com. 3600 IN TLSA 3 1 1 <that hex>
+```
+
+`3 1 1` pins the key, not the certificate, so a renewal that keeps the key needs
+no DNS change. That is the reason to prefer it over `3 0 1`.
+
+danger Key changes take the MX off the air for DANE senders
+A sender that sees a TLSA record and a key that does not match it does not
+deliver — it defers, and keeps deferring. Certbot generates a **new key on every
+renewal** unless told not to, so a renewal can silently stop mail from every
+DANE-checking sender (including the large mailbox providers).
+
+Renew with `--reuse-key`. When you do have to change the key:
+
+1. Generate the new key and publish its `3 1 1` record **alongside** the current
+   one. Both records live in the RRset at once.
+2. Wait at least two TTLs of the TLSA record so every cache holds both.
+3. Switch the certificate to the new key.
+4. Remove the old record.
+
+Check the result from outside with `dig +dnssec TLSA _25._tcp.mx1.example.com`
+(the `ad` flag must be set when asked through a validating resolver) and with any
+public DANE SMTP checker.
+
 ## Forwarding
 
 Forwarding breaks SPF: the original sender's SPF does not list your server, so
@@ -6151,6 +6939,34 @@ for aliases and groups and there is nothing to configure.
 
 DKIM survives forwarding intact, which is why DMARC passing on **either** SPF or
 DKIM is what makes forwarding workable at all.
+
+SRS fixes SPF but not DMARC alignment: the rewritten sender is in your domain,
+not the author's. For mail that something along the way has changed (a list
+adding a footer, a gateway rewriting a header), DKIM breaks too, and DMARC fails
+on mail that was genuine. ARC ([RFC 8617](https://www.rfc-editor.org/rfc/rfc8617))
+fixes that by having each hop record what it saw and seal it.
+
+**Sending.** When Corsair relays a message to another domain, through an alias,
+a group, or a filter's `redirect`, it adds an ARC set: a copy of its own
+`Authentication-Results`, a signature over the message, and a seal over the
+chain. All three are signed with the forwarding domain's DKIM key, so there is
+nothing new to publish. A domain whose DKIM is not set up relays unsealed. If
+the chain arrived broken, the seal says `cv=fail` and covers only Corsair's own
+set. If the newest seal already says `cv=fail`, or the chain has reached 50
+hops, nothing more is added.
+
+**Receiving.** Every inbound message has its chain checked, and the result goes
+into `Authentication-Results` as `arc=pass`, `arc=fail`, or `arc=none`. A
+passing chain only tells you that the newest sealer saw the message pass, and
+anyone can seal. So a DMARC failure is overridden only when the newest sealer is
+one you named in [`ARC_TRUSTED_SEALERS`](configuration.html#forwarded-mail-arc).
+The override removes the DMARC penalty from the spam score and nothing else.
+The header keeps `dmarc=fail` and adds a note that local policy overrode it.
+
+note What is not checked
+Message signatures older than the newest are not verified. They are expected to
+fail once a hop changes the message, which is the case ARC exists for. Only
+`rsa-sha256` is accepted, and a key under 1024 bits verifies nothing.
 
 ## What damages reputation fastest
 
@@ -7252,6 +8068,15 @@ The API token posted to `dns/publish` is used for that one call and never stored
 | POST | `/api/addresses/:address_id/recovery` | Set the recovery address |
 | GET | `/api/addresses/:address_id/folders` | Folders with counts |
 | GET | `/api/addresses/:address_id/activity` | Recent mail activity |
+| GET | `/api/addresses/:address_id/app-passwords` | App passwords, without secrets |
+| POST | `/api/addresses/:address_id/app-passwords` | Create one; `password` is returned once |
+| DELETE | `/api/addresses/:address_id/app-passwords/:app_password_id` | Revoke one |
+
+`PATCH` takes `require_app_passwords` to refuse the mailbox password over the mail
+protocols; it is refused while the mailbox has no app passwords. Creating one
+takes a `name` and optional `scopes` (`imap`, `pop3`, `smtp`, `jmap`, `dav`,
+`sieve`; all by default). The webmail has the same three under
+`/api/mail/app-passwords`, where creating one also requires `current_password`.
 
 ### Filters
 
@@ -7698,7 +8523,7 @@ will not accept a credential unencrypted. See [TLS](tls.html).
 
 ```
 * CAPABILITY IMAP4rev1 LITERAL+ SASL-IR UIDPLUS MOVE ID UNSELECT CHILDREN
-  NAMESPACE IDLE SORT ENABLE SPECIAL-USE LIST-EXTENDED WITHIN
+  NAMESPACE IDLE SORT ENABLE SPECIAL-USE LIST-EXTENDED WITHIN CONDSTORE QRESYNC
 ```
 
 Plus, depending on connection state:
@@ -7722,7 +8547,6 @@ is what port 143 does here, since it can never be upgraded.
 | `NOOP` | Also delivers pending untagged responses |
 | `LOGOUT` | |
 | `ID` | Client and server identification |
-| `ENABLE` | |
 
 ### Not authenticated
 
@@ -7735,8 +8559,9 @@ is what port 143 does here, since it can never be upgraded.
 
 | Command | Notes |
 | --- | --- |
-| `SELECT` | |
-| `EXAMINE` | Read-only select |
+| `ENABLE` | `CONDSTORE`, `QRESYNC` (which implies `CONDSTORE`) |
+| `SELECT` | With `(CONDSTORE)` or `(QRESYNC (...))`; always reports `HIGHESTMODSEQ` |
+| `EXAMINE` | Read-only select, same parameters |
 | `CREATE` | `/` is the hierarchy delimiter |
 | `DELETE` | |
 | `RENAME` | |
@@ -7752,13 +8577,13 @@ is what port 143 does here, since it can never be upgraded.
 
 | Command | Notes |
 | --- | --- |
-| `FETCH` | Including partial and section addressing |
-| `STORE` | Flag updates |
+| `FETCH` | Including partial and section addressing, `MODSEQ`, and `(CHANGEDSINCE n [VANISHED])` |
+| `STORE` | Flag updates, with `(UNCHANGEDSINCE n)` |
 | `COPY` | Returns `COPYUID` |
 | `MOVE` | Preserves the message id |
-| `SEARCH` | |
-| `SORT` | |
-| `EXPUNGE` | Highest sequence first |
+| `SEARCH` | Including `MODSEQ n`, answered with `(MODSEQ n)` |
+| `SORT` | Same `MODSEQ` criterion |
+| `EXPUNGE` | Highest sequence first, or `VANISHED` once `QRESYNC` is enabled |
 | `CLOSE`, `UNSELECT` | |
 | `CHECK` | |
 | `UID` | `FETCH`, `STORE`, `COPY`, `MOVE`, `SEARCH`, `SORT`, `EXPUNGE` |
@@ -7816,6 +8641,60 @@ the way they were numbered when it asked, not renumbered mid-response.
 New mail arriving during `IDLE` produces `EXISTS` and `RECENT`. Flag changes made
 elsewhere produce untagged `FETCH`.
 
+## Resynchronisation: CONDSTORE and QRESYNC
+
+Every message carries a modification sequence, and every folder a
+`HIGHESTMODSEQ`. Any change bumps both — a delivery, a flag change from any
+protocol (IMAP, JMAP, webmail, the agent API), an expunge, a move. A client that
+remembers the last `HIGHESTMODSEQ` it saw can ask for only what changed since.
+
+```
+a ENABLE QRESYNC
+b SELECT INBOX (QRESYNC (1754823710 4127 1:300))
+* 297 EXISTS
+...
+* OK [HIGHESTMODSEQ 4135] Highest modification sequence.
+* 12 FETCH (UID 14 FLAGS (\Seen \Flagged) MODSEQ (4131))
+* VANISHED (EARLIER) 41,77:79
+b OK [READ-WRITE] SELECT completed.
+```
+
+The arguments are the `UIDVALIDITY` and `HIGHESTMODSEQ` the client cached, and
+optionally the UIDs it knows about and a sequence-to-UID sample. Back come the
+flag changes and the UIDs that disappeared, and nothing else. If `UIDVALIDITY`
+has changed, the parameters are ignored and the client gets a plain `SELECT`.
+
+The rest of the extension:
+
+| | |
+| --- | --- |
+| `FETCH 1:* (FLAGS) (CHANGEDSINCE n)` | Only messages changed after `n`, with `MODSEQ` |
+| `UID FETCH ... (CHANGEDSINCE n VANISHED)` | Also `VANISHED (EARLIER)` for UIDs in the set. Needs `QRESYNC` |
+| `STORE 1:5 (UNCHANGEDSINCE n) +FLAGS (\Deleted)` | Skips any message changed after `n` and lists it in `[MODIFIED ...]` |
+| `SEARCH MODSEQ n` | Matches messages changed at or after `n`; the reply ends `(MODSEQ highest)` |
+| `STATUS INBOX (HIGHESTMODSEQ)` | Without selecting |
+
+Once `CONDSTORE` is on — by `ENABLE`, by `SELECT (CONDSTORE)`, or by the first
+command that uses a modseq — every untagged `FETCH` carries `UID` and `MODSEQ`.
+Once `QRESYNC` is on, an expunge is reported as one `VANISHED` line of UIDs
+rather than a run of `EXPUNGE`s. A client that enabled neither sees exactly what
+it saw before.
+
+Two properties keep it correct:
+
+- **Modseqs are handed out under the folder's row lock**, the same way UIDs are,
+  and the lock is held until the change commits. Changes therefore commit in
+  modseq order, and a client can never read a `HIGHESTMODSEQ` whose change is not
+  yet visible — which would make it skip that change forever.
+- **Tombstones are kept for 30 days.** `VANISHED (EARLIER)` is built from them.
+  For a client that has been away longer than that, Corsair cannot list exactly
+  what vanished, so it reports every UID in range that is not live. The
+  specification allows that, a client ignores UIDs it never had, and it is the
+  only answer that cannot leave deleted mail on someone's screen. The
+  sequence-to-UID sample in the `QRESYNC` arguments narrows it.
+
+Corsair never answers `NOMODSEQ`: every folder supports modseqs.
+
 ## MOVE preserves the message id
 
 `MOVE` updates `folder_id` and allocates a fresh UID in the target, writing a
@@ -7867,7 +8746,6 @@ when several are in flight.
 
 | | |
 | --- | --- |
-| `CONDSTORE` / `QRESYNC` | `HIGHESTMODSEQ` is tracked and reported by `STATUS`, but the sync extensions are not exposed |
 | `COMPRESS=DEFLATE` | |
 | `BINARY` | |
 | `CATENATE` | |
@@ -8182,13 +9060,135 @@ mail" suggests otherwise. There is one copy, and `DELE` plus `QUIT` deletes it.
 
 ---
 
+# Contacts (CardDAV)
+
+Source: https://wess.io/corsair/docs/contacts.html
+
+# Contacts (CardDAV)
+
+Every mailbox has one address book. Phones and desktop clients sync it over
+CardDAV ([RFC 6352](https://datatracker.ietf.org/doc/html/rfc6352)), and the
+webmail reads the same rows: a contact added on your phone autocompletes in
+compose, and one added in the webmail turns up on your phone at its next sync.
+
+CardDAV runs on the same HTTPS address as the panel and the webmail. There is no
+extra port.
+
+| Setting | Value |
+| --- | --- |
+| Server | the panel's hostname, e.g. `mail.example.com` |
+| Path | `/dav/` (clients that follow `/.well-known/carddav` find it alone) |
+| Username | the full email address |
+| Password | the mailbox password, the same one IMAP uses |
+
+note Contacts, not calendars.
+Corsair does not serve CalDAV. That is a decision rather than a gap still to be
+filled: contacts are what makes autocomplete work and what people expect to
+follow them between devices, while calendars are a large, quirky protocol for a
+mail server to take on. Use a dedicated calendar server alongside it.
+
+## Setting up a client
+
+### iPhone and iPad
+
+**Settings → Contacts → Accounts → Add Account → Other → Add CardDAV Account.**
+
+- **Server**: `mail.example.com`
+- **User Name**: you@example.com
+- **Password**: your mailbox password
+
+iOS finds the address book through `/.well-known/carddav`. If it reports it
+cannot connect, open **Advanced Settings** and confirm **Use SSL** is on and the
+port is 443.
+
+### macOS Contacts
+
+**Contacts → Settings → Accounts → +** (or **System Settings → Internet
+Accounts → Add Other Account**) **→ CardDAV account**. Choose **Manual** as the
+account type and enter the same three values as on iOS.
+
+### Thunderbird
+
+If the domain publishes `autoconfig`, Thunderbird offers the address book when
+you add the mail account — the autoconfig document names it.
+
+By hand: **Address Book → New Address Book → Add CardDAV Address Book**. Enter
+your email address as the username and `https://mail.example.com/dav/` as the
+location. Thunderbird discovers the book and asks for the mailbox password.
+
+### Android (DAVx⁵)
+
+Install DAVx⁵, then **+ → Login with URL and user name**:
+
+- **Base URL**: `https://mail.example.com/dav/`
+- **User name**: you@example.com
+- **Password**: your mailbox password
+
+DAVx⁵ walks from there to the address book and syncs it into the system
+contacts.
+
+## What is supported
+
+- **Discovery**: `/.well-known/carddav` redirects to `/dav/`;
+  `current-user-principal`, `addressbook-home-set`, and the CalendarServer
+  `email-address-set` are answered so clients that only know a hostname get the
+  rest of the way.
+- **PROPFIND** at depth 0 and 1 on the principal, the home set, the book, and each
+  card, including `getctag` and `sync-token`.
+- **REPORT**: `addressbook-multiget`, `addressbook-query` (text matches on any
+  property — `FN`, `EMAIL`, and the rest — or every card with no filter), and
+  `sync-collection` ([RFC 6578](https://datatracker.ietf.org/doc/html/rfc6578)),
+  which reports deletions as well as changes.
+- **GET, PUT, DELETE** with ETags. `If-Match` and `If-None-Match: *` are honoured,
+  so a client editing a stale copy gets a 412 rather than overwriting a newer one.
+- vCard **3.0 and 4.0**, up to **256 KB** a card (room for a photo), with a UID
+  unique within the book. Cards are stored and served back byte for byte.
+
+## What is not
+
+- **One book per mailbox.** Creating a second one (`MKCOL`) is refused with a 403.
+  The book can be renamed (`PROPPATCH` on `displayname`); nothing else on it is
+  writable.
+- **No sharing** between mailboxes, and no ACLs beyond "the mailbox owns its own
+  book". Another mailbox's book is a 404, exactly like one that does not exist.
+- **Alias, group, and agent addresses have no address book.** Aliases and groups
+  are routing entries. An agent mailbox reads mail a stranger can write, so it is
+  kept away from a list that autocompletes into a person's compose.
+- **Sent-to recipients are not added automatically.** The address book holds what
+  you put in it.
+
+## Authentication
+
+HTTP Basic, checked by the same code as IMAP, POP3, SMTP, and JMAP: failed
+attempts count towards the same per-IP ban, and a mailbox that is disabled or
+whose account is terminated cannot sign in here either.
+
+A browser session cookie is never accepted on `/dav/`. If it were, any site you
+visited could write to your address book through your browser. A browser on
+another site that tries a PUT or DELETE is refused before authentication.
+
+## DNS for discovery from the address alone
+
+Clients that start from `you@example.com` look for the CardDAV server under
+`example.com` ([RFC 6764](https://datatracker.ietf.org/doc/html/rfc6764)). If
+`example.com` is not served by Corsair, publish an SRV record pointing at it:
+
+```
+_carddavs._tcp.example.com.  3600 IN SRV 0 1 443 mail.example.com.
+_carddavs._tcp.example.com.  3600 IN TXT "path=/dav/"
+```
+
+Optional. Without it, entering the server hostname works on every client above.
+
+---
+
 # Command line
 
 Source: https://wess.io/corsair/docs/cli.html
 
 # Command line
 
-Corsair has no administrative CLI. Everything an operator does is either an
+Corsair has no administrative CLI beyond the scripts below. Everything an operator does is either an
 entrypoint, a script, or SQL — which keeps the surface small and means nothing is
 hidden behind a subcommand you have to discover.
 
@@ -8241,6 +9241,18 @@ is idempotent: an existing plan key or an existing user is left alone.
 
 The account it creates **owns the instance** if it is the first one.
 
+## DKIM rotation
+
+```sh
+bun scripts/dkim.ts status     # phases, DNS state, and the TXT records to publish
+bun scripts/dkim.ts rotate     # stage a new key on the next selector host
+bun scripts/dkim.ts advance    # one worker pass now
+```
+
+Also `bun run dkim <command>`. Corsair cannot publish at your selector hosts, so
+`status` and `rotate` print exactly what to put where; the worker advances the
+rotation once DNS shows it. See [Key rotation](dns-setup.html#key-rotation).
+
 ## Package scripts
 
 ```sh
@@ -8253,6 +9265,8 @@ bun run migrate:status
 bun run migrate:down
 bun run migrate:diff
 bun run seed
+bun run acme status    # built-in ACME: stored certificate and expiry
+bun run acme renew     # built-in ACME: issue now (needs ACME_HTTP_PORT free)
 
 bun run db:up          # PostgreSQL in Docker on 55433
 bun run db:down
@@ -8432,7 +9446,10 @@ a folder that has since received mail — a duplicate UID is the one thing an IM
 client never recovers from.
 
 `message_tombstones` exists because a client that was offline during an expunge
-still needs to be told what disappeared.
+still needs to be told what disappeared — it is what IMAP `QRESYNC` answers
+`VANISHED (EARLIER)` from. The retention sweep removes them after 30 days and
+records the highest modseq it removed in `folders.vanished_floor`, so a client
+asking about an older modseq is answered conservatively rather than wrongly.
 
 ## Delivery
 

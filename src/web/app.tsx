@@ -18,6 +18,7 @@ import {
   ResetPasswordPage,
   VerifyEmailPage,
 } from "./pages/recover.tsx"
+import { ReportsPage } from "./pages/reports.tsx"
 import { SendingPage } from "./pages/sending.tsx"
 import { TransfersPage } from "./pages/transfers.tsx"
 
@@ -72,6 +73,7 @@ const useRoute = (): string => {
 const NAV = [
   { label: "Overview", path: "/", icon: icons.overview },
   { label: "Domains", path: "/domains", icon: icons.domains },
+  { label: "Reports", path: "/reports", icon: icons.check },
   { label: "Filters", path: "/filters", icon: icons.filters },
   { label: "Transfers", path: "/transfers", icon: icons.transfers },
   { label: "Webhooks", path: "/webhooks", icon: icons.webhook },
@@ -99,6 +101,7 @@ const titleFor = (route: string): string => {
   if (route.startsWith("/admins")) return "Administrators"
 
   if (route.startsWith("/domains")) return "Domains"
+  if (route.startsWith("/reports")) return "DMARC & TLS reports"
   if (route.startsWith("/addresses")) return "Address"
   if (route.startsWith("/filters")) return "Filters"
   if (route.startsWith("/transfers")) return "Transfers"
@@ -146,6 +149,7 @@ const Shell = ({
     if (hookDetail) return <HookDetailPage id={hookDetail[1]!} />
     if (route.startsWith("/webhooks")) return <HooksPage />
 
+    if (route.startsWith("/reports")) return <ReportsPage />
     if (route.startsWith("/sending")) return <SendingPage />
     if (route.startsWith("/agents")) return <AgentsPage />
     if (route.startsWith("/transfers")) return <TransfersPage />

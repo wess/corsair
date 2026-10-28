@@ -1,6 +1,7 @@
 import { from } from "@wess/atlas/db/query"
 import { db } from "../../db/index.ts"
 import { recordFailure, recordSuccess, signatureHeaders } from "../../events/index.ts"
+import { webhookDeliveries } from "../../metrics/index.ts"
 import { safeFetch } from "../../safefetch/index.ts"
 import {
   type Webhook,
@@ -103,6 +104,7 @@ export const deliverEvent = async (eventId: string): Promise<DeliveryResult> => 
           next_attempt_at: null,
         }),
     )
+    webhookDeliveries.inc({ outcome: "delivered" })
     await recordSuccess(hook.id)
     return { status: "delivered", detail: `HTTP ${statusCode}` }
   }
@@ -115,6 +117,7 @@ export const deliverEvent = async (eventId: string): Promise<DeliveryResult> => 
         .where((q) => q("id").equals(event.id))
         .update({ status: "exhausted", attempts, next_attempt_at: null }),
     )
+    webhookDeliveries.inc({ outcome: "exhausted" })
     const disabled = await recordFailure(hook.id)
     return {
       status: "exhausted",
@@ -122,6 +125,7 @@ export const deliverEvent = async (eventId: string): Promise<DeliveryResult> => 
     }
   }
 
+  webhookDeliveries.inc({ outcome: "failed" })
   const delay = BACKOFF_SECONDS[attempts - 1] ?? 86_400
   await db().execute(
     from(webhookEvents)

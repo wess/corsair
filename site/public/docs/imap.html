@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light dark" />
 <title>IMAP · Corsair</title>
-<meta name="description" content="Advertised capabilities, supported commands, and the two behaviours that make IMAP correct rather than merely working." />
+<meta name="description" content="Advertised capabilities, supported commands, resynchronisation with CONDSTORE and QRESYNC, and the two behaviours that make IMAP correct rather than merely working." />
 <link rel="canonical" href="https://wess.io/corsair/docs/imap.html" />
 <meta property="og:title" content="IMAP" />
 <meta property="og:site_name" content="Corsair" />
-<meta property="og:description" content="Advertised capabilities, supported commands, and the two behaviours that make IMAP correct rather than merely working." />
+<meta property="og:description" content="Advertised capabilities, supported commands, resynchronisation with CONDSTORE and QRESYNC, and the two behaviours that make IMAP correct rather than merely working." />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://wess.io/corsair/docs/imap.html" />
 <meta name="twitter:card" content="summary" />
@@ -53,18 +53,18 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">04</span>Using Corsair</p>
-<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li><li><a href="./agents.html">Agent email</a></li><li><a href="./agent-tools.html">Tools for agents</a></li></ul>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./spam.html">Spam filtering</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li><li><a href="./agents.html">Agent email</a></li><li><a href="./agent-tools.html">Tools for agents</a></li></ul>
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">05</span>Reference</p>
-<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html" class="active" aria-current="page">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html" class="active" aria-current="page">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./contacts.html">Contacts (CardDAV)</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
 </div></nav>
 <main class="prose"><div class="page-head"><p class="eyebrow">Reference</p></div><h1 id="imap">IMAP</h1>
 <p>IMAP4rev1 on <strong>993</strong> (implicit TLS). Username is the full email address; password is the mailbox password.</p>
 <p>Port 143 listens but cannot be used: Corsair has no server-side STARTTLS, and it will not accept a credential unencrypted. See <a href="tls.html">TLS</a>.</p>
 <h2 id="capabilities">Capabilities<a class="anchor" href="#capabilities" aria-label="Link to this section">#</a></h2>
 <figure class="code"><pre><code>* CAPABILITY IMAP4rev1 LITERAL+ SASL-IR UIDPLUS MOVE ID UNSELECT CHILDREN
-  NAMESPACE IDLE SORT ENABLE SPECIAL-USE LIST-EXTENDED WITHIN</code></pre></figure>
+  NAMESPACE IDLE SORT ENABLE SPECIAL-USE LIST-EXTENDED WITHIN CONDSTORE QRESYNC</code></pre></figure>
 <p>Plus, depending on connection state:</p>
 <div class='table-wrap'><table><thead><tr>
 <th>Advertised</th>
@@ -102,10 +102,6 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td><code>ID</code></td>
 <td>Client and server identification</td>
 </tr>
-<tr>
-<td><code>ENABLE</code></td>
-<td></td>
-</tr>
 </tbody></table></div>
 <h3 id="not-authenticated">Not authenticated<a class="anchor" href="#not-authenticated" aria-label="Link to this section">#</a></h3>
 <div class='table-wrap'><table><thead><tr>
@@ -127,12 +123,16 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <th>Notes</th>
 </tr></thead><tbody>
 <tr>
+<td><code>ENABLE</code></td>
+<td><code>CONDSTORE</code>, <code>QRESYNC</code> (which implies <code>CONDSTORE</code>)</td>
+</tr>
+<tr>
 <td><code>SELECT</code></td>
-<td></td>
+<td>With <code>(CONDSTORE)</code> or <code>(QRESYNC (...))</code>; always reports <code>HIGHESTMODSEQ</code></td>
 </tr>
 <tr>
 <td><code>EXAMINE</code></td>
-<td>Read-only select</td>
+<td>Read-only select, same parameters</td>
 </tr>
 <tr>
 <td><code>CREATE</code></td>
@@ -182,11 +182,11 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tr></thead><tbody>
 <tr>
 <td><code>FETCH</code></td>
-<td>Including partial and section addressing</td>
+<td>Including partial and section addressing, <code>MODSEQ</code>, and <code>(CHANGEDSINCE n [VANISHED])</code></td>
 </tr>
 <tr>
 <td><code>STORE</code></td>
-<td>Flag updates</td>
+<td>Flag updates, with <code>(UNCHANGEDSINCE n)</code></td>
 </tr>
 <tr>
 <td><code>COPY</code></td>
@@ -198,15 +198,15 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tr>
 <tr>
 <td><code>SEARCH</code></td>
-<td></td>
+<td>Including <code>MODSEQ n</code>, answered with <code>(MODSEQ n)</code></td>
 </tr>
 <tr>
 <td><code>SORT</code></td>
-<td></td>
+<td>Same <code>MODSEQ</code> criterion</td>
 </tr>
 <tr>
 <td><code>EXPUNGE</code></td>
-<td>Highest sequence first</td>
+<td>Highest sequence first, or <code>VANISHED</code> once <code>QRESYNC</code> is enabled</td>
 </tr>
 <tr>
 <td><code>CLOSE</code>, <code>UNSELECT</code></td>
@@ -265,6 +265,47 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <p>Each session keeps a snapshot of the selected folder in UID order — the array sequence numbers index into — and reconciles it against the database at each command boundary.</p>
 <p>Reconciling at a <strong>boundary</strong> rather than continuously is what the protocol requires: a client that has issued <code>FETCH 1:5</code> must get five messages numbered the way they were numbered when it asked, not renumbered mid-response.</p>
 <p>New mail arriving during <code>IDLE</code> produces <code>EXISTS</code> and <code>RECENT</code>. Flag changes made elsewhere produce untagged <code>FETCH</code>.</p>
+<h2 id="resynchronisation-condstore-and-qresync">Resynchronisation: CONDSTORE and QRESYNC<a class="anchor" href="#resynchronisation-condstore-and-qresync" aria-label="Link to this section">#</a></h2>
+<p>Every message carries a modification sequence, and every folder a <code>HIGHESTMODSEQ</code>. Any change bumps both — a delivery, a flag change from any protocol (IMAP, JMAP, webmail, the agent API), an expunge, a move. A client that remembers the last <code>HIGHESTMODSEQ</code> it saw can ask for only what changed since.</p>
+<figure class="code"><pre><code>a ENABLE QRESYNC
+b SELECT INBOX (QRESYNC (1754823710 4127 1:300))
+* 297 EXISTS
+...
+* OK [HIGHESTMODSEQ 4135] Highest modification sequence.
+* 12 FETCH (UID 14 FLAGS (\Seen \Flagged) MODSEQ (4131))
+* VANISHED (EARLIER) 41,77:79
+b OK [READ-WRITE] SELECT completed.</code></pre></figure>
+<p>The arguments are the <code>UIDVALIDITY</code> and <code>HIGHESTMODSEQ</code> the client cached, and optionally the UIDs it knows about and a sequence-to-UID sample. Back come the flag changes and the UIDs that disappeared, and nothing else. If <code>UIDVALIDITY</code> has changed, the parameters are ignored and the client gets a plain <code>SELECT</code>.</p>
+<p>The rest of the extension:</p>
+<div class='table-wrap'><table><thead><tr>
+<th></th>
+<th></th>
+</tr></thead><tbody>
+<tr>
+<td><code>FETCH 1:* (FLAGS) (CHANGEDSINCE n)</code></td>
+<td>Only messages changed after <code>n</code>, with <code>MODSEQ</code></td>
+</tr>
+<tr>
+<td><code>UID FETCH ... (CHANGEDSINCE n VANISHED)</code></td>
+<td>Also <code>VANISHED (EARLIER)</code> for UIDs in the set. Needs <code>QRESYNC</code></td>
+</tr>
+<tr>
+<td><code>STORE 1:5 (UNCHANGEDSINCE n) +FLAGS (\Deleted)</code></td>
+<td>Skips any message changed after <code>n</code> and lists it in <code>[MODIFIED ...]</code></td>
+</tr>
+<tr>
+<td><code>SEARCH MODSEQ n</code></td>
+<td>Matches messages changed at or after <code>n</code>; the reply ends <code>(MODSEQ highest)</code></td>
+</tr>
+<tr>
+<td><code>STATUS INBOX (HIGHESTMODSEQ)</code></td>
+<td>Without selecting</td>
+</tr>
+</tbody></table></div>
+<p>Once <code>CONDSTORE</code> is on — by <code>ENABLE</code>, by <code>SELECT (CONDSTORE)</code>, or by the first command that uses a modseq — every untagged <code>FETCH</code> carries <code>UID</code> and <code>MODSEQ</code>. Once <code>QRESYNC</code> is on, an expunge is reported as one <code>VANISHED</code> line of UIDs rather than a run of <code>EXPUNGE</code>s. A client that enabled neither sees exactly what it saw before.</p>
+<p>Two properties keep it correct:</p>
+<ul><li><strong>Modseqs are handed out under the folder's row lock</strong>, the same way UIDs are, and the lock is held until the change commits. Changes therefore commit in modseq order, and a client can never read a <code>HIGHESTMODSEQ</code> whose change is not yet visible — which would make it skip that change forever.</li><li><strong>Tombstones are kept for 30 days.</strong> <code>VANISHED (EARLIER)</code> is built from them. For a client that has been away longer than that, Corsair cannot list exactly what vanished, so it reports every UID in range that is not live. The specification allows that, a client ignores UIDs it never had, and it is the only answer that cannot leave deleted mail on someone's screen. The sequence-to-UID sample in the <code>QRESYNC</code> arguments narrows it.</li></ul>
+<p>Corsair never answers <code>NOMODSEQ</code>: every folder supports modseqs.</p>
 <h2 id="move-preserves-the-message-id">MOVE preserves the message id<a class="anchor" href="#move-preserves-the-message-id" aria-label="Link to this section">#</a></h2>
 <p><code>MOVE</code> updates <code>folder_id</code> and allocates a fresh UID in the target, writing a tombstone in the source.</p>
 <p>It is deliberately <strong>not</strong> implemented as copy-then-expunge, which would mint a new row id. IMAP is satisfied either way — it only cares about UIDs — but JMAP requires an Email's id to survive a change of mailbox, and all the protocols read the same rows. The bug would be invisible until a JMAP client fetched the id it had just moved.</p>
@@ -288,10 +329,6 @@ g LOGOUT</code></pre></figure>
 <th></th>
 <th></th>
 </tr></thead><tbody>
-<tr>
-<td><code>CONDSTORE</code> / <code>QRESYNC</code></td>
-<td><code>HIGHESTMODSEQ</code> is tracked and reported by <code>STATUS</code>, but the sync extensions are not exposed</td>
-</tr>
 <tr>
 <td><code>COMPRESS=DEFLATE</code></td>
 <td></td>
@@ -320,7 +357,7 @@ g LOGOUT</code></pre></figure>
 <p>Clients negotiate down cleanly on all of these.</p>
 <h2 id="client-notes">Client notes<a class="anchor" href="#client-notes" aria-label="Link to this section">#</a></h2>
 <p>See <a href="client-setup.html">Client settings</a> for the per-client quirks. The short version: full email address as the username, prefer 993, and Corsair will refuse a plaintext login rather than let a password cross the network unencrypted.</p><nav class="pager"><a class="pager-prev" href="./smtp.html"><span>Previous</span><strong>SMTP</strong></a><a class="pager-next" href="./jmap.html"><span>Next</span><strong>JMAP</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#capabilities">Capabilities</a></li><li class="toc-h2"><a href="#commands">Commands</a></li><li class="toc-h3"><a href="#any-state">Any state</a></li><li class="toc-h3"><a href="#not-authenticated">Not authenticated</a></li><li class="toc-h3"><a href="#authenticated">Authenticated</a></li><li class="toc-h3"><a href="#selected">Selected</a></li><li class="toc-h2"><a href="#special-use-folders">Special-use folders</a></li><li class="toc-h2"><a href="#the-two-things-that-make-it-correct">The two things that make it correct</a></li><li class="toc-h3"><a href="#uid-allocation-is-atomic">UID allocation is atomic</a></li><li class="toc-h3"><a href="#expunge-is-emitted-highest-sequence-first">EXPUNGE is emitted highest sequence first</a></li><li class="toc-h2"><a href="#sessions-and-snapshots">Sessions and snapshots</a></li><li class="toc-h2"><a href="#move-preserves-the-message-id">MOVE preserves the message id</a></li><li class="toc-h2"><a href="#everything-on-the-wire-is-latin1">Everything on the wire is latin1</a></li><li class="toc-h2"><a href="#testing-by-hand">Testing by hand</a></li><li class="toc-h2"><a href="#not-implemented">Not implemented</a></li><li class="toc-h2"><a href="#client-notes">Client notes</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#capabilities">Capabilities</a></li><li class="toc-h2"><a href="#commands">Commands</a></li><li class="toc-h3"><a href="#any-state">Any state</a></li><li class="toc-h3"><a href="#not-authenticated">Not authenticated</a></li><li class="toc-h3"><a href="#authenticated">Authenticated</a></li><li class="toc-h3"><a href="#selected">Selected</a></li><li class="toc-h2"><a href="#special-use-folders">Special-use folders</a></li><li class="toc-h2"><a href="#the-two-things-that-make-it-correct">The two things that make it correct</a></li><li class="toc-h3"><a href="#uid-allocation-is-atomic">UID allocation is atomic</a></li><li class="toc-h3"><a href="#expunge-is-emitted-highest-sequence-first">EXPUNGE is emitted highest sequence first</a></li><li class="toc-h2"><a href="#sessions-and-snapshots">Sessions and snapshots</a></li><li class="toc-h2"><a href="#resynchronisation-condstore-and-qresync">Resynchronisation: CONDSTORE and QRESYNC</a></li><li class="toc-h2"><a href="#move-preserves-the-message-id">MOVE preserves the message id</a></li><li class="toc-h2"><a href="#everything-on-the-wire-is-latin1">Everything on the wire is latin1</a></li><li class="toc-h2"><a href="#testing-by-hand">Testing by hand</a></li><li class="toc-h2"><a href="#not-implemented">Not implemented</a></li><li class="toc-h2"><a href="#client-notes">Client notes</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

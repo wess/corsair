@@ -2,6 +2,7 @@ import { from } from "@wess/atlas/db/query"
 import { createStore, presign, remove, type Store, upload } from "@wess/atlas/storage"
 import { config } from "../config/index.ts"
 import { type Connection, db } from "../db/index.ts"
+import { storageErrors } from "../metrics/index.ts"
 import { messageBlobs } from "../schema/index.ts"
 
 /**
@@ -80,7 +81,10 @@ export const putRaw = async (key: string, raw: string): Promise<string | null> =
   await withDeadline(
     upload(s, { key, body: Buffer.from(raw, "latin1"), contentType: "message/rfc822" }),
     "upload",
-  )
+  ).catch((e) => {
+    storageErrors.inc({ op: "write" })
+    throw e
+  })
   return key
 }
 
@@ -111,6 +115,7 @@ export const getRaw = async (input: {
       }
       return Buffer.from(await response.arrayBuffer()).toString("latin1")
     } catch {
+      storageErrors.inc({ op: "read" })
       throw new Error("Message storage is temporarily unavailable.")
     }
   }
@@ -142,6 +147,7 @@ export const deleteRaw = async (storageKey: string | null): Promise<void> => {
     if (live) return
     await withDeadline(remove(s, storageKey), "delete")
   } catch (e) {
+    storageErrors.inc({ op: "delete" })
     console.error("[corsair] failed to delete object", storageKey, e)
   }
 }

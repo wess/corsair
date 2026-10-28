@@ -128,8 +128,16 @@ export const parseSearch = (input: string): ParsedSearch => {
       case "UID":
         return { kind: "sequence", set: reader.astring(), uid: true }
 
-      case "MODSEQ":
-        return { kind: "modseq", value: BigInt(reader.astring() || "0") }
+      case "MODSEQ": {
+        // MODSEQ ["/flags/\\draft" all] 620162338. Every flag shares the
+        // message's one modseq here, so the entry name narrows nothing.
+        if (reader.peek() === '"') {
+          reader.astring()
+          reader.word()
+        }
+        const value = reader.astring()
+        return { kind: "modseq", value: /^\d+$/.test(value) ? BigInt(value) : 0n }
+      }
 
       case "CHARSET":
         // Consume the charset name and carry on; the store is already Unicode.
@@ -157,6 +165,21 @@ export const parseSearch = (input: string): ParsedSearch => {
         : { kind: "and", children }
 
   return { criterion, needsHeaders }
+}
+
+/** Whether a MODSEQ criterion appears, which adds `(MODSEQ n)` to the result. */
+export const usesModseq = (criterion: Criterion): boolean => {
+  switch (criterion.kind) {
+    case "modseq":
+      return true
+    case "and":
+    case "or":
+      return criterion.children.some(usesModseq)
+    case "not":
+      return usesModseq(criterion.child)
+    default:
+      return false
+  }
 }
 
 export const needsHeaders = (criterion: Criterion): boolean => {
@@ -300,7 +323,7 @@ export const matches = (
     }
 
     case "modseq":
-      return message.modseq >= criterion.value
+      return BigInt(message.modseq) >= criterion.value
   }
 }
 

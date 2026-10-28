@@ -19,6 +19,9 @@ The settings, then the clients that need help.
 | POP3 | **995** | SSL/TLS | Normal password |
 | SMTP | **465** | SSL/TLS (implicit) | Normal password |
 
+Filters can be edited from Thunderbird, Roundcube, and K-9 over ManageSieve on
+port **4190** with STARTTLS; see [Filters](filters.html).
+
 Port **587 with STARTTLS** also works when the operator runs the STARTTLS
 terminator described in [Configuration](configuration.html). 465 is listed above
 because it works on every install and needs no upgrade to get wrong.
@@ -59,9 +62,50 @@ domain when the addresses match, so there is one password, not two.
 For a mailbox that is not a control-panel account — anyone else on your domain —
 it is that mailbox's own password, which opens mail and never the panel.
 
+Or, better, an **app password** — see [below](#app-passwords).
+
 993 and 465 are encrypted from the first byte. There is no upgrade to negotiate
 and none to get wrong, which is why they are the better ports even on a server
 where STARTTLS works.
+
+## App passwords
+
+An app password is a credential for one mail client. Create one per device in
+the panel (the address's **App passwords** tab) or in the webmail's settings, type
+it into that client's password field, and the client never holds your real
+password.
+
+- It looks like `k7qm-3hxa-pw9d-tn2e-vbc4`. Dashes, spaces, and capitals are
+  ignored, so it survives a phone keyboard.
+- It is shown **once**. A lost one is deleted and replaced, never recovered.
+- Deleting one signs out that device on every protocol at once and leaves every
+  other client alone.
+- Changing the mailbox password does **not** revoke app passwords. That is the
+  point of them: you can rotate a password you think has leaked without
+  re-entering it on every device.
+- Each can be limited to the protocols the client uses — IMAP, POP3, SMTP, JMAP,
+  contacts, or filters. A phone that only reads mail does not need SMTP.
+- They open the mail protocols only. The webmail and the panel are browser
+  sign-ins and always take the real password.
+- Disabling the mailbox stops them, along with everything else.
+
+Agent mailboxes do not have app passwords — their API key is already a revocable
+per-client credential — and aliases and groups have nothing to sign into.
+
+### Requiring them
+
+On an address's App passwords tab, **Require app passwords for mail clients**
+refuses the mailbox password itself over IMAP, POP3, SMTP, and JMAP. Only app
+passwords open those protocols afterwards; the webmail still takes the real
+password. Create one for each client before turning it on — the panel will not
+let you require them while there are none.
+
+:::tip Using two-step sign-in on the panel? Turn this on.
+Your own mailbox shares your account password, and mail clients send it with no
+second step. With app passwords required, the password guarded by your
+authenticator no longer opens IMAP or SMTP at all. The panel shows a reminder on
+any mailbox where this applies.
+:::
 
 ## Automatic configuration
 
@@ -141,6 +185,14 @@ Corsair advertises `IDLE`, so `set imap_idle = yes` works.
 
 Session resource at `https://mail.example.com/.well-known/jmap`, authenticated
 with HTTP Basic using the address and mailbox password. See [JMAP](jmap.html).
+
+## Contacts
+
+Your address book syncs over CardDAV on the same HTTPS address as the panel —
+`https://mail.example.com/dav/`, the full address as the username, the mailbox
+password as the password. iOS, macOS Contacts, Thunderbird, and DAVx⁵ on Android
+all work; most need only the hostname. Step-by-step setup is in
+[Contacts (CardDAV)](contacts.html).
 
 ## Roundcube, SnappyMail, and other webmail
 

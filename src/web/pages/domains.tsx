@@ -29,6 +29,7 @@ import {
   RequestError,
 } from "../lib/api.ts"
 import { DomainAdminsTab } from "./admins.tsx"
+import { AppPasswords } from "./apppasswords.tsx"
 
 type Domain = {
   id: string
@@ -637,6 +638,7 @@ const PURPOSE_LABEL: Record<string, string> = {
   dmarc: "DMARC",
   dkim: "DKIM/ARC key",
   mta_sts: "MTA-STS",
+  tlsrpt: "TLS reporting",
   autoconfig: "Thunderbird autoconfig",
   autodiscover: "Outlook autodiscover",
   webmail: "Webmail URL",
@@ -1041,7 +1043,7 @@ const SelfServiceTab = ({ domain, onSaved }: { domain: Domain; onSaved: () => vo
 // address detail
 
 export const AddressDetailPage = ({ id }: { id: string }) => {
-  const [tab, setTab] = useState<"general" | "password">("general")
+  const [tab, setTab] = useState<"general" | "password" | "apppasswords">("general")
   const { data, error, loading, reload } = useLoad(() => get<Address>(`/api/addresses/${id}`), [id])
   const activity = useLoad(
     () =>
@@ -1082,6 +1084,15 @@ export const AddressDetailPage = ({ id }: { id: string }) => {
             Change password
           </button>
         )}
+        {(data.type === "standard" || data.type === "catchall") && (
+          <button
+            type="button"
+            className={`tab${tab === "apppasswords" ? " active" : ""}`}
+            onClick={() => setTab("apppasswords")}
+          >
+            App passwords
+          </button>
+        )}
       </div>
 
       {tab === "general" && (
@@ -1093,6 +1104,15 @@ export const AddressDetailPage = ({ id }: { id: string }) => {
         </>
       )}
       {tab === "password" && <ChangeAddressPassword address={data} />}
+      {tab === "apppasswords" && (
+        <AppPasswords
+          base={`/api/addresses/${data.id}/app-passwords`}
+          email={data.email}
+          onRequire={async (value) => {
+            await patch(`/api/addresses/${data.id}`, { require_app_passwords: value })
+          }}
+        />
+      )}
     </div>
   )
 }

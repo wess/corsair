@@ -53,7 +53,20 @@ the same UID, and a duplicate UID is the one thing an IMAP client never
 recovers from. There is a concurrency test for this — keep it.
 
 **EXPUNGE is emitted highest sequence first.** IMAP renumbers after every single
-EXPUNGE, so ascending order makes a client delete the wrong messages.
+EXPUNGE, so ascending order makes a client delete the wrong messages. A session
+that has enabled QRESYNC gets one `VANISHED <uids>` line instead.
+
+**A modseq bump and the write it describes commit together.** `storeFlags`
+bumps `folders.highest_modseq` and writes the message's `modseq` in one
+transaction, holding the folder row lock until commit, exactly as `claimUid`
+does. As two statements, a CONDSTORE client resyncing between them recorded the
+new HIGHESTMODSEQ while the message still carried its old one, and never asked
+about that change again. Every flag change in every protocol goes through
+`storeFlags`/`setFlags`; a path that writes `messages.flags` directly is a change
+no IMAP client will ever hear about. Tombstones older than the retention sweep
+are gone, so `folders.vanished_floor` records how far it reached and QRESYNC
+reports every non-live UID for a client older than that — not a short list.
+`tests/condstore.test.ts` pins both.
 
 **Header values must be sanitised.** A bare CR or LF in a subject, display name,
 or custom header injects a header. `stripControls` in `core/mime` runs on every
@@ -83,6 +96,18 @@ a new session, and writes a greeting — so passing `handlers` straight through
 silently replaced the connection with an unauthenticated one that still
 advertised STARTTLS and no longer advertised AUTH. Pass
 `{ ...handlers, open: (s) => (s.data = state) }`.
+
+**Bun cannot change a running listener's certificate.** `listener.reload({ tls })`
+and `server.reload({ tls })` are both accepted on 1.4 and both keep serving the
+old certificate — checked with a handshake, not the types. So the built-in ACME
+client (`src/acme`, opt-in, `ACME=on`) installs a renewal by `replaceTls` in
+`src/tls`: STARTTLS reads `currentTls()` at each upgrade, and the implicit-TLS
+ports run under `serveImplicitTls`, which stops the old listener with
+`stop(false)` (open sessions survive) and binds a new one on the same port. A
+listener that captures the material once at startup will silently serve the
+expired certificate until a restart. With ACME and no certificate yet, 465/993/995
+are not listening at all until the first issue, and the STARTTLS probe is re-run
+then — it answered no at startup because there was nothing to upgrade to.
 
 **Bun delivers the post-upgrade stream to BOTH sockets** (oven-sh/bun#26297), so
 each listener's `data` drops anything arriving on the cleartext socket once
@@ -118,6 +143,20 @@ and the key resolves. `tests/dkimwire.test.ts` rebuilds the signed input by hand
 from the spec and verifies with `node:crypto` rather than with this codebase,
 because a test that uses our own verifier cannot see this class of bug at all.
 
+**ARC reuses the DKIM canonicalisation, and its bug.** `src/arc` imports
+`canonHeader`, `canonSelected`, `canonSignatureHeader` and the body hashes from
+`src/dkim` rather than having its own. The ARC-Seal signs every set from i=1 up,
+in the order AAR, AMS, AS, and the seal being made is the last thing hashed:
+`b=` emptied and no trailing CRLF. `tests/arcwire.test.ts` rebuilds that input by
+hand and checks it with `node:crypto`, for the same reason `dkimwire` exists.
+Forwarded mail (alias, group, Sieve `redirect`) is sealed with the forwarding
+domain's DKIM key in `sealForRelay`. A new relay path that skips it relays mail
+that fails DMARC downstream and gives no sign of it. The DMARC override for a
+passing chain needs the sealer to be in `ARC_TRUSTED_SEALERS`, because anyone can
+seal. It cancels the DMARC score penalty and nothing else. Do not widen it to
+any passing chain. That would turn "I sealed it" into a free DMARC pass for
+anyone who can run a mail server.
+
 **One DKIM keypair per selector host, shared by every domain.**
 `MAIL_DKIM_HOSTS` is installation-wide and each domain publishes
 `corsair-N._domainkey` as a CNAME to it, so that one name holds one TXT record.
@@ -125,6 +164,21 @@ A keypair minted per domain cannot be expressed in that: the second domain's
 public key has nowhere to go and its mail fails while looking correct on the way
 out. `createDomain` adopts the pair already in use for the host. The private key
 being shared changes no blast radius — one server holds all of them either way.
+
+**DKIM rotation never moves signing to a key it has not seen resolve.**
+`src/dkimrotate` alternates between the selector hosts customers already CNAME to,
+so no customer edits DNS; the operator publishes the TXT at the host, because
+Corsair holds no credentials for that zone. Phase is per *host* (`dkim_hosts`),
+while `dkim_keys.active` says which host each domain signs with. Two gates, both
+checked against live DNS: the host's TXT must match before it leaves `staged` and
+again after the 48 h soak, and each domain flips only when its *own*
+`corsair-N._domainkey.<domain>` resolves to the new key through its own CNAME. A
+domain that never published the next selector keeps the old key, and the old host
+is not revoked while any domain signs with it. The manual `activate` endpoint uses
+the same `keyResolves`. New domains take the active host, and the required DKIM
+CNAME is the signing selector, not position 0. `DKIM_ROTATE_DAYS` defaults to 0 so
+no install starts a cycle by surprise. `tests/dkimrotate.test.ts` uses a stub
+resolver; keep the refusal cases.
 
 **Ports 25 and 587 are held by a Rust process, not by Bun.** `engine/` is a
 STARTTLS terminator: it relays the session verbatim and intervenes at exactly
@@ -159,6 +213,35 @@ clear. It reads dig's status rather than `+short`, because an empty `+short` is
 either "not listed" or "never got an answer" and a monitor that cannot tell
 those apart reports health for a server it failed to ask.
 
+**DANE trusts a resolver's AD bit, and nothing else.** `node:dns` cannot report
+DNSSEC status, so `src/dnswire` speaks the wire format to `DANE_RESOLVER` and
+`src/dane` reads AD from the reply. That is sound only over a path nobody can
+tamper with, so a non-loopback resolver is refused unless
+`DANE_TRUST_REMOTE_RESOLVER=true`, and `DANE=auto` turns on only after the
+startup probe sees AD on the root and *no* answer for `dnssec-failed.org` — a
+forwarder that sets AD blindly passes the first check and fails the second. Every
+DANE failure (mismatch, STARTTLS missing, SERVFAIL on TLSA) is a 4.7.5 deferral;
+falling back to cleartext there is exactly the downgrade DANE prevents. Bun's
+native `getPeerCertificate` inverts Node's argument: `(false)` returns the chain
+with `issuerCertificate` links, `(true)` the leaf alone. DANE-TA needs the chain,
+and the 2 0 1 delivery test in `tests/dane.test.ts` fails if `peerChain` flips it.
+
+**The same refusal bites inbound blocklists.** `src/smtp/dnsbl` reads every
+`127.255.255.x` answer (and DBL's `127.0.1.255`, and another list's `127.0.0.1`)
+as "no answer", and ignores anything outside the documented `127.0.0.x`/`127.0.1.x`
+codes — an NXDOMAIN-rewriting resolver answers with a public address. Treating
+"it resolved" as "it is listed" files every message in Junk. Only the connecting
+IP is checked, never `Received:` hops, which is what keeps PBL off mail relayed
+from a home connection; behind the terminator that IP is the XCLIENT one.
+
+**A trusted correspondent needs authentication, not just an address.**
+`authenticatedFrom` in `src/smtp/inbound` returns the From address only when SPF
+or DKIM passes aligned with its domain, and the −5 and the greylist skip key on
+that. Keying on the bare header hands a forged From of a known contact a free
+pass. `tests/spam.test.ts` has the forged case. Every path a person sends through
+calls `recordCorrespondents` (submission, `sendFromMailbox`, JMAP
+`EmailSubmission`); agents deliberately do not record.
+
 ## One store, four protocols
 
 SMTP, IMAP, JMAP, POP3, and the webmail all read and write the same `messages`
@@ -177,6 +260,50 @@ it just moved.
 client. The policy is an allow-list — unknown tags and attributes are dropped
 rather than inspected — because a deny-list has to stay complete as browsers
 change. Remote images are withheld by default; they are tracking pixels.
+
+## ManageSieve
+
+`src/managesieve` (port 4190, STARTTLS only — the protocol defines no implicit-TLS
+port) edits the `filters` table that the panel and `/api/filters` already own.
+There is no second copy, and a mailbox's *active* script is its `addresses.filter_id`.
+
+**Only a mailbox that is its owner's own account may use it** (`addresses.user_id`
+set). Filters belong to the account, so letting a family member's or an agent's
+mailbox in would hand it the owner's scripts. Authentication still goes through
+`authenticateAddress`, so the ban and argon2 gating apply; the refusal comes
+*after* a correct password and is not recorded as a failure.
+
+**Limits match the API on purpose**: 64,000 bytes a script (`POST /api/filters`
+caps the same), 8 KB for anything before login, enforced from the literal header
+so an oversized one is never buffered. A larger cap here would store scripts the
+panel then refuses to save again. `PUTSCRIPT` and `RENAMESCRIPT` call
+`requireFeature("custom_filters")` like the routes do; `CHECKSCRIPT` stays open on
+every plan like `/api/filters/validate`. Bytes pipelined behind `STARTTLS` close
+the connection rather than upgrade.
+
+## Contacts (CardDAV)
+
+`src/carddav` serves `/dav/` and `/.well-known/carddav`; `src/contacts` is the
+store the webmail's autocomplete reads too. CalDAV is deliberately out of scope.
+
+**CardDAV is dispatched in `buildFetch` ahead of the Atlas router**, which knows
+no PROPFIND or REPORT and would hand an XML body to a JSON parser. It stays
+inside `fetch`, so `checkOrigin` still refuses a cross-site browser PUT (DAV
+clients send no Origin). **Basic auth only, never a cookie** — a cookie would
+make every DAV write a CSRF away.
+
+**The XML parser refuses any DOCTYPE.** No internal subset means no entity
+expansion; only the five predefined entities and numeric references decode.
+Match elements on `{ ns, name }`, never on the prefix.
+
+**The book's `sync_token` is its modseq**, advanced by the UPDATE that also takes
+the row lock serialising writes in that book; If-Match is checked *after* taking
+it, inside the same transaction. sync-collection reads the token *before* the
+changes, so a racing write is reported twice rather than never. Deletes leave a
+tombstone row; do not hard-delete a contact or sync clients never learn it went.
+
+**Cards are stored verbatim.** Clients compare what they read back to what they
+wrote; normalising a card makes every client see a conflict on its next sync.
 
 ## Route ordering
 
@@ -219,6 +346,17 @@ would hand them the panel. `setPassword` refuses on a linked mailbox rather than
 writing a second hash, which would silently re-split the credential.
 
 Alias and group addresses have no password at all — they are routing entries.
+
+**App passwords are accepted in `authenticateResolved` and nowhere else**
+(`src/apppasswords`). Every caller of `authenticateAddress` passes `via`, its
+protocol name: it decides the scope check and whether `require_app_passwords`
+applies. `webmail` refuses app passwords and ignores the requirement; a caller
+that passes *nothing* gets the requirement and only an all-scope app password,
+so a new listener that forgets fails closed. A new protocol needs a scope in
+`APP_PASSWORD_SCOPES` (and the column default) or its clients can only use
+unrestricted ones. Refusing the real password under the requirement still calls
+`spendVerifyTime` — `tests/apppasswords.test.ts` fails if it does not. Changing
+a password does not revoke them; disabling the mailbox does.
 
 ## Instance ownership
 
@@ -319,6 +457,37 @@ guarded.
 **Keys are hashes, cannot mint keys, and belong to the domain's owner.** A
 domain administrator manages mailboxes; sending as the domain is not delegated.
 `api_keys_scope_chk` keeps a domain-scoped key sending-only.
+
+## DMARC and TLS reports
+
+`src/authreports` owns both directions. Received reports land at the
+well-known `dmarc-reports@` / `tlsrpt@` on a hosted domain, checked per
+recipient ahead of `resolveRecipient` like the bounce address, and are parsed
+*in addition to* normal routing — a real mailbox by that name still gets the
+message. `src/archive` unpacks them and `src/xml` reads the XML.
+
+**A report may only describe the domain it was mailed to** (or a subdomain).
+`coversDomain` is what stops one customer filling another's tables, and a TLS
+report's entries about other domains are dropped one by one.
+`tests/authreports.test.ts` has the case.
+
+**Every inflate is capped while it runs.** `maxOutputLength` on node:zlib,
+because `Bun.gunzipSync` has no bound; a zip's declared size is checked *and*
+the inflate is capped again, since the declared size is the attacker's.
+
+**The XML parser refuses a DOCTYPE outright.** It is the only way to declare an
+entity, and declared entities are XXE and billion-laughs. Do not "support" it.
+
+**An external `rua` needs its TXT authorisation** (RFC 7489 §7.1,
+`destinationAllowed`). "Same domain" means the policy domain or under it — not
+a guessed organisational domain, which would call `a.co.uk` and `b.co.uk` one
+organisation. Without the check, anyone can have this server mail a stranger
+daily.
+
+Outcomes are counted into day-bucketed rows (`dmarc_evaluations`,
+`tls_outcomes`) and the `reports.send` job turns finished days into reports. The
+`report_sends` row is the claim, taken before anything is built, so a report is
+never sent twice.
 
 ## Agent email
 
@@ -470,6 +639,20 @@ kind of thing that regresses quietly.
   signed with their key; mail between two mailboxes on this box arrives from
   `127.0.0.1` and softfails SPF (DMARC still passes on DKIM) because the loopback
   exemption deliberately requires a *direct* connection.
+
+## Metrics
+
+`GET /metrics` (`src/metrics`) is answered inside `buildFetch`, ahead of the router,
+and only when `METRICS_TOKEN` is set: unset is a 404, a wrong token a 401. Do not
+add a loopback exemption. Behind a proxy every request is loopback, and the SMTP
+front's `spfExempt` lesson applies here too.
+
+**Label values must come from a closed set.** Never an address, domain, IP or
+free-form command name: `commandName` folds anything unknown into `other`, and the
+reason classes (`smtpReason`, `deferralReason`) are the only way text from a
+remote server becomes a label. The registry caps a metric at 500 series as a
+backstop, not as permission. Queue depth and bans are read at scrape time (cached
+5 s, 2 s deadline), not sampled, so a stopped worker still reports its backlog.
 
 ## Adding an endpoint
 

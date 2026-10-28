@@ -9,7 +9,7 @@ eyebrow: Reference
 
 # Command line
 
-Corsair has no administrative CLI. Everything an operator does is either an
+Corsair has no administrative CLI beyond the scripts below. Everything an operator does is either an
 entrypoint, a script, or SQL — which keeps the surface small and means nothing is
 hidden behind a subcommand you have to discover.
 
@@ -63,6 +63,18 @@ is idempotent: an existing plan key or an existing user is left alone.
 
 The account it creates **owns the instance** if it is the first one.
 
+## DKIM rotation
+
+```sh
+bun scripts/dkim.ts status     # phases, DNS state, and the TXT records to publish
+bun scripts/dkim.ts rotate     # stage a new key on the next selector host
+bun scripts/dkim.ts advance    # one worker pass now
+```
+
+Also `bun run dkim <command>`. Corsair cannot publish at your selector hosts, so
+`status` and `rotate` print exactly what to put where; the worker advances the
+rotation once DNS shows it. See [Key rotation](dns-setup.html#key-rotation).
+
 ## Package scripts
 
 ```sh
@@ -75,6 +87,8 @@ bun run migrate:status
 bun run migrate:down
 bun run migrate:diff
 bun run seed
+bun run acme status    # built-in ACME: stored certificate and expiry
+bun run acme renew     # built-in ACME: issue now (needs ACME_HTTP_PORT free)
 
 bun run db:up          # PostgreSQL in Docker on 55433
 bun run db:down

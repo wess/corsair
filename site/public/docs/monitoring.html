@@ -53,11 +53,11 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">04</span>Using Corsair</p>
-<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li><li><a href="./agents.html">Agent email</a></li><li><a href="./agent-tools.html">Tools for agents</a></li></ul>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./spam.html">Spam filtering</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li><li><a href="./agents.html">Agent email</a></li><li><a href="./agent-tools.html">Tools for agents</a></li></ul>
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">05</span>Reference</p>
-<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./contacts.html">Contacts (CardDAV)</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
 </div></nav>
 <main class="prose"><div class="page-head"><p class="eyebrow">Install and operate</p></div><h1 id="monitoring">Monitoring</h1>
 <p>Mail fails quietly. A queue that stops draining, a certificate that expired, a disk that filled — none of them announce themselves, and all of them look like &quot;my email is a bit slow today&quot; until someone notices a week of missing messages.</p>
@@ -229,6 +229,137 @@ docker compose logs -f corsair        # if containerised</code></pre></figure>
 <figure class="code"><span class="code-lang">sql</span><pre><code>SELECT kind, status, count(*), max(updated_at)
 FROM jobs GROUP BY 1, 2;</code></pre></figure>
 <p>Jobs stuck in <code>running</code> with an old <code>updated_at</code> mean a worker died mid-job.</p>
+<h2 id="prometheus-metrics">Prometheus metrics<a class="anchor" href="#prometheus-metrics" aria-label="Link to this section">#</a></h2>
+<p>Corsair serves its own counters at <code>GET /metrics</code> in the Prometheus text format. It is off until you set a token:</p>
+<figure class="code"><span class="code-lang">sh</span><pre><code># .env
+METRICS_TOKEN=$(openssl rand -hex 32)</code></pre></figure>
+<p>With no <code>METRICS_TOKEN</code> the path answers 404, as if it did not exist. With one, every request needs <code>Authorization: Bearer &lt;token&gt;</code>; a wrong or missing token is a</p>
+<ol><li>There is no &quot;trust loopback&quot; shortcut, because behind a reverse proxy every request arrives from <code>127.0.0.1</code>. Metrics live in the process that serves them and reset on restart, which is what <code>rate()</code> expects.</li></ol>
+<figure class="code"><span class="code-lang">yaml</span><pre><code>scrape_configs:
+  - job_name: corsair
+    scheme: https
+    metrics_path: /metrics
+    authorization:
+      credentials_file: /etc/prometheus/corsair.token
+    static_configs:
+      - targets: [&quot;mail.example.com&quot;]</code></pre></figure>
+<p>None of the labels carry an address, a domain or an IP, so the number of series stays small however much mail you handle.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Metric</th>
+<th>Labels</th>
+<th>Meaning</th>
+</tr></thead><tbody>
+<tr>
+<td><code>corsair_smtp_sessions_total</code></td>
+<td><code>listener</code> (<code>mx</code>, <code>submission</code>, <code>submissions</code>)</td>
+<td>Connections accepted</td>
+</tr>
+<tr>
+<td><code>corsair_smtp_messages_total</code></td>
+<td><code>listener</code>, <code>result</code>, <code>reason</code></td>
+<td>Messages finished at DATA; <code>reason</code> is <code>spam</code>, <code>auth</code>, <code>policy</code>, <code>size</code>, <code>other</code>, or <code>none</code> when accepted</td>
+</tr>
+<tr>
+<td><code>corsair_smtp_recipients_rejected_total</code></td>
+<td><code>listener</code>, <code>reason</code></td>
+<td>RCPT refusals</td>
+</tr>
+<tr>
+<td><code>corsair_smtp_message_size_bytes</code></td>
+<td><code>listener</code></td>
+<td>Histogram of message sizes</td>
+</tr>
+<tr>
+<td><code>corsair_delivery_attempts_total</code></td>
+<td><code>outcome</code> (<code>delivered</code>, <code>deferred</code>, <code>bounced</code>)</td>
+<td>Outbound attempts</td>
+</tr>
+<tr>
+<td><code>corsair_delivery_deferrals_total</code></td>
+<td><code>reason</code> (<code>blocklist</code>, <code>tls</code>, <code>connect</code>, <code>4xx</code>, <code>other</code>)</td>
+<td>Why attempts were deferred</td>
+</tr>
+<tr>
+<td><code>corsair_queue_depth</code></td>
+<td><code>status</code> (<code>queued</code>, <code>deferred</code>, <code>sending</code>)</td>
+<td>Deliveries waiting, read at scrape time</td>
+</tr>
+<tr>
+<td><code>corsair_queue_oldest_age_seconds</code></td>
+<td></td>
+<td>Age of the oldest queued or deferred delivery</td>
+</tr>
+<tr>
+<td><code>corsair_queue_overdue_age_seconds</code></td>
+<td></td>
+<td>How long the longest-waiting due delivery has been due</td>
+</tr>
+<tr>
+<td><code>corsair_auth_attempts_total</code></td>
+<td><code>protocol</code>, <code>result</code> (<code>ok</code>, <code>fail</code>, <code>banned</code>)</td>
+<td>Logins</td>
+</tr>
+<tr>
+<td><code>corsair_bans_active</code></td>
+<td></td>
+<td>IPs currently banned</td>
+</tr>
+<tr>
+<td><code>corsair_connections_active</code></td>
+<td><code>protocol</code> (<code>imap</code>, <code>pop3</code>)</td>
+<td>Open client connections</td>
+</tr>
+<tr>
+<td><code>corsair_commands_total</code></td>
+<td><code>protocol</code>, <code>command</code></td>
+<td>Protocol commands; unknown names are <code>other</code></td>
+</tr>
+<tr>
+<td><code>corsair_webhook_deliveries_total</code></td>
+<td><code>outcome</code> (<code>delivered</code>, <code>failed</code>, <code>exhausted</code>)</td>
+<td>Webhook attempts</td>
+</tr>
+<tr>
+<td><code>corsair_storage_errors_total</code></td>
+<td><code>op</code> (<code>read</code>, <code>write</code>, <code>delete</code>)</td>
+<td>Object store failures</td>
+</tr>
+<tr>
+<td><code>corsair_process_*</code>, <code>corsair_event_loop_lag_seconds</code>, <code>corsair_build_info</code></td>
+<td></td>
+<td>Uptime, memory, loop lag, version</td>
+</tr>
+</tbody></table></div>
+<p>The queue gauges come from two small queries run when you scrape, cached for five seconds with a two-second deadline. If the database is slow they keep their last values instead of failing the scrape.</p>
+<p>Counters are per process. On a split deployment, scrape the web tier and the process that runs the worker and listeners separately, and sum across them.</p>
+<p>Alerts worth starting with:</p>
+<figure class="code"><span class="code-lang">yaml</span><pre><code>groups:
+  - name: corsair
+    rules:
+      - alert: CorsairQueueGrowing
+        expr: deriv(sum(corsair_queue_depth{status!=&quot;sending&quot;})[30m:]) &gt; 0 and sum(corsair_queue_depth{status!=&quot;sending&quot;}) &gt; 50
+        for: 30m
+      - alert: CorsairOldestQueuedTooOld
+        expr: corsair_queue_oldest_age_seconds &gt; 3600
+        for: 10m
+      - alert: CorsairWorkerBehind
+        expr: corsair_queue_overdue_age_seconds &gt; 300
+        for: 5m
+      - alert: CorsairDeferralsBlocklist
+        expr: sum(increase(corsair_delivery_deferrals_total{reason=&quot;blocklist&quot;}[15m])) &gt; 0
+      - alert: CorsairDeferralRateHigh
+        expr: |
+          sum(rate(corsair_delivery_attempts_total{outcome=&quot;deferred&quot;}[15m]))
+            / sum(rate(corsair_delivery_attempts_total[15m])) &gt; 0.3
+        for: 15m
+      - alert: CorsairAuthFailureSpike
+        expr: sum by (protocol) (rate(corsair_auth_attempts_total{result=&quot;fail&quot;}[5m])) &gt; 1
+        for: 10m
+      - alert: CorsairStorageErrors
+        expr: sum(increase(corsair_storage_errors_total[10m])) &gt; 0
+      - alert: CorsairDown
+        expr: up{job=&quot;corsair&quot;} == 0
+        for: 2m</code></pre></figure>
 <h2 id="external-checks">External checks<a class="anchor" href="#external-checks" aria-label="Link to this section">#</a></h2>
 <p>Things a check on the host cannot see:</p>
 <ul><li><strong>Deliverability.</strong> Send to a seed address at a large provider on a schedule and assert <code>dkim=pass</code>. This catches an expired DKIM record, which nothing local will.</li><li><strong>Blocklists.</strong> Query your IP against Spamhaus and SpamCop daily. Being listed is silent until mail starts bouncing.</li><li><strong>Inbound reachability.</strong> Connect to port 25 from outside. A firewall rule that changed is invisible from inside.</li><li><strong>DNS.</strong> Assert the MX, SPF, DKIM, and DMARC records still resolve. Someone editing DNS for an unrelated reason is a common cause of sudden failure.</li></ul>
@@ -236,7 +367,7 @@ FROM jobs GROUP BY 1, 2;</code></pre></figure>
 <p>If you do only four things:</p>
 <ol><li>Alert when the process is down.</li><li>Alert when the oldest queued message is over an hour old.</li><li>Alert when the certificate has under fourteen days.</li><li>Alert when the backup heartbeat goes quiet.</li></ol>
 <p>Those four cover the failures that lose mail. Everything else on this page is refinement.</p><nav class="pager"><a class="pager-prev" href="./backups.html"><span>Previous</span><strong>Backups and restore</strong></a><a class="pager-next" href="./upgrading.html"><span>Next</span><strong>Upgrading</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#alert-on-these">Alert on these</a></li><li class="toc-h2"><a href="#is-it-running">Is it running</a></li><li class="toc-h2"><a href="#the-delivery-queue">The delivery queue</a></li><li class="toc-h2"><a href="#inbound-flow">Inbound flow</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#certificate-expiry">Certificate expiry</a></li><li class="toc-h2"><a href="#webhook-health">Webhook health</a></li><li class="toc-h2"><a href="#bounce-rate">Bounce rate</a></li><li class="toc-h2"><a href="#logs">Logs</a></li><li class="toc-h2"><a href="#the-worker">The worker</a></li><li class="toc-h2"><a href="#external-checks">External checks</a></li><li class="toc-h2"><a href="#a-minimal-setup">A minimal setup</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#alert-on-these">Alert on these</a></li><li class="toc-h2"><a href="#is-it-running">Is it running</a></li><li class="toc-h2"><a href="#the-delivery-queue">The delivery queue</a></li><li class="toc-h2"><a href="#inbound-flow">Inbound flow</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#certificate-expiry">Certificate expiry</a></li><li class="toc-h2"><a href="#webhook-health">Webhook health</a></li><li class="toc-h2"><a href="#bounce-rate">Bounce rate</a></li><li class="toc-h2"><a href="#logs">Logs</a></li><li class="toc-h2"><a href="#the-worker">The worker</a></li><li class="toc-h2"><a href="#prometheus-metrics">Prometheus metrics</a></li><li class="toc-h2"><a href="#external-checks">External checks</a></li><li class="toc-h2"><a href="#a-minimal-setup">A minimal setup</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

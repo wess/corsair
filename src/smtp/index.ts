@@ -1,12 +1,13 @@
 import { clearAuthFailures, isBanned, recordAuthFailure } from "../auth/index.ts"
 import { config } from "../config/index.ts"
+import { smtpSessions } from "../metrics/index.ts"
 import { createReader, createWriter, type SocketWriter } from "../socketio/index.ts"
 import {
   canUpgradeServerSocketToTls,
   upgradeAcceptedSocket,
   warnIfStartTlsUnavailable,
 } from "../starttls/index.ts"
-import { tlsOptions } from "../tls/index.ts"
+import { currentTls, serveImplicitTls, tlsOptions } from "../tls/index.ts"
 import * as inbound from "./inbound/index.ts"
 import { isLoopback } from "./inbound/index.ts"
 import { createSession, type Identity, type Session, type SessionMode } from "./session/index.ts"
@@ -61,7 +62,11 @@ const createListener = (input: {
   // Never advertise STARTTLS the runtime cannot actually perform: a sender
   // that takes us up on it gets its connection dropped mid-handshake and
   // defers rather than falling back. See src/starttls.
-  const canStartTls = Boolean(input.tls) && !input.implicitTls && canUpgradeServerSocketToTls()
+  const listenerName = input.implicitTls ? "submissions" : input.mode
+  // Asked per connection, not once: with ACME the first certificate can arrive
+  // after the listener is already up.
+  const tlsNow = () => currentTls() ?? input.tls
+  const canStartTls = () => Boolean(tlsNow()) && !input.implicitTls && canUpgradeServerSocketToTls()
 
   const handleChunk = async (socket: Bun.Socket<SocketData>, chunk: Uint8Array) => {
     const state = socket.data
@@ -81,7 +86,7 @@ const createListener = (input: {
       state.upgradeRequested = false
       try {
         const [, tlsSocket] = upgradeAcceptedSocket<SocketData>(socket, {
-          tls: input.tls!,
+          tls: tlsNow()!,
           // NOT `handlers`. Bun runs `open` on the upgraded socket, and this
           // listener's `open` builds fresh state, starts a new session, and
           // writes a second greeting — so reusing it silently replaced the
@@ -117,6 +122,7 @@ const createListener = (input: {
   const handlers = {
     open(socket: Bun.Socket<SocketData>) {
       const socketIp = socket.remoteAddress ?? "unknown"
+      smtpSessions.inc({ listener: listenerName })
       // Whether *this peer* may speak XCLIENT, decided here from the socket and
       // never from anything the connection says about itself.
       const trustProxy = config.smtp.trustedProxies.includes(socketIp)
@@ -136,6 +142,7 @@ const createListener = (input: {
 
       data.session = createSession({
         mode: input.mode,
+        listener: listenerName,
         hostname: config.hostname,
         maxSize: config.maxMessageBytes,
         remoteIp: socketIp,
@@ -148,7 +155,7 @@ const createListener = (input: {
           data.proxied = true
           if (info.secure) data.secure = true
         },
-        ...(canStartTls
+        ...(canStartTls()
           ? {
               startTls: () => {
                 data.upgradeRequested = true
@@ -158,11 +165,11 @@ const createListener = (input: {
         authenticate:
           input.mode === "submission"
             ? async (username, password) => {
-                if (await isBanned(data.remoteIp)) return null
-                const result = await submission.authenticate(username, password)
+                if (await isBanned(data.remoteIp, "smtp")) return null
+                const result = await submission.authenticate(username, password, data.remoteIp)
                 if (result) {
                   data.identity = result
-                  await clearAuthFailures(data.remoteIp).catch(() => {})
+                  await clearAuthFailures(data.remoteIp, "smtp").catch(() => {})
                 } else {
                   await recordAuthFailure(data.remoteIp, "smtp", username).catch(() => {})
                 }
@@ -176,7 +183,11 @@ const createListener = (input: {
         validateRecipient: (address, identity, envelope) =>
           input.mode === "submission"
             ? submission.validateRecipient(address, identity)
-            : inbound.validateRecipient(address, identity, envelope),
+            : inbound.validateRecipient(address, identity, envelope, {
+                // Read at call time: XCLIENT may have replaced it since `open`.
+                remoteIp: data.remoteIp,
+                local: !data.proxied && isLoopback(data.socketIp),
+              }),
         handleMessage: (envelope, raw, identity) => {
           data.helo = envelope.helo
           return input.mode === "submission"
@@ -208,7 +219,7 @@ const createListener = (input: {
 
       // A banned source gets a 421 and nothing else. Answering at all costs one
       // packet; answering properly costs an Argon2 hash per attempt.
-      const ready = isBanned(socketIp)
+      const ready = isBanned(socketIp, "smtp")
         .then((banned) => {
           if (banned) {
             data.writer.write(`421 4.7.0 Too many failed attempts from ${socketIp}.\r\n`)
@@ -294,7 +305,7 @@ export const startSmtp = async (): Promise<void> => {
     label: "submission",
   })
 
-  if (tls) {
+  serveImplicitTls("submission+tls", (current) =>
     createListener({
       mode: "submission",
       port: config.smtp.submissionTlsPort,
@@ -304,8 +315,8 @@ export const startSmtp = async (): Promise<void> => {
       // take submission on 465 off the internet.
       bind: "0.0.0.0",
       implicitTls: true,
-      tls,
+      tls: current,
       label: "submission+tls",
-    })
-  }
+    }),
+  )
 }

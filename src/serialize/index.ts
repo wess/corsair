@@ -1,10 +1,21 @@
+import type {
+  DmarcOrgRow,
+  DmarcSourceRow,
+  DmarcTotals,
+  TlsOrgRow,
+  TlsResultRow,
+  TlsTotals,
+} from "../authreports/index.ts"
 import { num } from "../db/index.ts"
 import type { Entitlement, Usage } from "../plans/index.ts"
 import type {
   Address,
   Agent,
   ApiKey,
+  AppPassword,
+  Contact,
   DkimKey,
+  DmarcReport,
   Domain,
   DomainRecord,
   Email,
@@ -15,6 +26,7 @@ import type {
   Subscription,
   Suppression,
   TaxId,
+  TlsReport,
   Transaction,
   Transfer,
   User,
@@ -136,6 +148,7 @@ export const addressObject = (
   // its own. Never the account id, and never a hash — the panel only needs to
   // know which password to tell someone to use.
   uses_account_password: Boolean(address.user_id),
+  require_app_passwords: address.require_app_passwords,
   last_login_at: address.last_login_at?.toISOString() ?? null,
   created_at: address.created_at.toISOString(),
 })
@@ -336,6 +349,21 @@ export const agentObject = (
   created_at: agent.created_at.toISOString(),
 })
 
+/**
+ * Never the hash, and never the secret: that is returned once, beside this
+ * object, by the create route and nowhere else.
+ */
+export const appPasswordObject = (row: AppPassword) => ({
+  object: "app_password" as const,
+  id: row.id,
+  address_id: row.address_id,
+  name: row.name,
+  scopes: row.scopes,
+  last_used_at: row.last_used_at?.toISOString() ?? null,
+  last_used_ip: row.last_used_ip,
+  created_at: row.created_at.toISOString(),
+})
+
 export const suppressionObject = (row: Suppression) => ({
   object: "suppression" as const,
   id: row.id,
@@ -344,4 +372,107 @@ export const suppressionObject = (row: Suppression) => ({
   detail: row.detail,
   email_id: row.email_id,
   created_at: row.created_at.toISOString(),
+})
+
+/** The vCard itself is CardDAV's to serve; the webmail sees the fields it edits. */
+export const contactObject = (row: Contact) => ({
+  object: "contact" as const,
+  id: row.id,
+  name: row.full_name,
+  emails: row.emails ?? [],
+  updated_at: row.updated_at.toISOString(),
+})
+
+// authentication reports
+
+export const dmarcReportObject = (row: DmarcReport) => ({
+  object: "dmarc_report" as const,
+  id: row.id,
+  org_name: row.org_name,
+  org_email: row.org_email,
+  report_id: row.report_id,
+  policy_domain: row.policy_domain,
+  policy: row.policy_p,
+  date_begin: row.date_begin.toISOString(),
+  date_end: row.date_end.toISOString(),
+  messages: row.message_count,
+  passed: row.pass_count,
+  failed: row.fail_count,
+  received_at: row.created_at.toISOString(),
+})
+
+export const dmarcSummaryObject = (
+  days: number,
+  summary: {
+    totals: DmarcTotals | null
+    reports: DmarcReport[]
+    bySource: DmarcSourceRow[]
+    byOrg: DmarcOrgRow[]
+  },
+) => ({
+  object: "dmarc_summary" as const,
+  days,
+  totals: {
+    reports: num(summary.totals?.reports),
+    messages: num(summary.totals?.messages),
+    passed: num(summary.totals?.passed),
+    failed: num(summary.totals?.failed),
+  },
+  by_source: summary.bySource.map((r) => ({
+    source_ip: r.source_ip,
+    messages: num(r.messages),
+    passed: num(r.passed),
+    failed: num(r.failed),
+    reporters: r.reporters ? r.reporters.split(", ") : [],
+  })),
+  by_reporter: summary.byOrg.map((r) => ({
+    org_name: r.org_name,
+    reports: num(r.reports),
+    messages: num(r.messages),
+    passed: num(r.passed),
+    failed: num(r.failed),
+  })),
+  reports: summary.reports.map(dmarcReportObject),
+})
+
+export const tlsReportObject = (row: TlsReport) => ({
+  object: "tls_report" as const,
+  id: row.id,
+  org_name: row.org_name,
+  report_id: row.report_id,
+  contact: row.contact,
+  date_begin: row.date_begin.toISOString(),
+  date_end: row.date_end.toISOString(),
+  succeeded: row.success_count,
+  failed: row.failure_count,
+  received_at: row.created_at.toISOString(),
+})
+
+export const tlsSummaryObject = (
+  days: number,
+  summary: {
+    totals: TlsTotals | null
+    reports: TlsReport[]
+    byOrg: TlsOrgRow[]
+    byResult: TlsResultRow[]
+  },
+) => ({
+  object: "tls_summary" as const,
+  days,
+  totals: {
+    reports: num(summary.totals?.reports),
+    succeeded: num(summary.totals?.succeeded),
+    failed: num(summary.totals?.failed),
+  },
+  by_reporter: summary.byOrg.map((r) => ({
+    org_name: r.org_name,
+    reports: num(r.reports),
+    succeeded: num(r.succeeded),
+    failed: num(r.failed),
+  })),
+  by_result: summary.byResult.map((r) => ({
+    result_type: r.result_type,
+    sessions: num(r.sessions),
+  })),
+  reports: summary.reports.map(tlsReportObject),
 })

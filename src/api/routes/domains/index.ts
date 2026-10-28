@@ -9,6 +9,7 @@ import {
 } from "../../../access/index.ts"
 import { config } from "../../../config/index.ts"
 import { allColumns, db } from "../../../db/index.ts"
+import { keyResolves } from "../../../dkimrotate/index.ts"
 import { detectProvider, publishRecords } from "../../../dnsprovider/index.ts"
 import {
   checkDomain,
@@ -433,6 +434,13 @@ export const domainRoutes: Route[] = [
         ]),
       )
       if (!key) throw notFound("Key not found.")
+
+      // Signing with a key nobody can verify fails at every receiver and logs
+      // nothing, so the record has to resolve before the flag moves.
+      if (!(await keyResolves(domain.name, key)))
+        throw conflict(
+          `${key.selector}._domainkey.${domain.name} does not resolve to this key yet. Publish its CNAME and wait for it to propagate.`,
+        )
 
       // Deactivate first: the partial unique index allows exactly one active key
       // per domain, so flipping the new one on before the old one off fails.

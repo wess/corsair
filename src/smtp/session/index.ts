@@ -1,3 +1,12 @@
+import {
+  commandName,
+  commands,
+  smtpMessageBytes,
+  smtpMessages,
+  smtpReason,
+  smtpRecipientsRejected,
+} from "../../metrics/index.ts"
+
 /**
  * An ESMTP session, as a state machine over lines.
  *
@@ -34,6 +43,8 @@ export type Identity = { username: string; id: string }
 
 export type SessionHooks = {
   mode: SessionMode
+  /** The listener this session arrived on, for metrics; defaults to the mode. */
+  listener?: string
   hostname: string
   maxSize: number
   remoteIp: string
@@ -151,6 +162,7 @@ export const createSession = (hooks: SessionHooks): Session => {
   let identity: Identity | null = null
   let envelope = emptyEnvelope("")
   let badCommands = 0
+  const listenerOf = () => hooks.listener ?? hooks.mode
 
   // What a trusted proxy has told us about the client on the other side of it.
   // Null until XCLIENT arrives, which is what distinguishes a relayed session
@@ -303,6 +315,7 @@ export const createSession = (hooks: SessionHooks): Session => {
     const space = line.indexOf(" ")
     const verb = (space === -1 ? line : line.slice(0, space)).toUpperCase()
     const argument = space === -1 ? "" : line.slice(space + 1)
+    commands.inc({ protocol: "smtp", command: commandName("smtp", verb) })
 
     switch (verb) {
       case "EHLO": {
@@ -458,7 +471,10 @@ export const createSession = (hooks: SessionHooks): Session => {
         }
 
         const rejection = await hooks.validateRecipient(path.address, identity, envelope)
-        if (rejection) return format(rejection)
+        if (rejection) {
+          smtpRecipientsRejected.inc({ listener: listenerOf(), reason: smtpReason(rejection) })
+          return format(rejection)
+        }
 
         envelope = { ...envelope, rcptTo: [...envelope.rcptTo, path.address] }
         return format({ code: 250, enhanced: "2.1.5", message: "Recipient OK." })
@@ -536,6 +552,7 @@ export const createSession = (hooks: SessionHooks): Session => {
       dataBuffer = ""
 
       if (dataOverflow) {
+        smtpMessages.inc({ listener: listenerOf(), result: "rejected", reason: "size" })
         return format({
           code: 552,
           enhanced: "5.3.4",
@@ -544,6 +561,13 @@ export const createSession = (hooks: SessionHooks): Session => {
       }
 
       const reply = await hooks.handleMessage(finished, raw, identity)
+      smtpMessageBytes.observe({ listener: listenerOf() }, raw.length)
+      smtpMessages.inc({
+        listener: listenerOf(),
+        ...(reply.code < 400
+          ? { result: "accepted", reason: "none" }
+          : { result: "rejected", reason: smtpReason(reply) }),
+      })
       return format(reply)
     }
 

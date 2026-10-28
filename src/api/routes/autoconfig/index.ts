@@ -23,10 +23,17 @@ const xml = (conn: Parameters<typeof text>[0], body: string) => {
   }
 }
 
+// Both values below are echoed into XML from the request, so anything that is
+// not shaped like an address is dropped rather than escaped: a client that
+// sent markup gets the placeholder, and no caller can shape the document.
+const HOSTNAME = /^[A-Za-z0-9.-]{1,253}$/
+const ADDRESS = /^[A-Za-z0-9!#$%*+\/=?^_`{|}~.-]{1,64}@[A-Za-z0-9.-]{1,253}$/
+
 const domainOf = (url: string): string => {
   const value = new URL(url).searchParams.get("emailaddress") ?? ""
   const at = value.lastIndexOf("@")
-  return at === -1 ? "" : value.slice(at + 1)
+  const domain = at === -1 ? "" : value.slice(at + 1)
+  return HOSTNAME.test(domain) ? domain : ""
 }
 
 /**
@@ -92,6 +99,11 @@ export const autoconfigRoutes: Route[] = [
       <username>%EMAILADDRESS%</username>
     </outgoingServer>
   </emailProvider>
+  <addressBook type="carddav">
+    <username>%EMAILADDRESS%</username>
+    <authentication system="http">basic</authentication>
+    <serverURL>${new URL("/dav/", config.publicUrl).href}</serverURL>
+  </addressBook>
 </clientConfig>
 `,
     )
@@ -102,7 +114,8 @@ export const autoconfigRoutes: Route[] = [
     let address = "%EMAILADDRESS%"
     try {
       const body = await c.request.text()
-      address = body.match(/<EMailAddress>([^<]+)<\/EMailAddress>/i)?.[1] ?? address
+      const claimed = body.match(/<EMailAddress>([^<]+)<\/EMailAddress>/i)?.[1]?.trim()
+      if (claimed && ADDRESS.test(claimed)) address = claimed
     } catch {
       // A malformed body still gets a usable document with the placeholder.
     }

@@ -151,6 +151,9 @@ export const addresses = defineSchema("addresses", {
   daily_in_limit: column.integer().nullable(),
   daily_out_limit: column.integer().nullable(),
   disabled: column.boolean().default(false),
+  // Refuse the mailbox password over the mail protocols; only an app password
+  // opens them. See `authenticateResolved`.
+  require_app_passwords: column.boolean().default(false),
   last_login_at: column.timestamp().nullable(),
   password_changed_at: column.timestamp().nullable(),
   created_at: now(),
@@ -167,7 +170,23 @@ export const addressDestinations = defineSchema("address_destinations", {
   created_at: now(),
 })
 
+/**
+ * A per-client mailbox credential. Only the hash is stored; the secret is shown
+ * once. `scopes` is the set of protocols it opens — see `src/apppasswords`.
+ */
+export const appPasswords = defineSchema("app_passwords", {
+  id: id(),
+  address_id: column.uuid().ref("addresses", "id"),
+  name: column.text(),
+  token_hash: column.text().unique(),
+  scopes: column.json<string[]>().default(["imap", "pop3", "smtp", "jmap", "dav", "sieve"]),
+  last_used_at: column.timestamp().nullable(),
+  last_used_ip: column.text().nullable(),
+  created_at: now(),
+})
+
 export type Address = RowOf<typeof addresses>
+export type AppPassword = RowOf<typeof appPasswords>
 export type AddressDestination = RowOf<typeof addressDestinations>
 
 // billing
@@ -461,6 +480,20 @@ export const dkimKeys = defineSchema("dkim_keys", {
 })
 
 /**
+ * Rotation phase of each selector host in `MAIL_DKIM_HOSTS`; see `src/dkimrotate`.
+ *
+ * phase: spare | staged | published | active | retiring | revoked
+ */
+export const dkimHosts = defineSchema("dkim_hosts", {
+  host: column.text().primaryKey(),
+  position: column.integer(),
+  phase: column.text().default("spare"),
+  phase_at: now(),
+  published_at: column.timestamp().nullable(),
+  created_at: now(),
+})
+
+/**
  * One of `user_id` or `address_id`, never both — a database CHECK enforces it.
  * A panel account is granted by the first; a mailbox on this server by the
  * second, which is how somebody manages a domain without a second identity.
@@ -478,6 +511,7 @@ export type Domain = RowOf<typeof domains>
 export type DomainAdmin = RowOf<typeof domainAdmins>
 export type DomainRecord = RowOf<typeof domainRecords>
 export type DkimKey = RowOf<typeof dkimKeys>
+export type DkimHost = RowOf<typeof dkimHosts>
 
 // filters
 
@@ -526,6 +560,10 @@ export const folders = defineSchema("folders", {
   uid_validity: column.bigint(),
   uid_next: column.bigint().default(1n),
   highest_modseq: column.bigint().default(1n),
+  // Highest modseq among tombstones the retention sweep has deleted. A QRESYNC
+  // client asking about changes since an older modseq cannot be given an exact
+  // VANISHED list, and has to be told about every UID that is not live.
+  vanished_floor: column.bigint().default(0n),
   subscribed: column.boolean().default(true),
   created_at: now(),
   updated_at: now(),
@@ -671,6 +709,30 @@ export const bans = defineSchema("bans", {
   reason: column.text().nullable(),
   expires_at: column.timestamp(),
   created_at: now(),
+})
+
+// spam
+
+// One greylisting triplet. See migrations/20261028000023_spam for why the
+// client is a network rather than an address.
+export const greylist = defineSchema("greylist", {
+  id: id(),
+  client_net: column.text(),
+  sender: column.text(),
+  sender_domain: column.text(),
+  recipient: column.text(),
+  first_seen: now(),
+  last_seen: now(),
+  passed_at: column.timestamp().nullable(),
+})
+
+// Someone a mailbox has written to, which is what makes mail back from them
+// trusted. `src/correspondents` owns it.
+export const correspondents = defineSchema("correspondents", {
+  id: id(),
+  address_id: column.uuid().ref("addresses", "id"),
+  email: column.text(),
+  last_at: now(),
 })
 
 export type Job = RowOf<typeof jobs>
@@ -823,6 +885,53 @@ export const agents = defineSchema("agents", {
 
 export type Agent = RowOf<typeof agents>
 
+// contacts
+
+/**
+ * A mailbox's address book, served over CardDAV.
+ *
+ * `sync_token` is the book's own modseq: every write to a contact in it takes the
+ * next value in the same transaction, so it doubles as the CalendarServer ctag
+ * and as the RFC 6578 sync token. The UPDATE that advances it also takes the row
+ * lock that serialises writes within a book, which is what keeps an If-Match
+ * check and the write it guards atomic.
+ */
+export const addressBooks = defineSchema("address_books", {
+  id: id(),
+  address_id: column.uuid().ref("addresses", "id"),
+  slug: column.text(),
+  name: column.text(),
+  sync_token: column.bigint().default(1n),
+  created_at: now(),
+})
+
+/**
+ * One vCard. A deleted one stays as a tombstone (`deleted_at`, empty `vcard`)
+ * so sync-collection can tell a client what went away since its token.
+ *
+ * `full_name` and `emails` are extracted on write for the webmail's recipient
+ * autocomplete; the vCard text is the record and is served back verbatim.
+ */
+export const contacts = defineSchema("contacts", {
+  id: id(),
+  book_id: column.uuid().ref("address_books", "id"),
+  address_id: column.uuid().ref("addresses", "id"),
+  href: column.text(),
+  uid: column.text(),
+  etag: column.text(),
+  vcard: column.text(),
+  size: column.integer(),
+  full_name: column.text().nullable(),
+  emails: column.json<string[]>().default([]),
+  modseq: column.bigint(),
+  created_at: now(),
+  updated_at: now(),
+  deleted_at: column.timestamp().nullable(),
+})
+
+export type AddressBook = RowOf<typeof addressBooks>
+export type Contact = RowOf<typeof contacts>
+
 export type Tag = { name: string; value: string }
 
 /**
@@ -877,6 +986,132 @@ export const idempotencyKeys = defineSchema("idempotency_keys", {
   created_at: now(),
 })
 
+// authentication reports
+
+export type DmarcAuthResult = { domain: string; result: string; selector?: string; scope?: string }
+
+export type TlsFailure = {
+  result_type: string
+  sending_mta_ip: string | null
+  receiving_mx_hostname: string | null
+  receiving_ip: string | null
+  failed_session_count: number
+  failure_reason_code: string | null
+}
+
+/** A DMARC aggregate report received for one of our domains. See `src/authreports`. */
+export const dmarcReports = defineSchema("dmarc_reports", {
+  id: id(),
+  domain_id: column.uuid().ref("domains", "id"),
+  org_name: column.text(),
+  org_email: column.text().nullable(),
+  report_id: column.text(),
+  policy_domain: column.text(),
+  policy_p: column.text().nullable(),
+  policy_sp: column.text().nullable(),
+  policy_pct: column.integer().nullable(),
+  adkim: column.text().nullable(),
+  aspf: column.text().nullable(),
+  date_begin: column.timestamp(),
+  date_end: column.timestamp(),
+  message_count: column.integer().default(0),
+  pass_count: column.integer().default(0),
+  fail_count: column.integer().default(0),
+  created_at: now(),
+})
+
+export const dmarcReportRecords = defineSchema("dmarc_report_records", {
+  id: id(),
+  report_id: column.uuid().ref("dmarc_reports", "id"),
+  source_ip: column.text(),
+  count: column.integer().default(0),
+  disposition: column.text(),
+  dkim_eval: column.text(),
+  spf_eval: column.text(),
+  header_from: column.text(),
+  envelope_from: column.text().nullable(),
+  dkim_results: column.json<DmarcAuthResult[]>().default([]),
+  spf_results: column.json<DmarcAuthResult[]>().default([]),
+})
+
+export const tlsReports = defineSchema("tls_reports", {
+  id: id(),
+  domain_id: column.uuid().ref("domains", "id"),
+  org_name: column.text(),
+  report_id: column.text(),
+  contact: column.text().nullable(),
+  date_begin: column.timestamp(),
+  date_end: column.timestamp(),
+  success_count: column.integer().default(0),
+  failure_count: column.integer().default(0),
+  created_at: now(),
+})
+
+export const tlsReportPolicies = defineSchema("tls_report_policies", {
+  id: id(),
+  report_id: column.uuid().ref("tls_reports", "id"),
+  policy_type: column.text(),
+  policy_domain: column.text(),
+  mx_host: column.text().nullable(),
+  success_count: column.integer().default(0),
+  failure_count: column.integer().default(0),
+  failures: column.json<TlsFailure[]>().default([]),
+})
+
+/**
+ * DMARC outcomes this server observed, one row per distinct outcome per UTC day
+ * with a count. Deleted once the day's report is built. `day` is `YYYY-MM-DD`.
+ */
+export const dmarcEvaluations = defineSchema("dmarc_evaluations", {
+  id: id(),
+  day: column.text(),
+  policy_domain: column.text(),
+  header_from: column.text(),
+  source_ip: column.text(),
+  envelope_from: column.text().default(""),
+  spf_result: column.text(),
+  spf_domain: column.text().default(""),
+  spf_aligned: column.boolean().default(false),
+  dkim_result: column.text(),
+  dkim_domain: column.text().default(""),
+  dkim_aligned: column.boolean().default(false),
+  disposition: column.text(),
+  count: column.integer().default(1),
+})
+
+/** result: success | starttls-not-supported | validation-failure */
+export const tlsOutcomes = defineSchema("tls_outcomes", {
+  id: id(),
+  day: column.text(),
+  policy_domain: column.text(),
+  mx_host: column.text(),
+  result: column.text(),
+  detail: column.text().default(""),
+  count: column.integer().default(1),
+  policy_type: column.text().default("no-policy-found"),
+})
+
+/**
+ * kind:   dmarc | tlsrpt
+ * status: pending | sent | skipped | failed
+ */
+export const reportSends = defineSchema("report_sends", {
+  id: id(),
+  kind: column.text(),
+  policy_domain: column.text(),
+  day: column.text(),
+  status: column.text().default("pending"),
+  detail: column.text().nullable(),
+  created_at: now(),
+})
+
+export type DmarcReport = RowOf<typeof dmarcReports>
+export type DmarcReportRecord = RowOf<typeof dmarcReportRecords>
+export type TlsReport = RowOf<typeof tlsReports>
+export type TlsReportPolicy = RowOf<typeof tlsReportPolicies>
+export type DmarcEvaluation = RowOf<typeof dmarcEvaluations>
+export type TlsOutcome = RowOf<typeof tlsOutcomes>
+
 export type ApiKey = RowOf<typeof apiKeys>
 export type Email = RowOf<typeof emails>
 export type Suppression = RowOf<typeof suppressions>
@@ -892,22 +1127,31 @@ export type IdempotencyKey = RowOf<typeof idempotencyKeys>
  * loudly at the type level when one is renamed.
  */
 export const allSchemas = [
+  addressBooks,
   addressDestinations,
   addresses,
   agents,
   apiKeys,
+  appPasswords,
   auditEvents,
   authFailures,
   bans,
   bounces,
+  correspondents,
+  contacts,
   deliveries,
+  dkimHosts,
   dkimKeys,
+  dmarcEvaluations,
+  dmarcReportRecords,
+  dmarcReports,
   domainAdmins,
   domainRecords,
   domains,
   emails,
   filters,
   folders,
+  greylist,
   idempotencyKeys,
   jobs,
   mailLog,
@@ -920,10 +1164,14 @@ export const allSchemas = [
   plans,
   rateLimits,
   referrals,
+  reportSends,
   sessions,
   subscriptions,
   suppressions,
   taxIds,
+  tlsOutcomes,
+  tlsReportPolicies,
+  tlsReports,
   tokens,
   transactions,
   transfers,

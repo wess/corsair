@@ -53,7 +53,7 @@ export type RecordSpec = {
 export const recordSpec = (input: {
   domain: string
   verificationToken: string
-  dkim: { selector: string; target: string }[]
+  dkim: { selector: string; target: string; active?: boolean }[]
   dmarcPolicy?: string
 }): RecordSpec[] => {
   const rows: RecordSpec[] = [
@@ -79,23 +79,30 @@ export const recordSpec = (input: {
       purpose: "dmarc",
       type: "TXT",
       host: "_dmarc",
-      value: `v=DMARC1; p=${input.dmarcPolicy ?? "quarantine"};`,
+      // `rua` names the domain's own report address, which this server accepts
+      // and files without a mailbox behind it (see `src/authreports`).
+      value: `v=DMARC1; p=${input.dmarcPolicy ?? "quarantine"}; rua=mailto:dmarc-reports@${input.domain};`,
       priority: null,
       required: true,
       position: 2,
     },
   ]
 
+  // The selector this domain signs with is the one that must resolve; a domain
+  // rotated onto selector 2 should not be held back by a missing selector 1.
+  const anyActive = input.dkim.some((k) => k.active)
   input.dkim.forEach((key, index) => {
     rows.push({
       purpose: "dkim",
       type: "CNAME",
       host: `${key.selector}._domainkey`,
       value: key.target,
-      // Only the first selector has to exist; the spares are for rotation and a
+      // Only the signing selector has to exist; the others are for rotation and a
       // domain should not sit unverified because the customer added one CNAME.
+      // They are still asked for: rotation only moves a domain once its next
+      // selector resolves, so a domain without them keeps its key indefinitely.
       priority: null,
-      required: index === 0,
+      required: anyActive ? !!key.active : index === 0,
       position: 3 + index,
     })
   })
@@ -127,6 +134,15 @@ export const recordSpec = (input: {
       priority: null,
       required: false,
       position: 12,
+    },
+    {
+      purpose: "tlsrpt",
+      type: "TXT",
+      host: "_smtp._tls",
+      value: `v=TLSRPTv1; rua=mailto:tlsrpt@${input.domain}`,
+      priority: null,
+      required: false,
+      position: 15,
     },
     {
       purpose: "mx",
@@ -218,6 +234,13 @@ export const createDomain = async (input: {
    * does not change. `tests/dkimkeys.test.ts` pins the invariant.
    */
   const keys: DkimKey[] = []
+  // A new domain signs with whichever host is active now, which stops being the
+  // first one after a rotation — selector 1 may by then publish an empty key.
+  const activeHost = await db().one<{ host: string }>({
+    text: "SELECT host FROM dkim_hosts WHERE phase = 'active'",
+    values: [],
+  })
+  const signingHost = activeHost?.host ?? config.mail.dkimHosts[0]
   for (const [index, target] of config.mail.dkimHosts.entries()) {
     const pair = (await keyPairFor(target)) ?? generateKeyPair()
     const row = await db().one<DkimKey>(
@@ -228,7 +251,7 @@ export const createDomain = async (input: {
           cname_target: target,
           private_key: pair.privateKey,
           public_key: pair.publicKey,
-          active: index === 0,
+          active: target === signingHost,
           position: index,
         })
         .returning(...allColumns(dkimKeys)),
@@ -257,7 +280,7 @@ export const syncRecords = async (domain: Domain, keys?: DkimKey[]): Promise<Dom
   const spec = recordSpec({
     domain: domain.name,
     verificationToken: domain.verification_token,
-    dkim: dkim.map((k) => ({ selector: k.selector, target: k.cname_target })),
+    dkim: dkim.map((k) => ({ selector: k.selector, target: k.cname_target, active: k.active })),
     dmarcPolicy: domain.dmarc_policy,
   })
 
@@ -331,7 +354,13 @@ const observe = async (record: DomainRecord, domain: Domain): Promise<Observatio
         // every domain that sends through anything else as well.
         const wanted = record.value.trim()
         const prefix =
-          record.purpose === "spf" ? "v=spf1" : record.purpose === "dmarc" ? "v=DMARC1" : null
+          record.purpose === "spf"
+            ? "v=spf1"
+            : record.purpose === "dmarc"
+              ? "v=DMARC1"
+              : record.purpose === "tlsrpt"
+                ? "v=TLSRPTv1"
+                : null
 
         if (prefix) {
           const candidate = values.find((v) =>

@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS dkim_hosts;

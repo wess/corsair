@@ -17,6 +17,7 @@ import { allColumns, db, num } from "../../../db/index.ts"
 import { invalidParameter, notFound, unauthorized } from "../../../errors/index.ts"
 import { rfcMessageId, uidValidity } from "../../../ids/index.ts"
 import { sendFromMailbox } from "../../../mailsend/index.ts"
+import { authResult } from "../../../metrics/index.ts"
 import * as mime from "../../../mime/index.ts"
 import { mailboxNotices } from "../../../notices/index.ts"
 import { partResponse, responseConn } from "../../../parts/index.ts"
@@ -90,13 +91,21 @@ export const webmailRoutes: Route[] = [
       assigns: {} as never,
     },
     async (c) => {
-      const identity = await authenticateAddress(c.body.email.trim(), c.body.password)
+      const identity = await authenticateAddress(
+        c.body.email.trim(),
+        c.body.password,
+        // No ip, as before: there is no app password use to record here, and an ip
+        // would also start ban-checking this route, which is a separate change.
+        undefined,
+        "webmail",
+      )
       if (!identity) {
         const { recordAuthFailure } = await import("../../../auth/index.ts")
         await recordAuthFailure(ipOf(c as never), "webmail", c.body.email).catch(() => {})
         throw unauthorized("Those credentials are not valid.")
       }
 
+      authResult("webmail", "ok")
       const session = await issueMailSession(identity.address.id, {
         ip: ipOf(c as never),
         userAgent: c.headers.get("user-agent"),

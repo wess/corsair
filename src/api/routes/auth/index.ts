@@ -223,7 +223,7 @@ export const authRoutes: Route[] = [
         }
       }
 
-      await clearAuthFailures(ipOf(c as never)).catch(() => {})
+      await clearAuthFailures(ipOf(c as never), "panel").catch(() => {})
       const session = await issueSession(user.id, {
         ip: ipOf(c as never),
         userAgent: c.headers.get("user-agent"),

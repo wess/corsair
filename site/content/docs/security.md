@@ -45,7 +45,39 @@ from a lost device has the panel too.
 present a second factor, so a stolen mailbox password on its own stops at the
 mailbox — which is the outcome you want. This is the mitigation that makes a
 shared credential a reasonable trade rather than a bad one.
+
+**Then require app passwords on that mailbox.** Two-factor protects the panel,
+but IMAP and SMTP still accept the shared password with no second step. With
+[app passwords](#app-passwords) required, devices hold only per-client secrets
+and the account password opens nothing but the browser sign-ins.
 :::
+
+## App passwords
+
+An app password is a per-client mailbox credential: a 100-bit random value the
+server chose, shown once and stored only as a SHA-256 hash.
+
+- **Accepted in exactly one place**, the function every mail protocol funnels
+  through, so IMAP, POP3, SMTP submission, JMAP, and anything added later get it
+  without each implementing it. The webmail is told to refuse them: a stolen app
+  password reads mail through a client and does not also open a browser session.
+- **Checked before the password hash.** The compare is SHA-256 in constant time
+  against each of the mailbox's own app passwords, with no early exit. A random
+  100-bit secret needs no slow hash; offline, 2¹⁰⁰ guesses is out of reach.
+- **No new enumeration signal.** When a mailbox requires app passwords, refusing
+  its real password still spends a full password verify, so the speed of the
+  answer does not reveal that the mailbox exists or has the requirement on.
+- **Scoped.** Each names the protocols it opens. A caller that names no protocol
+  is only satisfied by an app password that opens all of them, so a protocol
+  added later fails closed.
+- **Revocation is a delete.** It stops on every protocol at once. Changing the
+  mailbox or account password deliberately leaves app passwords alone; disabling
+  the mailbox or terminating the account stops them.
+- **Not for agents, aliases, or groups.** An agent's API key is already a
+  revocable token, and forwarding addresses have no mailbox.
+- **Minting one from the webmail requires the current password**, because an app
+  password outlives a password change; an unattended session must not be able to
+  leave one behind.
 
 ## Passwords and tokens
 
@@ -250,7 +282,8 @@ the server cannot read.
 
 **Not a spam-filtering product.** The scorer is heuristic and deliberately
 conservative: a false positive on real mail is far worse than a false negative.
-For aggressive filtering, put a dedicated filter in front.
+For aggressive filtering, put a dedicated filter in front. [Spam
+filtering](./spam.html) describes what it does check.
 
 **Not hardened against a hostile operator.** An operator can read every mailbox on
 the instance. That is inherent to running a mail server, and it is why you should

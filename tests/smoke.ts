@@ -169,6 +169,25 @@ const run = async () => {
   const zoneText = await zone.text()
   check("a zone file can be exported", zone.status === 200 && zoneText.includes("$ORIGIN"))
 
+  const dmarcReports = await call("GET", `/api/domains/${domainId}/reports/dmarc?days=30`)
+  check(
+    "received DMARC reports are summarised",
+    dmarcReports.status === 200 && dmarcReports.body?.object === "dmarc_summary",
+    dmarcReports.body,
+  )
+  check("a new domain has none", dmarcReports.body?.totals?.reports === 0, dmarcReports.body)
+  const tlsReports = await call("GET", `/api/domains/${domainId}/reports/tls`)
+  check(
+    "received TLS reports are summarised",
+    tlsReports.status === 200 && tlsReports.body?.object === "tls_summary",
+    tlsReports.body,
+  )
+  const strangerReports = await call(
+    "GET",
+    "/api/domains/00000000-0000-4000-8000-000000000000/reports/dmarc",
+  )
+  check("another domain's reports are a 404", strangerReports.status === 404)
+
   const keys = await call("GET", `/api/domains/${domainId}/keys`)
   check("three DKIM selectors exist", keys.body?.data?.length === 3, keys.body)
   check("private keys are never exposed", !JSON.stringify(keys.body).includes("PRIVATE KEY"))
@@ -267,6 +286,68 @@ const run = async () => {
     password: "should-not-work",
   })
   check("an alias has no password to change", aliasPassword.status === 400, aliasPassword.body)
+
+  section("app passwords")
+  const prematureRequire = await call("PATCH", `/api/addresses/${mailbox.body?.id}`, {
+    require_app_passwords: true,
+  })
+  check(
+    "app passwords cannot be required before one exists",
+    prematureRequire.status === 400,
+    prematureRequire.body,
+  )
+
+  const appPassword = await call("POST", `/api/addresses/${mailbox.body?.id}/app-passwords`, {
+    name: "Smoke phone",
+    scopes: ["imap", "smtp"],
+  })
+  check(
+    "an app password is created and its secret shown once",
+    appPassword.status === 201 &&
+      /^[a-kmnp-z2-9]{4}(-[a-kmnp-z2-9]{4}){4}$/.test(String(appPassword.body?.password)) &&
+      appPassword.body?.token_hash === undefined,
+    appPassword.body,
+  )
+
+  const appPasswords = await call("GET", `/api/addresses/${mailbox.body?.id}/app-passwords`)
+  check(
+    "the list carries no secret and no hash",
+    appPasswords.status === 200 &&
+      appPasswords.body?.data?.length === 1 &&
+      appPasswords.body.data[0].password === undefined &&
+      appPasswords.body.data[0].token_hash === undefined,
+    appPasswords.body,
+  )
+
+  const required = await call("PATCH", `/api/addresses/${mailbox.body?.id}`, {
+    require_app_passwords: true,
+  })
+  check(
+    "a mailbox can then require them",
+    required.status === 200 && required.body?.require_app_passwords === true,
+    required.body,
+  )
+  await call("PATCH", `/api/addresses/${mailbox.body?.id}`, { require_app_passwords: false })
+
+  const aliasAppPassword = await call("POST", `/api/addresses/${alias.body?.id}/app-passwords`, {
+    name: "No",
+  })
+  check("an alias cannot have an app password", aliasAppPassword.status === 400)
+
+  const revokedAppPassword = await call(
+    "DELETE",
+    `/api/addresses/${mailbox.body?.id}/app-passwords/${appPassword.body?.id}`,
+  )
+  check(
+    "an app password can be revoked",
+    revokedAppPassword.status === 200,
+    revokedAppPassword.body,
+  )
+  const revokedAgain = await call(
+    "DELETE",
+    `/api/addresses/${mailbox.body?.id}/app-passwords/${appPassword.body?.id}`,
+  )
+  check("and is gone afterwards", revokedAgain.status === 404)
 
   section("filters")
   const validate = await call("POST", "/api/filters/validate", {
@@ -659,6 +740,35 @@ const run = async () => {
     "Thunderbird autoconfig is served",
     autoconfig.status === 200 && autoconfigBody.includes("<clientConfig"),
   )
+
+  check(
+    "Thunderbird autoconfig names the CardDAV address book",
+    autoconfigBody.includes('<addressBook type="carddav">') && autoconfigBody.includes("/dav/"),
+  )
+
+  const carddavWellKnown = await fetch(`${BASE}/.well-known/carddav`, {
+    method: "PROPFIND",
+    redirect: "manual",
+  })
+  check(
+    "/.well-known/carddav redirects to the DAV context path",
+    carddavWellKnown.status === 301 && carddavWellKnown.headers.get("location") === "/dav/",
+  )
+
+  const carddavOptions = await fetch(`${BASE}/dav/`, { method: "OPTIONS" })
+  check(
+    "CardDAV answers OPTIONS with the addressbook class",
+    (carddavOptions.headers.get("dav") ?? "").includes("addressbook"),
+  )
+
+  const carddavAnon = await fetch(`${BASE}/dav/`, { method: "PROPFIND" })
+  check(
+    "CardDAV wants Basic credentials",
+    carddavAnon.status === 401 && /^Basic /.test(carddavAnon.headers.get("www-authenticate") ?? ""),
+  )
+
+  const contactsAnon = await call("GET", "/api/mail/contacts?q=a")
+  check("the webmail contacts search needs a mailbox session", contactsAnon.status === 401)
 
   const autodiscover = await fetch(`${BASE}/autodiscover/autodiscover.xml`, {
     method: "POST",

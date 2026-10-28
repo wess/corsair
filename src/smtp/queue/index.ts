@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto"
 import { from } from "@wess/atlas/db/query"
 import { ownerOfDomain } from "../../addresses/index.ts"
+import { recordTls } from "../../authreports/outbound/index.ts"
 import { config } from "../../config/index.ts"
 import { db } from "../../db/index.ts"
 import { emit } from "../../events/index.ts"
+import { deferralReason, deliveryAttempts, deliveryDeferrals } from "../../metrics/index.ts"
 import { inlineBody, releaseInline } from "../../outbound/index.ts"
 import { type Delivery, deliveries } from "../../schema/index.ts"
 import { afterDeferred, afterDelivered, afterFailed, beforeAttempt } from "../../sending/index.ts"
@@ -108,12 +110,15 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
               updated_at: new Date(),
             }),
         )
+        deliveryAttempts.inc({ outcome: "deferred" })
+        deliveryDeferrals.inc({ reason: "other" })
         result.deferred++
         return
       }
       if (!raw) {
         const reason = "The queued message body is no longer available."
         await fail(row, 550, reason)
+        deliveryAttempts.inc({ outcome: "bounced" })
         if (row.email_id) {
           await afterFailed(row, 550, reason, { local: true }).catch(logged())
         } else {
@@ -138,6 +143,10 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
         rcptTo: row.rcpt_to,
         raw,
       })
+      // A relay's TLS is between us and the relay, which is not what a
+      // recipient domain's TLS report is about.
+      if (outcome.sessions?.length && config.delivery.transport !== "relay")
+        void recordTls(domain, outcome.sessions)
 
       if (outcome.ok) {
         await db().execute(
@@ -160,6 +169,7 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
         } else {
           void notify(row, "message.delivered", { code: outcome.code, host: outcome.host })
         }
+        deliveryAttempts.inc({ outcome: "delivered" })
         result.sent++
         return
       }
@@ -186,11 +196,14 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
         }
         if (row.email_id) await afterDeferred(row, deferral).catch(logged())
         else void notify(row, "message.deferred", deferral)
+        deliveryAttempts.inc({ outcome: "deferred" })
+        deliveryDeferrals.inc({ reason: deferralReason(outcome.code, outcome.message) })
         result.deferred++
         return
       }
 
       await fail(row, outcome.code, outcome.message)
+      deliveryAttempts.inc({ outcome: "bounced" })
 
       /**
        * Tell the sender. Without this a message fails permanently and the only

@@ -53,11 +53,11 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">04</span>Using Corsair</p>
-<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li><li><a href="./agents.html">Agent email</a></li><li><a href="./agent-tools.html">Tools for agents</a></li></ul>
+<ul><li><a href="./control-panel.html">Control panel</a></li><li><a href="./domains.html">Domains</a></li><li><a href="./addresses.html">Addresses</a></li><li><a href="./client-setup.html">Client settings</a></li><li><a href="./webmail.html">Webmail</a></li><li><a href="./filters.html">Filters</a></li><li><a href="./transfers.html">Transfers</a></li><li><a href="./spam.html">Spam filtering</a></li><li><a href="./deliverability.html">Deliverability</a></li><li><a href="./sending.html">Sending API</a></li><li><a href="./webhooks.html">Event hooks</a></li><li><a href="./plans-billing.html">Plans and billing</a></li><li><a href="./agents.html">Agent email</a></li><li><a href="./agent-tools.html">Tools for agents</a></li></ul>
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">05</span>Reference</p>
-<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./contacts.html">Contacts (CardDAV)</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
 </div></nav>
 <main class="prose"><div class="page-head"><p class="eyebrow">Install and operate</p></div><h1 id="dns-setup">DNS setup</h1>
 <p>Ten records. Five are required; the rest make things work properly. This page covers what each one does, what happens without it, and how to verify it.</p>
@@ -153,9 +153,46 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <figure class="code"><span class="code-lang">sh</span><pre><code>dig +short CNAME corsair-1._domainkey.example.com
 dig +short TXT   corsair-1._domainkey.example.com</code></pre></figure>
 <p>The TXT lookup should follow the CNAME and return <code>v=DKIM1; k=rsa; p=…</code>.</p>
+<h3 id="key-rotation">Key rotation<a class="anchor" href="#key-rotation" aria-label="Link to this section">#</a></h3>
+<p>Customers publish the CNAMEs once and never touch them again. <strong>You</strong> publish the key itself: the three <code>MAIL_DKIM_HOSTS</code> names are in your zone, each holds one TXT record, and Corsair has no credentials for your zone (the DNS tokens it is handed are for customers' zones and are never stored). A host holds one key, so a rotation moves signing to a <em>different</em> selector, which is why all three CNAMEs should be published. Domains created before this existed may only have the first; they keep their current key until their next selector resolves, and nothing breaks.</p>
+<p>Each host moves through these phases:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Phase</th>
+<th>Meaning</th>
+</tr></thead><tbody>
+<tr>
+<td><code>spare</code></td>
+<td>Idle. Not signing, nothing to publish</td>
+</tr>
+<tr>
+<td><code>staged</code></td>
+<td>A new key exists. <strong>You publish its TXT record</strong></td>
+</tr>
+<tr>
+<td><code>published</code></td>
+<td>Seen in DNS. Waits <code>DKIM_SOAK_HOURS</code> (48) so resolver caches expire</td>
+</tr>
+<tr>
+<td><code>active</code></td>
+<td>Signing. Each domain moves only when its <em>own</em> <code>corsair-N._domainkey</code> name resolves to this key</td>
+</tr>
+<tr>
+<td><code>retiring</code></td>
+<td>Replaced, but still published for <code>DKIM_RETIRE_DAYS</code> (7) so in-flight mail verifies</td>
+</tr>
+<tr>
+<td><code>revoked</code></td>
+<td>Publish <code>v=DKIM1; k=rsa; p=</code> (empty), which tells verifiers the key is withdrawn</td>
+</tr>
+</tbody></table></div>
+<figure class="code"><span class="code-lang">sh</span><pre><code>bun run dkim status    # every host, its phase, and exactly which TXT to publish where
+bun run dkim rotate    # start now: stage a new key on the next host
+bun run dkim advance   # run the worker's pass immediately</code></pre></figure>
+<p><code>status</code> prints lines such as <code>publish at dkim-2.mail.example.com: TXT &quot;v=DKIM1; k=rsa; p=…&quot;</code>, already split into 255-character strings for DNS panels that need it. Publish it, and the worker (hourly) does the rest. Set <code>DKIM_ROTATE_DAYS</code> to start cycles automatically; the default <code>0</code> never starts one, so an operator who publishes by hand is not surprised. A cycle started with <code>rotate</code> is advanced either way.</p>
+<p>Corsair never switches signing to a key it has not seen resolve. A host whose TXT does not match stays <code>staged</code>; a domain whose own selector does not resolve to the new key keeps signing with the old one, and the old host is not revoked while any domain still signs with it. <code>status</code> lists those domains. Activating a key by hand from the panel is held to the same check.</p>
 <aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Some providers flatten CNAMEs</p><p>Cloudflare's proxy and a few managed DNS products will resolve a CNAME at publish time and store the result. That freezes the key, and rotation then silently breaks signing. If your provider does this, turn proxying <strong>off</strong> for the <code>_domainkey</code> records.</p></aside>
 <h2 id="dmarc">DMARC<a class="anchor" href="#dmarc" aria-label="Link to this section">#</a></h2>
-<figure class="code"><pre><code>v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com</code></pre></figure>
+<figure class="code"><pre><code>v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@example.com;</code></pre></figure>
 <p>Tells receivers what to do when a message claiming to be from you passes neither an aligned SPF nor an aligned DKIM check.</p>
 <div class='table-wrap'><table><thead><tr>
 <th>Policy</th>
@@ -176,6 +213,10 @@ dig +short TXT   corsair-1._domainkey.example.com</code></pre></figure>
 </tbody></table></div>
 <p><code>quarantine</code> is the sensible default. Move to <code>reject</code> once you are confident every legitimate sender for the domain is covered — including the marketing platform, the ticketing system, and whatever else sends as you.</p>
 <p><code>rua=</code> gives you aggregate reports, which is how you find the sender you forgot. Add it before tightening the policy, not after.</p>
+<p>The generated record points <code>rua</code> at <code>dmarc-reports@</code> on the domain itself. That address needs no mailbox: Corsair accepts mail for it, reads the reports (gzip, zip, or plain XML), and files them under the domain, where <strong>Reports</strong> in the control panel totals them by sending IP and by reporting organisation. If you do create a mailbox or alias called <code>dmarc-reports</code>, it receives the messages as well — the parse is in addition to delivery, not instead of it.</p>
+<p>Two rules decide what is filed:</p>
+<ul><li><strong>A report must be about the domain it was sent to</strong>, or a subdomain of it. A report mailed to <code>dmarc-reports@a.example</code> about <code>b.example</code> is dropped, so one domain cannot fill another's dashboard.</li><li><strong>The sender must authenticate</strong> — SPF or DKIM passed. Every large reporter signs its reports; without the check anyone could invent traffic by mailing an XML file.</li></ul>
+<p>You can keep your own <code>rua</code> instead, or as well (<code>rua=mailto:dmarc-reports@example.com,mailto:you@dmarc-service.example</code>). A destination on another domain has to publish a TXT record authorising it — <code>example.com._report._dmarc.dmarc-service.example</code> with <code>v=DMARC1</code> — or receivers will not send to it. Commercial report services publish theirs for you.</p>
 <p>**DMARC passes if <em>either</em> SPF or DKIM passes and aligns with the From domain.** One is enough by design — that is what makes forwarding survivable, since forwarding breaks SPF but preserves DKIM.</p>
 <h2 id="mx">MX<a class="anchor" href="#mx" aria-label="Link to this section">#</a></h2>
 <figure class="code"><pre><code>example.com.  MX  10  mail.example.com.</code></pre></figure>
@@ -194,8 +235,13 @@ max_age: 604800</code></pre></figure>
 <figure class="code"><pre><code>_mta-sts.example.com.  TXT  &quot;v=STSv1; id=20260810000000&quot;</code></pre></figure>
 <p>Bump the <code>id</code> whenever the policy changes.</p>
 <aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Do not go straight to enforce</p><p>Going to <code>enforce</code> with a wrong MX list silently blackholes your inbound mail — senders refuse to deliver rather than falling back. Watch the reports, confirm the MX list is right, and only then change it.</p></aside>
+<h2 id="tls-reporting">TLS reporting<a class="anchor" href="#tls-reporting" aria-label="Link to this section">#</a></h2>
+<figure class="code"><pre><code>_smtp._tls.example.com.  TXT  &quot;v=TLSRPTv1; rua=mailto:tlsrpt@example.com&quot;</code></pre></figure>
+<p>Optional. Asks senders for a daily report (RFC 8460) of how their TLS sessions to your MX went — how many negotiated TLS, and why any did not. It is the feedback loop that makes <a href="#mta-sts">MTA-STS</a> safe to tighten: an expired certificate shows up as <code>certificate-expired</code> failures before it becomes lost mail.</p>
+<p>Like <code>dmarc-reports@</code>, the <code>tlsrpt@</code> address needs no mailbox; Corsair files the JSON reports under the domain and shows them beside the DMARC ones. Entries in a report about any other domain are dropped.</p>
 <h2 id="autoconfig-and-autodiscover">autoconfig and autodiscover<a class="anchor" href="#autoconfig-and-autodiscover" aria-label="Link to this section">#</a></h2>
 <p>CNAMEs that let Thunderbird and Outlook configure themselves from an email address alone. Optional, and worth publishing — the alternative is telling every user six hostnames.</p>
+<p>For contacts, a client that starts from an email address looks for a <code>_carddavs._tcp</code> SRV record on the domain (RFC 6764). Publish one only if the bare domain is not served by Corsair; the records are in <a href="contacts.html#dns-for-discovery-from-the-address-alone">Contacts (CardDAV)</a>.</p>
 <h2 id="checking-everything">Checking everything<a class="anchor" href="#checking-everything" aria-label="Link to this section">#</a></h2>
 <figure class="code"><span class="code-lang">sh</span><pre><code>dig +short MX    example.com
 dig +short TXT   example.com
@@ -212,7 +258,7 @@ dig +short TXT   corsair-1._domainkey.example.com</code></pre></figure>
 <h2 id="before-a-migration-lower-your-ttls">Before a migration, lower your TTLs<a class="anchor" href="#before-a-migration-lower-your-ttls" aria-label="Link to this section">#</a></h2>
 <p>A day before you plan to change the MX, drop its TTL to 300 seconds. Then the cutover window is five minutes rather than however long the old TTL was.</p>
 <p>Raise them again afterwards.</p><nav class="pager"><a class="pager-prev" href="./configuration.html"><span>Previous</span><strong>Configuration</strong></a><a class="pager-next" href="./tls.html"><span>Next</span><strong>TLS certificates</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#verification">Verification</a></li><li class="toc-h2"><a href="#spf">SPF</a></li><li class="toc-h2"><a href="#dkim">DKIM</a></li><li class="toc-h2"><a href="#dmarc">DMARC</a></li><li class="toc-h2"><a href="#mx">MX</a></li><li class="toc-h2"><a href="#mta-sts">MTA-STS</a></li><li class="toc-h2"><a href="#autoconfig-and-autodiscover">autoconfig and autodiscover</a></li><li class="toc-h2"><a href="#checking-everything">Checking everything</a></li><li class="toc-h2"><a href="#when-a-record-will-not-verify">When a record will not verify</a></li><li class="toc-h2"><a href="#before-a-migration-lower-your-ttls">Before a migration, lower your TTLs</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#verification">Verification</a></li><li class="toc-h2"><a href="#spf">SPF</a></li><li class="toc-h2"><a href="#dkim">DKIM</a></li><li class="toc-h3"><a href="#key-rotation">Key rotation</a></li><li class="toc-h2"><a href="#dmarc">DMARC</a></li><li class="toc-h2"><a href="#mx">MX</a></li><li class="toc-h2"><a href="#mta-sts">MTA-STS</a></li><li class="toc-h2"><a href="#tls-reporting">TLS reporting</a></li><li class="toc-h2"><a href="#autoconfig-and-autodiscover">autoconfig and autodiscover</a></li><li class="toc-h2"><a href="#checking-everything">Checking everything</a></li><li class="toc-h2"><a href="#when-a-record-will-not-verify">When a record will not verify</a></li><li class="toc-h2"><a href="#before-a-migration-lower-your-ttls">Before a migration, lower your TTLs</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">
