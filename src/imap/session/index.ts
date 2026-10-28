@@ -14,7 +14,8 @@ import {
   messagesIn,
   moveTo,
   searchTextFor,
-  setFlags,
+  storeFlags,
+  vanishedSince,
 } from "../../store/index.ts"
 import { loadRaw, needsBody, parseFetchItems, renderFetch, setsSeen } from "../fetch/index.ts"
 import {
@@ -25,6 +26,7 @@ import {
   inSequenceSet,
   parseImapDate,
   parseSequenceSet,
+  type SequenceSet,
 } from "../protocol/index.ts"
 import {
   type Candidate,
@@ -34,6 +36,7 @@ import {
   needsHeaders as searchNeedsHeaders,
   needsText as searchNeedsText,
   sortCandidates,
+  usesModseq,
 } from "../search/index.ts"
 
 const CRLF = "\r\n"
@@ -64,6 +67,9 @@ const mapLimited = async <T, R>(
 // Longest single command line, and the most an unauthenticated connection may
 // make us buffer for one command (line plus literals). Dovecot's line limit is
 // the same 64 KB; literals after login are bounded by the message size instead.
+const FETCH_MODIFIERS =
+  /\s*\(((?:CHANGEDSINCE\s+\d+|VANISHED)(?:\s+(?:CHANGEDSINCE\s+\d+|VANISHED))*)\)\s*$/i
+
 const LINE_LIMIT = 65_536
 const PRE_AUTH_LIMIT = 8_192
 
@@ -83,6 +89,8 @@ const CAPABILITIES = [
   "SPECIAL-USE",
   "LIST-EXTENDED",
   "WITHIN",
+  "CONDSTORE",
+  "QRESYNC",
 ]
 
 export type ImapHooks = {
@@ -128,6 +136,11 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
   let selected: Selected | null = null
   let idleTag: string | null = null
   let authState: { mechanism: "plain" | "login"; tag: string; username?: string } | null = null
+  // RFC 7162. CONDSTORE turns on with the first command that uses it, QRESYNC
+  // only with ENABLE; once on, every unsolicited FETCH carries MODSEQ and, with
+  // QRESYNC, expunges are reported as VANISHED UID sets.
+  let condstore = false
+  let qresync = false
 
   const capabilityLine = (): string => {
     const caps = [...CAPABILITIES]
@@ -157,33 +170,44 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
   const sync = async (): Promise<string> => {
     if (!selected) return ""
     const current = await messagesIn(selected.folder.id)
-    const live = new Set(current.map((m) => m.id))
+    const byId = new Map(current.map((m) => [m.id, m]))
 
     let out = ""
     const kept: Message[] = []
-    const removals: number[] = []
+    const removals: { sequence: number; uid: number }[] = []
 
+    // Kept messages take the current row, not the snapshot's copy, or a flag
+    // change made by another client would never be noticed below.
     selected.snapshot.forEach((message, index) => {
-      if (live.has(message.id)) kept.push(message)
-      else removals.push(index + 1)
+      const now = byId.get(message.id)
+      if (now) kept.push(now)
+      else removals.push({ sequence: index + 1, uid: num(message.uid) })
     })
 
-    for (const sequence of removals.sort((a, b) => b - a)) {
-      out += `* ${sequence} EXPUNGE${CRLF}`
+    // A QRESYNC client is told by UID in one line, which does not renumber
+    // anything as it goes; everyone else gets EXPUNGE, highest first.
+    if (qresync && removals.length) {
+      out += `* VANISHED ${formatSequenceSet(removals.map((r) => r.uid))}${CRLF}`
+    } else {
+      for (const { sequence } of removals.sort((a, b) => b.sequence - a.sequence)) {
+        out += `* ${sequence} EXPUNGE${CRLF}`
+      }
     }
 
     const known = new Set(kept.map((m) => m.id))
     const added = current.filter((m) => !known.has(m.id))
     const next = [...kept, ...added].sort((a, b) => num(a.uid) - num(b.uid))
 
-    // Flag changes on messages the client already knows about.
-    const before = new Map(selected.snapshot.map((m) => [m.id, JSON.stringify(m.flags ?? [])]))
+    // Flag changes on messages the client already knows about. A CONDSTORE
+    // client also hears about a bare modseq change, so its cache stays current.
+    const before = new Map(selected.snapshot.map((m) => [m.id, m]))
     next.forEach((message, index) => {
       const previous = before.get(message.id)
-      const now = JSON.stringify(message.flags ?? [])
-      if (previous !== undefined && previous !== now) {
-        out += `* ${index + 1} FETCH (UID ${num(message.uid)} FLAGS (${(message.flags ?? []).join(" ")}))${CRLF}`
-      }
+      if (!previous) return
+      const flagsChanged =
+        JSON.stringify(previous.flags ?? []) !== JSON.stringify(message.flags ?? [])
+      const modseqChanged = condstore && num(previous.modseq) !== num(message.modseq)
+      if (flagsChanged || modseqChanged) out += flagsFetch(message, index + 1)
     })
 
     if (added.length || removals.length) {
@@ -193,6 +217,44 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
 
     selected.snapshot = next
     return out
+  }
+
+  /** An untagged FETCH reporting a message's flags, with MODSEQ under CONDSTORE. */
+  const flagsFetch = (message: Message, sequence: number): string =>
+    `* ${sequence} FETCH (UID ${num(message.uid)} FLAGS (${(message.flags ?? []).join(" ")})${
+      condstore ? ` MODSEQ (${num(message.modseq)})` : ""
+    })${CRLF}`
+
+  /**
+   * UIDs within `ranges` that were expunged after `since`, for VANISHED (EARLIER).
+   *
+   * Exact while the tombstones reach back that far. Past the retention sweep it
+   * reports every UID in range that is not live, which RFC 7162 allows — a client
+   * ignores UIDs it never had — and is the only answer that cannot leave a gone
+   * message on its screen. `matchedUid` comes from QRESYNC's seq-match data: no
+   * UID at or below it can have vanished, so the fallback starts above it.
+   */
+  const vanishedEarlier = async (
+    ranges: SequenceSet,
+    since: bigint,
+    matchedUid = 0,
+  ): Promise<string> => {
+    if (!selected) return ""
+    const live = new Set(selected.snapshot.map((m) => num(m.uid)))
+    const { uids, complete } = await vanishedSince(selected.folder.id, since)
+    // A message expunged after the snapshot was taken is still in it; reporting
+    // it now would put the client's sequence numbers out of step with ours.
+    if (complete) {
+      return formatSequenceSet(uids.filter((u) => inSequenceSet(ranges, u) && !live.has(u)))
+    }
+    const top = num((await reload(selected.folder)).uid_next) - 1
+    const missing = new Set<number>()
+    for (const range of ranges) {
+      for (let u = Math.max(range.start, matchedUid + 1, 1); u <= Math.min(range.end, top); u++) {
+        if (!live.has(u)) missing.add(u)
+      }
+    }
+    return formatSequenceSet([...missing])
   }
 
   const reload = async (folder: Folder): Promise<Folder> =>
@@ -314,10 +376,80 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
 
   // commands
 
-  const doSelect = async (tag: string, name: string, readOnly: boolean): Promise<string> => {
+  type Resync = {
+    uidValidity: number
+    modseq: bigint
+    knownUids: string | null
+    seqMatch: { sequences: string; uids: string } | null
+  }
+
+  /** `(CONDSTORE)` or `(QRESYNC (uidvalidity modseq [known-uids [(seqs uids)]]))`. */
+  const parseSelectParams = (
+    text: string,
+  ): { condstore: boolean; resync: Resync | null } | "invalid" => {
+    const reader = createReader(text)
+    let wantsCondstore = false
+    let resync: Resync | null = null
+    while (!reader.eof()) {
+      const word = reader.word()
+      if (word === "CONDSTORE") wantsCondstore = true
+      else if (word === "QRESYNC") {
+        const inner = createReader(reader.parenthesised())
+        const uidValidity = inner.astring()
+        const modseq = inner.astring()
+        if (!/^\d+$/.test(uidValidity) || !/^[1-9]\d*$/.test(modseq)) return "invalid"
+        const knownUids = inner.peek() && inner.peek() !== "(" ? inner.astring() : null
+        let seqMatch: Resync["seqMatch"] = null
+        if (inner.peek() === "(") {
+          const pair = createReader(inner.parenthesised())
+          seqMatch = { sequences: pair.astring(), uids: pair.astring() }
+        }
+        resync = { uidValidity: Number(uidValidity), modseq: BigInt(modseq), knownUids, seqMatch }
+      } else return "invalid"
+    }
+    return { condstore: wantsCondstore, resync }
+  }
+
+  /**
+   * The highest UID the client's seq-match data proves nothing vanished at or
+   * below. If the client's message N has UID U and so does ours, both sides hold
+   * the same N messages up to U — ours cannot have any the client lacks there.
+   */
+  const matchedUid = (resync: Resync, snapshot: Message[]): number => {
+    if (!resync.seqMatch) return 0
+    // Expanded with a cap: the pairs are a hint, and a client could write 1:*.
+    const expand = (set: string): number[] => {
+      const out: number[] = []
+      for (const range of parseSequenceSet(set, 0)) {
+        for (let v = range.start; v <= range.end && out.length < 1_000; v++) out.push(v)
+      }
+      return out
+    }
+    const sequences = expand(resync.seqMatch.sequences)
+    const uids = expand(resync.seqMatch.uids)
+    if (sequences.length !== uids.length) return 0
+    let best = 0
+    sequences.forEach((sequence, i) => {
+      const ours = snapshot[sequence - 1]
+      if (ours && num(ours.uid) === uids[i]) best = Math.max(best, uids[i]!)
+    })
+    return best
+  }
+
+  const doSelect = async (tag: string, args: string, readOnly: boolean): Promise<string> => {
+    const reader = createReader(args)
+    const name = reader.astring()
+    const params = parseSelectParams(reader.parenthesised())
+    if (params === "invalid") return bad(tag, "Invalid SELECT parameters.")
+    if (params.resync && !qresync) return bad(tag, "QRESYNC has not been enabled.")
+
     const folder = await folderByName(name)
     if (!folder) return no(tag, "No such mailbox.", "TRYCREATE")
+    if (params.condstore) condstore = true
 
+    // RFC 7162 §3.2.11: the client must be able to tell where the old
+    // mailbox's untagged responses end and the new one's begin.
+    const closed = selected ? `* OK [CLOSED] Previous mailbox is now closed.${CRLF}` : ""
     const snapshot = await messagesIn(folder.id)
     selected = { folder, readOnly, snapshot }
     const status = await folderStatus(folder)
@@ -326,7 +458,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
       (m) => !(m.flags ?? []).some((f) => f.toLowerCase() === "\\seen"),
     )
 
-    let out = ""
+    let out = closed
     out += `* ${snapshot.length} EXISTS${CRLF}`
     out += `* ${status.recent} RECENT${CRLF}`
     out += `* FLAGS (\\Answered \\Flagged \\Deleted \\Seen \\Draft)${CRLF}`
@@ -337,6 +469,22 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
     if (firstUnseen !== -1) {
       out += `* OK [UNSEEN ${firstUnseen + 1}] First unseen message.${CRLF}`
     }
+
+    // A changed UIDVALIDITY means the client's cache is worthless; it gets a
+    // plain SELECT and starts over.
+    const resync = params.resync
+    if (resync && resync.uidValidity === status.uidValidity) {
+      const maxUid = Math.max(status.uidNext - 1, 0)
+      const known = parseSequenceSet(resync.knownUids ?? "1:*", maxUid)
+      snapshot.forEach((message, index) => {
+        if (BigInt(message.modseq) > resync.modseq && inSequenceSet(known, num(message.uid))) {
+          out += flagsFetch(message, index + 1)
+        }
+      })
+      const vanished = await vanishedEarlier(known, resync.modseq, matchedUid(resync, snapshot))
+      if (vanished) out += `* VANISHED (EARLIER) ${vanished}${CRLF}`
+    }
+
     return (
       out +
       ok(
@@ -352,37 +500,84 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
 
     const reader = createReader(args)
     const set = reader.astring()
-    const items = parseFetchItems(reader.rest())
-    const targets = resolveSet(set, uid)
+    const rest = reader.rest()
+    // RFC 7162 modifiers trail the item list: `(FLAGS) (CHANGEDSINCE 12 VANISHED)`.
+    const modifier = rest.match(FETCH_MODIFIERS)
+    const items = parseFetchItems(modifier ? rest.slice(0, modifier.index) : rest)
+    let changedSince: bigint | null = null
+    let wantsVanished = false
+    if (modifier) {
+      const inner = createReader(modifier[1]!)
+      while (!inner.eof()) {
+        const word = inner.word()
+        if (word === "CHANGEDSINCE") changedSince = BigInt(inner.astring())
+        else if (word === "VANISHED") wantsVanished = true
+      }
+    }
+    // VANISHED is only meaningful by UID, and only to a client that asked for
+    // QRESYNC semantics.
+    if (wantsVanished && (!uid || !qresync || changedSince === null)) {
+      return bad(tag, "VANISHED needs UID FETCH, CHANGEDSINCE, and QRESYNC enabled.")
+    }
+    if (changedSince !== null || items.some((i) => i.kind === "modseq")) condstore = true
+    if (changedSince !== null && !items.some((i) => i.kind === "modseq")) {
+      items.push({ name: "MODSEQ", kind: "modseq" })
+    }
+
+    const since = changedSince
+    const targets = resolveSet(set, uid).filter(
+      (message) => since === null || BigInt(message.modseq) > since,
+    )
+
+    const marksSeen = setsSeen(items) && !selected.readOnly
 
     // A UID FETCH always reports UID whether or not the client asked, because
-    // the client has no other way to correlate the response.
-    if (uid && !items.some((i) => i.kind === "uid")) {
+    // the client has no other way to correlate the response. So does one that
+    // may set \Seen under CONDSTORE, along with the modseq that change made.
+    if ((uid || (condstore && marksSeen)) && !items.some((i) => i.kind === "uid")) {
       items.unshift({ name: "UID", kind: "uid" })
+    }
+    if (condstore && marksSeen && !items.some((i) => i.kind === "modseq")) {
+      items.push({ name: "MODSEQ", kind: "modseq" })
     }
 
     const wantsBody = needsBody(items)
-    const marksSeen = setsSeen(items) && !selected.readOnly
 
     // One message at a time. `FETCH 1:* RFC822` used to build the whole mailbox as
     // one string before sending any of it; with a stream hook each message is
     // rendered, written, and released, and the loop waits for a slow client to
     // catch up between messages. Without one (tests) it accumulates as before.
     let out = ""
+    if (since !== null && wantsVanished) {
+      const snapshot = selected.snapshot
+      const maxUid = snapshot.length ? num(snapshot[snapshot.length - 1]!.uid) : 0
+      const vanished = await vanishedEarlier(parseSequenceSet(set, maxUid), since)
+      if (vanished) out += `* VANISHED (EARLIER) ${vanished}${CRLF}`
+    }
     for (const message of targets) {
       const raw = wantsBody ? await loadRaw(message) : null
       const sequence = sequenceOf(message)
       if (sequence === 0) continue
 
       if (marksSeen && !(message.flags ?? []).some((f) => f.toLowerCase() === "\\seen")) {
-        const next = [...(message.flags ?? []), "\\Seen"]
-        await setFlags(message.id, selected.folder.id, next)
-        message.flags = next
+        const result = await storeFlags({
+          messageId: message.id,
+          folderId: selected.folder.id,
+          update: (current) =>
+            current.some((f) => f.toLowerCase() === "\\seen") ? current : [...current, "\\Seen"],
+        })
+        if (result.status === "stored") {
+          message.flags = result.flags
+          message.modseq = result.modseq
+        }
       }
 
       const rendered = renderFetch({ sequence, message, raw }, items)
-      if (hooks.stream) await hooks.stream(rendered)
-      else out += rendered
+      if (hooks.stream) {
+        if (out) await hooks.stream(out)
+        out = ""
+        await hooks.stream(rendered)
+      } else out += rendered
     }
 
     return out + ok(tag, `${uid ? "UID " : ""}FETCH completed.`)
@@ -394,35 +589,68 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
 
     const reader = createReader(args)
     const set = reader.astring()
+    let unchangedSince: bigint | undefined
+    if (reader.peek() === "(") {
+      const modifier = createReader(reader.parenthesised())
+      const value = modifier.word() === "UNCHANGEDSINCE" ? modifier.astring() : ""
+      if (!/^\d+$/.test(value)) return bad(tag, "Invalid STORE modifier.")
+      unchangedSince = BigInt(value)
+      condstore = true
+    }
     const operation = reader.word()
     const listed = reader.parenthesised() || reader.rest()
     const wanted = listed.split(/\s+/).filter(Boolean)
     const silent = operation.endsWith(".SILENT")
     const mode = operation.replace(".SILENT", "")
 
-    const targets = resolveSet(set, uid)
-    let out = ""
-
-    for (const message of targets) {
-      const existing = message.flags ?? []
-      let next: string[]
-      if (mode === "+FLAGS") next = [...new Set([...existing, ...wanted])]
-      else if (mode === "-FLAGS") {
+    // Applied to the flags as stored, inside the store's transaction.
+    const apply = (existing: string[]): string[] => {
+      if (mode === "+FLAGS") return [...new Set([...existing, ...wanted])]
+      if (mode === "-FLAGS") {
         const remove = new Set(wanted.map((f) => f.toLowerCase()))
-        next = existing.filter((f) => !remove.has(f.toLowerCase()))
-      } else next = [...new Set(wanted)]
-
-      await setFlags(message.id, selected.folder.id, next)
-      message.flags = next
-
-      if (!silent) {
-        const sequence = sequenceOf(message)
-        const suffix = uid ? ` UID ${num(message.uid)}` : ""
-        out += `* ${sequence} FETCH (FLAGS (${next.join(" ")})${suffix})${CRLF}`
+        return existing.filter((f) => !remove.has(f.toLowerCase()))
       }
+      return [...new Set(wanted)]
     }
 
-    return out + ok(tag, `${uid ? "UID " : ""}STORE completed.`)
+    const targets = resolveSet(set, uid)
+    let out = ""
+    const modified: number[] = []
+
+    for (const message of targets) {
+      const result = await storeFlags({
+        messageId: message.id,
+        folderId: selected.folder.id,
+        update: apply,
+        unchangedSince,
+      })
+      if (result.status === "modified") {
+        modified.push(uid ? num(message.uid) : sequenceOf(message))
+        continue
+      }
+      // Expunged by someone else; the next sync tells the client.
+      if (result.status === "gone") continue
+      message.flags = result.flags
+      message.modseq = result.modseq
+
+      // Under CONDSTORE every FETCH carries UID and MODSEQ (RFC 7162 §3.1), and
+      // .SILENT drops only FLAGS: the client needs the new modseq for its next
+      // conditional STORE.
+      const sequence = sequenceOf(message)
+      const parts: string[] = []
+      if (!silent) parts.push(`FLAGS (${result.flags.join(" ")})`)
+      if (uid || condstore) parts.push(`UID ${num(message.uid)}`)
+      if (condstore) parts.push(`MODSEQ (${num(result.modseq)})`)
+      if (!silent || condstore) out += `* ${sequence} FETCH (${parts.join(" ")})${CRLF}`
+    }
+
+    const label = `${uid ? "UID " : ""}STORE`
+    if (modified.length) {
+      return (
+        out + ok(tag, `Conditional ${label} failed.`, `MODIFIED ${formatSequenceSet(modified)}`)
+      )
+    }
+    return out + ok(tag, `${label} completed.`)
   }
 
   const doCopy = async (
@@ -531,7 +759,16 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
 
     const values = hits.map((c) => (uid ? num(c.message.uid) : c.sequence))
     const label = sort ? "SORT" : "SEARCH"
-    return `* ${label}${values.length ? ` ${values.join(" ")}` : ""}${CRLF}${ok(tag, `${uid ? "UID " : ""}${label} completed.`)}`
+    // A MODSEQ search reports the highest modseq among the hits, so the client
+    // can use it as its next CHANGEDSINCE (RFC 7162 §3.1.5).
+    let highest = ""
+    if (usesModseq(parsed.criterion)) {
+      condstore = true
+      if (hits.length) {
+        highest = ` (MODSEQ ${Math.max(...hits.map((c) => num(c.message.modseq)))})`
+      }
+    }
+    return `* ${label}${values.length ? ` ${values.join(" ")}` : ""}${highest}${CRLF}${ok(tag, `${uid ? "UID " : ""}${label} completed.`)}`
   }
 
   const doAppend = async (tag: string, args: string): Promise<string> => {
@@ -687,6 +924,7 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
           values.push(`UNSEEN ${status.unseen}`)
           break
         case "HIGHESTMODSEQ":
+          condstore = true
           values.push(`HIGHESTMODSEQ ${status.highestModseq}`)
           break
         case "SIZE":
@@ -748,8 +986,6 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
         return `* BYE ${config.hostname} closing connection.${CRLF}${ok(tag, "LOGOUT completed.")}`
       case "ID":
         return `* ID ("name" "Corsair" "version" "0.1.0")${CRLF}${ok(tag, "ID completed.")}`
-      case "ENABLE":
-        return ok(tag, "ENABLE completed.")
     }
 
     // not authenticated
@@ -803,9 +1039,9 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
     // authenticated
     switch (name) {
       case "SELECT":
-        return doSelect(tag, createReader(args).astring(), false)
+        return doSelect(tag, args, false)
       case "EXAMINE":
-        return doSelect(tag, createReader(args).astring(), true)
+        return doSelect(tag, args, true)
       case "CREATE":
         return doCreate(tag, createReader(args).astring())
       case "DELETE":
@@ -830,6 +1066,23 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
         return doAppend(tag, args)
       case "NAMESPACE":
         return `* NAMESPACE (("" "/")) NIL NIL${CRLF}${ok(tag, "NAMESPACE completed.")}`
+
+      case "ENABLE": {
+        // RFC 5161: only what was asked for and newly turned on is listed.
+        // QRESYNC implies CONDSTORE (RFC 7162 §3.2.3) without naming it.
+        const enabled: string[] = []
+        for (const extension of args.toUpperCase().split(/\s+/).filter(Boolean)) {
+          if (extension === "CONDSTORE" && !condstore) {
+            condstore = true
+            enabled.push("CONDSTORE")
+          } else if (extension === "QRESYNC" && !qresync) {
+            qresync = true
+            condstore = true
+            enabled.push("QRESYNC")
+          }
+        }
+        return `* ENABLED${enabled.map((e) => ` ${e}`).join("")}${CRLF}${ok(tag, "ENABLE completed.")}`
+      }
 
       case "IDLE":
         idleTag = tag
@@ -1041,6 +1294,8 @@ export const createImapSession = (hooks: ImapHooks): ImapSession => {
       identity = null
       selected = null
       idleTag = null
+      condstore = false
+      qresync = false
     },
 
     close: () => {

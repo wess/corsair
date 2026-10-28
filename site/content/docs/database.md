@@ -73,7 +73,10 @@ client never recovers from.
 :::
 
 `message_tombstones` exists because a client that was offline during an expunge
-still needs to be told what disappeared.
+still needs to be told what disappeared — it is what IMAP `QRESYNC` answers
+`VANISHED (EARLIER)` from. The retention sweep removes them after 30 days and
+records the highest modseq it removed in `folders.vanished_floor`, so a client
+asking about an older modseq is answered conservatively rather than wrongly.
 
 ## Delivery
 

@@ -168,10 +168,19 @@ const runJob = async (job: Job): Promise<void> => {
 
     case "retention.sweep": {
       // Tombstones exist so a reconnecting client can be told what vanished.
-      // After a month no client is that far behind, and they are pure overhead.
+      // After a month they are mostly overhead, but a client can be that far
+      // behind, so each folder remembers how far the sweep has reached and
+      // QRESYNC answers conservatively below it.
       const tombstones = await db().all<{ id: string }>({
-        text: `DELETE FROM message_tombstones WHERE created_at < now() - interval '30 days'
-               RETURNING id`,
+        text: `WITH swept AS (
+                 DELETE FROM message_tombstones WHERE created_at < now() - interval '30 days'
+                 RETURNING id, folder_id, modseq
+               ), floors AS (
+                 UPDATE folders f SET vanished_floor = GREATEST(f.vanished_floor, s.top)
+                   FROM (SELECT folder_id, max(modseq) AS top FROM swept GROUP BY folder_id) s
+                  WHERE f.id = s.folder_id
+               )
+               SELECT id FROM swept`,
         values: [],
       })
       const expunged = await db().all<{ id: string }>({

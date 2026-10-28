@@ -231,6 +231,7 @@ const folderNamed = async (
         "uid_validity",
         "uid_next",
         "highest_modseq",
+        "vanished_floor",
         "subscribed",
         "created_at",
         "updated_at",

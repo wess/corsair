@@ -53,7 +53,20 @@ the same UID, and a duplicate UID is the one thing an IMAP client never
 recovers from. There is a concurrency test for this — keep it.
 
 **EXPUNGE is emitted highest sequence first.** IMAP renumbers after every single
-EXPUNGE, so ascending order makes a client delete the wrong messages.
+EXPUNGE, so ascending order makes a client delete the wrong messages. A session
+that has enabled QRESYNC gets one `VANISHED <uids>` line instead.
+
+**A modseq bump and the write it describes commit together.** `storeFlags`
+bumps `folders.highest_modseq` and writes the message's `modseq` in one
+transaction, holding the folder row lock until commit, exactly as `claimUid`
+does. As two statements, a CONDSTORE client resyncing between them recorded the
+new HIGHESTMODSEQ while the message still carried its old one, and never asked
+about that change again. Every flag change in every protocol goes through
+`storeFlags`/`setFlags`; a path that writes `messages.flags` directly is a change
+no IMAP client will ever hear about. Tombstones older than the retention sweep
+are gone, so `folders.vanished_floor` records how far it reached and QRESYNC
+reports every non-live UID for a client older than that — not a short list.
+`tests/condstore.test.ts` pins both.
 
 **Header values must be sanitised.** A bare CR or LF in a subject, display name,
 or custom header injects a header. `stripControls` in `core/mime` runs on every
