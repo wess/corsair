@@ -235,6 +235,14 @@ const runJob = async (job: Job): Promise<void> => {
         text: "DELETE FROM idempotency_keys WHERE expires_at < now()",
         values: [],
       })
+      // Greylist triplets nobody retried within the window, and passes that have
+      // gone unused past the 36-day whitelist.
+      await db().execute({
+        text: `DELETE FROM greylist
+                WHERE (passed_at IS NULL AND first_seen < now() - interval '2 days')
+                   OR last_seen < now() - interval '36 days'`,
+        values: [],
+      })
       if (tombstones.length || expunged.length || logs.length) {
         console.log(
           `[corsair] retention sweep: ${expunged.length} message(s), ${tombstones.length} tombstone(s), ${logs.length} log row(s)`,

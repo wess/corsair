@@ -711,6 +711,30 @@ export const bans = defineSchema("bans", {
   created_at: now(),
 })
 
+// spam
+
+// One greylisting triplet. See migrations/20261028000023_spam for why the
+// client is a network rather than an address.
+export const greylist = defineSchema("greylist", {
+  id: id(),
+  client_net: column.text(),
+  sender: column.text(),
+  sender_domain: column.text(),
+  recipient: column.text(),
+  first_seen: now(),
+  last_seen: now(),
+  passed_at: column.timestamp().nullable(),
+})
+
+// Someone a mailbox has written to, which is what makes mail back from them
+// trusted. `src/correspondents` owns it.
+export const correspondents = defineSchema("correspondents", {
+  id: id(),
+  address_id: column.uuid().ref("addresses", "id"),
+  email: column.text(),
+  last_at: now(),
+})
+
 export type Job = RowOf<typeof jobs>
 export type AuthFailure = RowOf<typeof authFailures>
 export type Ban = RowOf<typeof bans>
@@ -939,6 +963,7 @@ export const allSchemas = [
   authFailures,
   bans,
   bounces,
+  correspondents,
   deliveries,
   dkimHosts,
   dkimKeys,
@@ -948,6 +973,7 @@ export const allSchemas = [
   emails,
   filters,
   folders,
+  greylist,
   idempotencyKeys,
   jobs,
   mailLog,
