@@ -1,6 +1,7 @@
 import { startApi } from "./api/index.ts"
 import { config } from "./config/index.ts"
 import { startImap } from "./imap/index.ts"
+import { startManagesieve } from "./managesieve/index.ts"
 import { startPop3 } from "./pop3/index.ts"
 import { installCrashGuards } from "./resilience/index.ts"
 import { assertSecret } from "./secrets/index.ts"
@@ -35,6 +36,7 @@ export const start = async (options: { hmr?: boolean } = {}): Promise<void> => {
   if (config.smtp.enabled) await startSmtp()
   if (config.imap.enabled) await startImap()
   if (config.pop3.enabled) await startPop3()
+  if (config.managesieve.enabled) await startManagesieve()
 }
 
 if (import.meta.main) await start()

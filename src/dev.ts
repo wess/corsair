@@ -23,4 +23,5 @@ console.log(`
   smtp      ${config.smtp.mxPort} (mx) · ${config.smtp.submissionPort} (submission)
   imap      ${config.imap.port} · ${config.imap.tlsPort} (tls)
   pop3      ${config.pop3.port} · ${config.pop3.tlsPort} (tls)
+  sieve     ${config.managesieve.port} (starttls)
 `)

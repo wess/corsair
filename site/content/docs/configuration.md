@@ -145,9 +145,11 @@ opposed to what Corsair listens on.
 | `IMAP_TLS_PORT` | `2993` | `993` |
 | `POP3_PORT` | `2110` | `110` |
 | `POP3_TLS_PORT` | `2995` | `995` |
+| `MANAGESIEVE_PORT` | `4190` | `4190` |
 | `SMTP_ENABLED` | `true` | |
 | `IMAP_ENABLED` | `true` | |
 | `POP3_ENABLED` | `true` | |
+| `MANAGESIEVE_ENABLED` | `true` | |
 
 The defaults are unprivileged so development needs no root. Ports below 1024 need
 `CAP_NET_BIND_SERVICE` — granted in the systemd unit with `AmbientCapabilities`,

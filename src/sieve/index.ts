@@ -23,6 +23,21 @@ import {
   type ParsedMessage,
 } from "../mime/index.ts"
 
+/**
+ * The `require` capabilities this interpreter acts on, in the form ManageSieve
+ * advertises them. Anything not listed is accepted and ignored by `require`,
+ * but a client should not be told it can use what would silently do nothing.
+ */
+export const EXTENSIONS = [
+  "ereject",
+  "envelope",
+  "fileinto",
+  "imap4flags",
+  "mailbox",
+  "regex",
+  "reject",
+] as const
+
 // lexer
 
 type Token =

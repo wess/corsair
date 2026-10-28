@@ -178,6 +178,7 @@ the store affects every protocol at once, which is the trade you are making.
 | SMTP (submission) | 587, 465 | Address | Requires TLS |
 | IMAP | 143, 993 | Address | [Reference](imap.html) |
 | POP3 | 110, 995 | Address | [Reference](pop3.html) |
+| ManageSieve | 4190 | Address (owner's own mailbox) | [Filters](filters.html) |
 | JMAP | 443 (HTTP) | Address, via Basic or cookie | [Reference](jmap.html) |
 | Webmail | 443 (HTTP) | Address, via cookie | [Guide](webmail.html) |
 | Panel API | 443 (HTTP) | User, via cookie | [Reference](api.html) |

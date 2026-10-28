@@ -117,6 +117,11 @@ export const config = defineConfig({
     tlsPort: env("POP3_TLS_PORT", { parse: Number, default: "2995" }),
   },
 
+  managesieve: {
+    enabled: env("MANAGESIEVE_ENABLED", { parse: bool, default: "true" }),
+    port: env("MANAGESIEVE_PORT", { parse: Number, default: "4190" }),
+  },
+
   tls: {
     certPath: env("TLS_CERT_PATH", { default: "" }),
     keyPath: env("TLS_KEY_PATH", { default: "" }),
