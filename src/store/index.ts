@@ -145,18 +145,90 @@ const threadIdOf = (parsed: ParsedMessage, messageId: string | null): string | n
 
 // mutate
 
+export type FlagWrite =
+  | { status: "stored"; flags: string[]; modseq: bigint }
+  /** UNCHANGEDSINCE lost: the message changed after the client last saw it. */
+  | { status: "modified"; modseq: bigint }
+  /** Expunged, or no longer in that folder. */
+  | { status: "gone" }
+
+/**
+ * Rewrites one message's flags and gives it a fresh modseq, in one transaction.
+ *
+ * The bump and the row write used to be two statements. In between, the folder
+ * already advertised the new HIGHESTMODSEQ while the message still carried its
+ * old one, so a CONDSTORE client resyncing in that gap recorded the new high
+ * water mark and never asked about the change again. Holding the folder row lock
+ * from the bump to the commit means writers commit in modseq order and a reader
+ * sees the counter and the row move together — the same reasoning as `claimUid`.
+ *
+ * `update` sees the flags as stored, not as the caller last read them, so +FLAGS
+ * from two clients at once cannot drop either one. `unchangedSince` is IMAP's
+ * conditional STORE, checked under the row lock for the same reason.
+ */
+export const storeFlags = async (input: {
+  messageId: string
+  folderId: string
+  update: (current: string[]) => string[]
+  unchangedSince?: bigint
+}): Promise<FlagWrite> =>
+  db().transaction(async (conn) => {
+    // Message before folder: expunge and moveTo lock in that order too.
+    const row = await conn.one<{ flags: string[] | null; modseq: string }>({
+      text: `SELECT flags, modseq::text AS modseq FROM messages
+              WHERE id = $1 AND folder_id = $2 AND expunged_at IS NULL
+              FOR UPDATE`,
+      values: [input.messageId, input.folderId],
+    })
+    if (!row) return { status: "gone" } as const
+    const current = BigInt(row.modseq)
+    if (input.unchangedSince !== undefined && current > input.unchangedSince) {
+      return { status: "modified", modseq: current } as const
+    }
+    const flags = input.update(row.flags ?? [])
+    const modseq = await bumpModseq(input.folderId, conn)
+    await conn.execute(
+      from(messages)
+        .where((q) => q("id").equals(input.messageId))
+        .update({ flags, modseq }),
+    )
+    return { status: "stored", flags, modseq } as const
+  })
+
+/** Replaces a message's flags. Returns the new modseq, or null if it is gone. */
 export const setFlags = async (
   messageId: string,
   folderId: string,
   flags: string[],
-): Promise<bigint> => {
-  const modseq = await bumpModseq(folderId)
-  await db().execute(
-    from(messages)
-      .where((q) => q("id").equals(messageId))
-      .update({ flags, modseq }),
-  )
-  return modseq
+): Promise<bigint | null> => {
+  const result = await storeFlags({ messageId, folderId, update: () => flags })
+  return result.status === "stored" ? result.modseq : null
+}
+
+/**
+ * UIDs removed from a folder after `modseq`, for QRESYNC's VANISHED (EARLIER).
+ *
+ * `complete` is false when the retention sweep has already discarded tombstones
+ * newer than `modseq`: the list is then missing entries, and the caller has to
+ * fall back to reporting every UID it cannot see as live.
+ */
+export const vanishedSince = async (
+  folderId: string,
+  modseq: bigint,
+): Promise<{ uids: number[]; complete: boolean }> => {
+  const floor = await db().one<{ floor: string }>({
+    text: "SELECT vanished_floor::text AS floor FROM folders WHERE id = $1",
+    values: [folderId],
+  })
+  const rows = await db().all<{ uid: string }>({
+    text: `SELECT DISTINCT uid::text AS uid FROM message_tombstones
+            WHERE folder_id = $1 AND modseq > $2`,
+    values: [folderId, modseq],
+  })
+  return {
+    uids: rows.map((r) => Number(r.uid)).sort((a, b) => a - b),
+    complete: modseq >= BigInt(floor?.floor ?? "0"),
+  }
 }
 
 /**

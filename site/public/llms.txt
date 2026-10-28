@@ -57,7 +57,7 @@ Corsair is a Bun and PostgreSQL application. Mail for every protocol is stored o
 - [Architecture](https://wess.io/corsair/docs/architecture.html): How the pieces fit together — one process, one store, and the decisions that shape everything else.
 - [HTTP API](https://wess.io/corsair/docs/api.html): Authentication, error envelope, pagination, and every endpoint the control panel is built on.
 - [SMTP](https://wess.io/corsair/docs/smtp.html): The MX listener, authenticated submission, the inbound pipeline, and how outbound delivery retries.
-- [IMAP](https://wess.io/corsair/docs/imap.html): Advertised capabilities, supported commands, and the two behaviours that make IMAP correct rather than merely working.
+- [IMAP](https://wess.io/corsair/docs/imap.html): Advertised capabilities, supported commands, resynchronisation with CONDSTORE and QRESYNC, and the two behaviours that make IMAP correct rather than merely working.
 - [JMAP](https://wess.io/corsair/docs/jmap.html): Session discovery, the supported methods, back-references, and blob upload and download.
 - [POP3](https://wess.io/corsair/docs/pop3.html): The supported command set, and an honest account of when POP3 is the wrong choice.
 - [Command line](https://wess.io/corsair/docs/cli.html): Every script and entrypoint, what it does, and when to reach for it.

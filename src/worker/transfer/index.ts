@@ -257,6 +257,7 @@ const localFolderFor = async (addressId: string, remoteName: string): Promise<Fo
         "uid_validity",
         "uid_next",
         "highest_modseq",
+        "vanished_floor",
         "subscribed",
         "created_at",
         "updated_at",

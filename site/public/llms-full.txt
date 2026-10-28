@@ -7885,7 +7885,7 @@ will not accept a credential unencrypted. See [TLS](tls.html).
 
 ```
 * CAPABILITY IMAP4rev1 LITERAL+ SASL-IR UIDPLUS MOVE ID UNSELECT CHILDREN
-  NAMESPACE IDLE SORT ENABLE SPECIAL-USE LIST-EXTENDED WITHIN
+  NAMESPACE IDLE SORT ENABLE SPECIAL-USE LIST-EXTENDED WITHIN CONDSTORE QRESYNC
 ```
 
 Plus, depending on connection state:
@@ -7909,7 +7909,6 @@ is what port 143 does here, since it can never be upgraded.
 | `NOOP` | Also delivers pending untagged responses |
 | `LOGOUT` | |
 | `ID` | Client and server identification |
-| `ENABLE` | |
 
 ### Not authenticated
 
@@ -7922,8 +7921,9 @@ is what port 143 does here, since it can never be upgraded.
 
 | Command | Notes |
 | --- | --- |
-| `SELECT` | |
-| `EXAMINE` | Read-only select |
+| `ENABLE` | `CONDSTORE`, `QRESYNC` (which implies `CONDSTORE`) |
+| `SELECT` | With `(CONDSTORE)` or `(QRESYNC (...))`; always reports `HIGHESTMODSEQ` |
+| `EXAMINE` | Read-only select, same parameters |
 | `CREATE` | `/` is the hierarchy delimiter |
 | `DELETE` | |
 | `RENAME` | |
@@ -7939,13 +7939,13 @@ is what port 143 does here, since it can never be upgraded.
 
 | Command | Notes |
 | --- | --- |
-| `FETCH` | Including partial and section addressing |
-| `STORE` | Flag updates |
+| `FETCH` | Including partial and section addressing, `MODSEQ`, and `(CHANGEDSINCE n [VANISHED])` |
+| `STORE` | Flag updates, with `(UNCHANGEDSINCE n)` |
 | `COPY` | Returns `COPYUID` |
 | `MOVE` | Preserves the message id |
-| `SEARCH` | |
-| `SORT` | |
-| `EXPUNGE` | Highest sequence first |
+| `SEARCH` | Including `MODSEQ n`, answered with `(MODSEQ n)` |
+| `SORT` | Same `MODSEQ` criterion |
+| `EXPUNGE` | Highest sequence first, or `VANISHED` once `QRESYNC` is enabled |
 | `CLOSE`, `UNSELECT` | |
 | `CHECK` | |
 | `UID` | `FETCH`, `STORE`, `COPY`, `MOVE`, `SEARCH`, `SORT`, `EXPUNGE` |
@@ -8003,6 +8003,60 @@ the way they were numbered when it asked, not renumbered mid-response.
 New mail arriving during `IDLE` produces `EXISTS` and `RECENT`. Flag changes made
 elsewhere produce untagged `FETCH`.
 
+## Resynchronisation: CONDSTORE and QRESYNC
+
+Every message carries a modification sequence, and every folder a
+`HIGHESTMODSEQ`. Any change bumps both — a delivery, a flag change from any
+protocol (IMAP, JMAP, webmail, the agent API), an expunge, a move. A client that
+remembers the last `HIGHESTMODSEQ` it saw can ask for only what changed since.
+
+```
+a ENABLE QRESYNC
+b SELECT INBOX (QRESYNC (1754823710 4127 1:300))
+* 297 EXISTS
+...
+* OK [HIGHESTMODSEQ 4135] Highest modification sequence.
+* 12 FETCH (UID 14 FLAGS (\Seen \Flagged) MODSEQ (4131))
+* VANISHED (EARLIER) 41,77:79
+b OK [READ-WRITE] SELECT completed.
+```
+
+The arguments are the `UIDVALIDITY` and `HIGHESTMODSEQ` the client cached, and
+optionally the UIDs it knows about and a sequence-to-UID sample. Back come the
+flag changes and the UIDs that disappeared, and nothing else. If `UIDVALIDITY`
+has changed, the parameters are ignored and the client gets a plain `SELECT`.
+
+The rest of the extension:
+
+| | |
+| --- | --- |
+| `FETCH 1:* (FLAGS) (CHANGEDSINCE n)` | Only messages changed after `n`, with `MODSEQ` |
+| `UID FETCH ... (CHANGEDSINCE n VANISHED)` | Also `VANISHED (EARLIER)` for UIDs in the set. Needs `QRESYNC` |
+| `STORE 1:5 (UNCHANGEDSINCE n) +FLAGS (\Deleted)` | Skips any message changed after `n` and lists it in `[MODIFIED ...]` |
+| `SEARCH MODSEQ n` | Matches messages changed at or after `n`; the reply ends `(MODSEQ highest)` |
+| `STATUS INBOX (HIGHESTMODSEQ)` | Without selecting |
+
+Once `CONDSTORE` is on — by `ENABLE`, by `SELECT (CONDSTORE)`, or by the first
+command that uses a modseq — every untagged `FETCH` carries `UID` and `MODSEQ`.
+Once `QRESYNC` is on, an expunge is reported as one `VANISHED` line of UIDs
+rather than a run of `EXPUNGE`s. A client that enabled neither sees exactly what
+it saw before.
+
+Two properties keep it correct:
+
+- **Modseqs are handed out under the folder's row lock**, the same way UIDs are,
+  and the lock is held until the change commits. Changes therefore commit in
+  modseq order, and a client can never read a `HIGHESTMODSEQ` whose change is not
+  yet visible — which would make it skip that change forever.
+- **Tombstones are kept for 30 days.** `VANISHED (EARLIER)` is built from them.
+  For a client that has been away longer than that, Corsair cannot list exactly
+  what vanished, so it reports every UID in range that is not live. The
+  specification allows that, a client ignores UIDs it never had, and it is the
+  only answer that cannot leave deleted mail on someone's screen. The
+  sequence-to-UID sample in the `QRESYNC` arguments narrows it.
+
+Corsair never answers `NOMODSEQ`: every folder supports modseqs.
+
 ## MOVE preserves the message id
 
 `MOVE` updates `folder_id` and allocates a fresh UID in the target, writing a
@@ -8054,7 +8108,6 @@ when several are in flight.
 
 | | |
 | --- | --- |
-| `CONDSTORE` / `QRESYNC` | `HIGHESTMODSEQ` is tracked and reported by `STATUS`, but the sync extensions are not exposed |
 | `COMPRESS=DEFLATE` | |
 | `BINARY` | |
 | `CATENATE` | |
@@ -8631,7 +8684,10 @@ a folder that has since received mail — a duplicate UID is the one thing an IM
 client never recovers from.
 
 `message_tombstones` exists because a client that was offline during an expunge
-still needs to be told what disappeared.
+still needs to be told what disappeared — it is what IMAP `QRESYNC` answers
+`VANISHED (EARLIER)` from. The retention sweep removes them after 30 days and
+records the highest modseq it removed in `folders.vanished_floor`, so a client
+asking about an older modseq is answered conservatively rather than wrongly.
 
 ## Delivery
 

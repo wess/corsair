@@ -541,6 +541,10 @@ export const folders = defineSchema("folders", {
   uid_validity: column.bigint(),
   uid_next: column.bigint().default(1n),
   highest_modseq: column.bigint().default(1n),
+  // Highest modseq among tombstones the retention sweep has deleted. A QRESYNC
+  // client asking about changes since an older modseq cannot be given an exact
+  // VANISHED list, and has to be told about every UID that is not live.
+  vanished_floor: column.bigint().default(0n),
   subscribed: column.boolean().default(true),
   created_at: now(),
   updated_at: now(),
