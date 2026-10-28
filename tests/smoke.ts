@@ -722,6 +722,35 @@ const run = async () => {
     autoconfig.status === 200 && autoconfigBody.includes("<clientConfig"),
   )
 
+  check(
+    "Thunderbird autoconfig names the CardDAV address book",
+    autoconfigBody.includes('<addressBook type="carddav">') && autoconfigBody.includes("/dav/"),
+  )
+
+  const carddavWellKnown = await fetch(`${BASE}/.well-known/carddav`, {
+    method: "PROPFIND",
+    redirect: "manual",
+  })
+  check(
+    "/.well-known/carddav redirects to the DAV context path",
+    carddavWellKnown.status === 301 && carddavWellKnown.headers.get("location") === "/dav/",
+  )
+
+  const carddavOptions = await fetch(`${BASE}/dav/`, { method: "OPTIONS" })
+  check(
+    "CardDAV answers OPTIONS with the addressbook class",
+    (carddavOptions.headers.get("dav") ?? "").includes("addressbook"),
+  )
+
+  const carddavAnon = await fetch(`${BASE}/dav/`, { method: "PROPFIND" })
+  check(
+    "CardDAV wants Basic credentials",
+    carddavAnon.status === 401 && /^Basic /.test(carddavAnon.headers.get("www-authenticate") ?? ""),
+  )
+
+  const contactsAnon = await call("GET", "/api/mail/contacts?q=a")
+  check("the webmail contacts search needs a mailbox session", contactsAnon.status === 401)
+
   const autodiscover = await fetch(`${BASE}/autodiscover/autodiscover.xml`, {
     method: "POST",
     body: `<Request><EMailAddress>me@${domainName}</EMailAddress></Request>`,

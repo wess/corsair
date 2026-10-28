@@ -281,6 +281,30 @@ panel then refuses to save again. `PUTSCRIPT` and `RENAMESCRIPT` call
 every plan like `/api/filters/validate`. Bytes pipelined behind `STARTTLS` close
 the connection rather than upgrade.
 
+## Contacts (CardDAV)
+
+`src/carddav` serves `/dav/` and `/.well-known/carddav`; `src/contacts` is the
+store the webmail's autocomplete reads too. CalDAV is deliberately out of scope.
+
+**CardDAV is dispatched in `buildFetch` ahead of the Atlas router**, which knows
+no PROPFIND or REPORT and would hand an XML body to a JSON parser. It stays
+inside `fetch`, so `checkOrigin` still refuses a cross-site browser PUT (DAV
+clients send no Origin). **Basic auth only, never a cookie** — a cookie would
+make every DAV write a CSRF away.
+
+**The XML parser refuses any DOCTYPE.** No internal subset means no entity
+expansion; only the five predefined entities and numeric references decode.
+Match elements on `{ ns, name }`, never on the prefix.
+
+**The book's `sync_token` is its modseq**, advanced by the UPDATE that also takes
+the row lock serialising writes in that book; If-Match is checked *after* taking
+it, inside the same transaction. sync-collection reads the token *before* the
+changes, so a racing write is reported twice rather than never. Deletes leave a
+tombstone row; do not hard-delete a contact or sync clients never learn it went.
+
+**Cards are stored verbatim.** Clients compare what they read back to what they
+wrote; normalising a card makes every client see a conflict on its next sync.
+
 ## Route ordering
 
 `@wess/atlas/server`'s router matches in registration order and does not rank

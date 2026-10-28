@@ -112,7 +112,7 @@ export const listenManageSieve = (input: {
         onAuthSuccess: () => {
           data.authed = true
           ;(data.tlsSocket ?? socket).timeout(AUTHED_IDLE)
-          void clearAuthFailures(remoteIp).catch(() => {})
+          void clearAuthFailures(remoteIp, "managesieve").catch(() => {})
         },
         onAuthFailure: (username) => {
           void recordAuthFailure(remoteIp, "managesieve", username).catch(() => {})
@@ -130,7 +130,7 @@ export const listenManageSieve = (input: {
       socket.data = data
       socket.timeout(PRE_AUTH_IDLE)
 
-      const ready = isBanned(remoteIp)
+      const ready = isBanned(remoteIp, "managesieve")
         .then((banned) => {
           if (banned) {
             data.writer.write(`BYE "Too many failed attempts from ${remoteIp}."\r\n`)

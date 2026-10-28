@@ -57,7 +57,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </div>
 <div class="side-group">
 <p class="side-label"><span class="side-num">05</span>Reference</p>
-<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
+<ul><li><a href="./architecture.html">Architecture</a></li><li><a href="./api.html">HTTP API</a></li><li><a href="./smtp.html">SMTP</a></li><li><a href="./imap.html">IMAP</a></li><li><a href="./jmap.html">JMAP</a></li><li><a href="./pop3.html">POP3</a></li><li><a href="./contacts.html">Contacts (CardDAV)</a></li><li><a href="./cli.html">Command line</a></li><li><a href="./database.html">Database</a></li><li><a href="./smtp-errors.html">SMTP errors</a></li><li><a href="./glossary.html">Glossary</a></li></ul>
 </div></nav>
 <main class="prose"><div class="page-head"><p class="eyebrow">Install and operate</p></div><h1 id="dns-setup">DNS setup</h1>
 <p>Ten records. Five are required; the rest make things work properly. This page covers what each one does, what happens without it, and how to verify it.</p>
@@ -233,6 +233,7 @@ max_age: 604800</code></pre></figure>
 <aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Do not go straight to enforce</p><p>Going to <code>enforce</code> with a wrong MX list silently blackholes your inbound mail — senders refuse to deliver rather than falling back. Watch the reports, confirm the MX list is right, and only then change it.</p></aside>
 <h2 id="autoconfig-and-autodiscover">autoconfig and autodiscover<a class="anchor" href="#autoconfig-and-autodiscover" aria-label="Link to this section">#</a></h2>
 <p>CNAMEs that let Thunderbird and Outlook configure themselves from an email address alone. Optional, and worth publishing — the alternative is telling every user six hostnames.</p>
+<p>For contacts, a client that starts from an email address looks for a <code>_carddavs._tcp</code> SRV record on the domain (RFC 6764). Publish one only if the bare domain is not served by Corsair; the records are in <a href="contacts.html#dns-for-discovery-from-the-address-alone">Contacts (CardDAV)</a>.</p>
 <h2 id="checking-everything">Checking everything<a class="anchor" href="#checking-everything" aria-label="Link to this section">#</a></h2>
 <figure class="code"><span class="code-lang">sh</span><pre><code>dig +short MX    example.com
 dig +short TXT   example.com

@@ -5,6 +5,7 @@ import type {
   Agent,
   ApiKey,
   AppPassword,
+  Contact,
   DkimKey,
   Domain,
   DomainRecord,
@@ -361,4 +362,13 @@ export const suppressionObject = (row: Suppression) => ({
   detail: row.detail,
   email_id: row.email_id,
   created_at: row.created_at.toISOString(),
+})
+
+/** The vCard itself is CardDAV's to serve; the webmail sees the fields it edits. */
+export const contactObject = (row: Contact) => ({
+  object: "contact" as const,
+  id: row.id,
+  name: row.full_name,
+  emails: row.emails ?? [],
+  updated_at: row.updated_at.toISOString(),
 })

@@ -234,6 +234,11 @@ CNAMEs that let Thunderbird and Outlook configure themselves from an email addre
 alone. Optional, and worth publishing — the alternative is telling every user six
 hostnames.
 
+For contacts, a client that starts from an email address looks for a
+`_carddavs._tcp` SRV record on the domain (RFC 6764). Publish one only if the
+bare domain is not served by Corsair; the records are in
+[Contacts (CardDAV)](contacts.html#dns-for-discovery-from-the-address-alone).
+
 ## Checking everything
 
 ```sh
