@@ -87,6 +87,7 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <td>Normal password</td>
 </tr>
 </tbody></table></div>
+<p>Filters can be edited from Thunderbird, Roundcube, and K-9 over ManageSieve on port <strong>4190</strong> with STARTTLS; see <a href="filters.html">Filters</a>.</p>
 <p>Port <strong>587 with STARTTLS</strong> also works when the operator runs the STARTTLS terminator described in <a href="configuration.html">Configuration</a>. 465 is listed above because it works on every install and needs no upgrade to get wrong.</p>
 <aside class="callout callout-tip"><p class="callout-title"><span aria-hidden="true">★</span>Let your client configure itself.</p><p>Autoconfig and autodiscover name the ports this particular server offers, which is the one answer that is right on every install. By hand, 993, 995, and 465 always work.</p></aside>
 <aside class="callout callout-note"><p class="callout-title"><span aria-hidden="true">◆</span>Why 587 depends on the operator.</p><p>Authenticating on 587 requires the connection to become encrypted, and that upgrade cannot be performed by every runtime — Bun cannot upgrade a socket it accepted. Corsair <strong>tests this at startup</strong> rather than assuming it, and never advertises what it cannot perform: advertising and then failing loses mail outright, because a peer that has committed to the upgrade cannot fall back.</p>

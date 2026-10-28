@@ -19,6 +19,9 @@ The settings, then the clients that need help.
 | POP3 | **995** | SSL/TLS | Normal password |
 | SMTP | **465** | SSL/TLS (implicit) | Normal password |
 
+Filters can be edited from Thunderbird, Roundcube, and K-9 over ManageSieve on
+port **4190** with STARTTLS; see [Filters](filters.html).
+
 Port **587 with STARTTLS** also works when the operator runs the STARTTLS
 terminator described in [Configuration](configuration.html). 465 is listed above
 because it works on every install and needs no upgrade to get wrong.

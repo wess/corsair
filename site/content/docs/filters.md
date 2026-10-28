@@ -16,6 +16,38 @@ delivery path at all.
 
 A filter belongs to the account and can be attached to any number of mailboxes.
 
+## Editing from a mail client
+
+Corsair speaks ManageSieve (RFC 5804) on port **4190**, so Thunderbird's Sieve
+add-on, Roundcube's filters plugin, and K-9 can edit the same scripts the panel
+shows. There is no second copy: a script saved from a client is a row in the
+panel's filter list, and the other way round.
+
+| Setting | Value |
+| --- | --- |
+| Server | your mail hostname |
+| Port | **4190** |
+| Security | STARTTLS |
+| Authentication | PLAIN, with your mailbox address and password |
+
+- **Active script.** A mailbox runs one filter, the one set on the address in
+  the panel. `SETACTIVE` from a client sets the same field, and an empty name
+  turns filtering off. The active script cannot be deleted; deactivate it first.
+- **Whose scripts.** Filters belong to the account, so ManageSieve is open only
+  to a mailbox that is its owner's own account. Other mailboxes on the domain
+  and agent mailboxes sign in correctly and are then told no.
+- **TLS first.** Like IMAP and POP3, Corsair refuses the password until the
+  connection is encrypted, so a server whose runtime cannot do STARTTLS (see
+  [Client settings](client-setup.html)) cannot offer ManageSieve either.
+- **Plans.** Saving, replacing, and renaming scripts needs the custom filters
+  feature, as in the panel. Reading and `CHECKSCRIPT` work on every plan.
+- **Limits.** A script is at most 64,000 bytes and an account holds at most
+  100. Scripts are UTF-8. `MANAGESIEVE_PORT` and `MANAGESIEVE_ENABLED` change
+  the listener.
+
+Thunderbird's autoconfig format has no ManageSieve entry, so clients are not
+configured for it automatically; enter the port above.
+
 ## Supported
 
 **Control** — `if` / `elsif` / `else`, `stop`, `require` (accepted and ignored).

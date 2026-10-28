@@ -62,6 +62,31 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <main class="prose"><div class="page-head"><p class="eyebrow">Using Corsair</p></div><h1 id="filters">Filters</h1>
 <p>Filters are <a href="https://datatracker.ietf.org/doc/html/rfc5228" class="external" rel="noopener">Sieve</a> scripts. Sieve is deliberately not a general-purpose language: no loops, no recursion, no way to call out. That is the reason it is safe to run a customer's script on the delivery path at all.</p>
 <p>A filter belongs to the account and can be attached to any number of mailboxes.</p>
+<h2 id="editing-from-a-mail-client">Editing from a mail client<a class="anchor" href="#editing-from-a-mail-client" aria-label="Link to this section">#</a></h2>
+<p>Corsair speaks ManageSieve (RFC 5804) on port <strong>4190</strong>, so Thunderbird's Sieve add-on, Roundcube's filters plugin, and K-9 can edit the same scripts the panel shows. There is no second copy: a script saved from a client is a row in the panel's filter list, and the other way round.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Setting</th>
+<th>Value</th>
+</tr></thead><tbody>
+<tr>
+<td>Server</td>
+<td>your mail hostname</td>
+</tr>
+<tr>
+<td>Port</td>
+<td><strong>4190</strong></td>
+</tr>
+<tr>
+<td>Security</td>
+<td>STARTTLS</td>
+</tr>
+<tr>
+<td>Authentication</td>
+<td>PLAIN, with your mailbox address and password</td>
+</tr>
+</tbody></table></div>
+<ul><li><strong>Active script.</strong> A mailbox runs one filter, the one set on the address in the panel. <code>SETACTIVE</code> from a client sets the same field, and an empty name turns filtering off. The active script cannot be deleted; deactivate it first.</li><li><strong>Whose scripts.</strong> Filters belong to the account, so ManageSieve is open only to a mailbox that is its owner's own account. Other mailboxes on the domain and agent mailboxes sign in correctly and are then told no.</li><li><strong>TLS first.</strong> Like IMAP and POP3, Corsair refuses the password until the connection is encrypted, so a server whose runtime cannot do STARTTLS (see <a href="client-setup.html">Client settings</a>) cannot offer ManageSieve either.</li><li><strong>Plans.</strong> Saving, replacing, and renaming scripts needs the custom filters feature, as in the panel. Reading and <code>CHECKSCRIPT</code> work on every plan.</li><li><p><strong>Limits.</strong> A script is at most 64,000 bytes and an account holds at most</p><ol><li>Scripts are UTF-8. <code>MANAGESIEVE_PORT</code> and <code>MANAGESIEVE_ENABLED</code> change the listener.</li></ol></li></ul>
+<p>Thunderbird's autoconfig format has no ManageSieve entry, so clients are not configured for it automatically; enter the port above.</p>
 <h2 id="supported">Supported<a class="anchor" href="#supported" aria-label="Link to this section">#</a></h2>
 <p><strong>Control</strong> — <code>if</code> / <code>elsif</code> / <code>else</code>, <code>stop</code>, <code>require</code> (accepted and ignored).</p>
 <p><strong>Tests</strong> — <code>address</code>, <code>envelope</code>, <code>header</code>, <code>exists</code>, <code>size</code>, <code>true</code>, <code>false</code>, <code>not</code>, <code>allof</code>, <code>anyof</code>.</p>
@@ -96,7 +121,7 @@ if envelope :localpart :matches &quot;to&quot; &quot;*+receipts&quot; {
 }</code></pre></figure>
 <h2 id="notes">Notes<a class="anchor" href="#notes" aria-label="Link to this section">#</a></h2>
 <ul><li>A script that fails to compile is rejected on save.</li><li>A script that throws at delivery time is treated as absent — the message is delivered to the inbox and the error is shown against the filter. A broken filter never loses mail.</li><li><code>reject</code> refuses the message with a 550. <code>discard</code> accepts and drops it. Rejecting tells the sender their message was filtered; discarding does not.</li><li>Scripts stop after 100 actions.</li></ul><nav class="pager"><a class="pager-prev" href="./webmail.html"><span>Previous</span><strong>Webmail</strong></a><a class="pager-next" href="./transfers.html"><span>Next</span><strong>Transfers</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#supported">Supported</a></li><li class="toc-h2"><a href="#the-implicit-keep">The implicit keep</a></li><li class="toc-h2"><a href="#examples">Examples</a></li><li class="toc-h2"><a href="#notes">Notes</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#editing-from-a-mail-client">Editing from a mail client</a></li><li class="toc-h2"><a href="#supported">Supported</a></li><li class="toc-h2"><a href="#the-implicit-keep">The implicit keep</a></li><li class="toc-h2"><a href="#examples">Examples</a></li><li class="toc-h2"><a href="#notes">Notes</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

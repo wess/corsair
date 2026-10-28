@@ -178,6 +178,26 @@ client. The policy is an allow-list — unknown tags and attributes are dropped
 rather than inspected — because a deny-list has to stay complete as browsers
 change. Remote images are withheld by default; they are tracking pixels.
 
+## ManageSieve
+
+`src/managesieve` (port 4190, STARTTLS only — the protocol defines no implicit-TLS
+port) edits the `filters` table that the panel and `/api/filters` already own.
+There is no second copy, and a mailbox's *active* script is its `addresses.filter_id`.
+
+**Only a mailbox that is its owner's own account may use it** (`addresses.user_id`
+set). Filters belong to the account, so letting a family member's or an agent's
+mailbox in would hand it the owner's scripts. Authentication still goes through
+`authenticateAddress`, so the ban and argon2 gating apply; the refusal comes
+*after* a correct password and is not recorded as a failure.
+
+**Limits match the API on purpose**: 64,000 bytes a script (`POST /api/filters`
+caps the same), 8 KB for anything before login, enforced from the literal header
+so an oversized one is never buffered. A larger cap here would store scripts the
+panel then refuses to save again. `PUTSCRIPT` and `RENAMESCRIPT` call
+`requireFeature("custom_filters")` like the routes do; `CHECKSCRIPT` stays open on
+every plan like `/api/filters/validate`. Bytes pipelined behind `STARTTLS` close
+the connection rather than upgrade.
+
 ## Route ordering
 
 `@wess/atlas/server`'s router matches in registration order and does not rank
