@@ -175,17 +175,23 @@ export const sendAddressRecovery = async (input: {
   })
 }
 
-export const sendQuotaWarning = async (user: User, used: string, limit: string): Promise<void> => {
+export const sendQuotaWarning = async (
+  user: User,
+  used: string,
+  limit: string,
+  full = false,
+): Promise<void> => {
   if (user.notification_prefs?.quota === false) return
   await sendNotification({
     to: noticeAddress(user),
     kind: "quota_warning",
-    subject: "Your account is nearly out of storage",
+    subject: full ? "Your account is out of storage" : "Your account is nearly out of storage",
     body: [
       `This account has used ${used} of its ${limit} of storage.`,
       "",
-      "Once it is full, incoming mail is deferred rather than delivered — senders",
-      "will keep retrying for a few days, so freeing space recovers it.",
+      full
+        ? "Incoming mail is being deferred rather than delivered. Senders keep retrying for a few days, so freeing space or upgrading now recovers it."
+        : "Once it is full, incoming mail is deferred rather than delivered — senders will keep retrying for a few days, so freeing space recovers it.",
       "",
       `${config.publicUrl}/app/plans`,
     ].join("\n"),

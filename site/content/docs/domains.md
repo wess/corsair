@@ -154,6 +154,52 @@ Making it more helpful turns it into a way to enumerate your mailboxes.
 
 A plan feature (`self_service`).
 
+## Delegating administration
+
+Two kinds of administrator, appointed by different people on purpose.
+
+- A **system administrator** acts on every domain on the server. Only the
+  instance owner appoints one.
+- A **domain administrator** manages one domain's mailboxes. The domain's owner
+  appoints them. They cannot see billing, touch DNS, delete the domain, send as
+  it, or appoint anyone else.
+
+A domain administrator is either a panel account or, more usually, a mailbox on
+that domain. Granting by email address prefers the mailbox: the person who runs a
+client's mail then manages users from inside the [webmail](webmail.html#managing-users)
+and never needs the panel. A forwarding address (alias or group) cannot be
+granted, since it has nothing to sign into. An address that is not a mailbox here
+must belong to an existing, active panel account.
+
+All of these are panel-session routes. Naming an email address with no account
+on the server is a 404, and a suspended or terminated account is a 400, each with
+a plain explanation.
+
+| Method | Path | Who | Does |
+| --- | --- | --- | --- |
+| POST | `/api/users` | Instance owner | Create a panel account for a delegate |
+| GET | `/api/admins` | Instance owner | System administrators, the owner first |
+| POST | `/api/admins` | Instance owner | Make an account a system administrator |
+| DELETE | `/api/admins/:user_id` | Instance owner | Revoke it. The owner cannot be demoted |
+| GET | `/api/domains/:domain_id/admins` | Domain owner | Accounts and mailboxes administering the domain |
+| POST | `/api/domains/:domain_id/admins` | Domain owner | Grant by email address |
+| DELETE | `/api/domains/:domain_id/admins/:user_id` | Domain owner | Revoke; the id may be an account's or a mailbox's |
+
+`POST /api/users` takes `email`, `password` (8 to 200 characters) and an optional
+`name`, and answers 201 with the new account. It exists because `SIGNUPS=closed`
+leaves a private server with no other way to make an account to appoint. The
+account is created verified, is not an owner, and is a separate credential from
+any mailbox of the same name. A duplicate email is a 409.
+
+`POST /api/admins` and `POST /api/domains/:domain_id/admins` take `email` and
+answer 201. Granting twice is the same state, not an error. The domain owner
+and a system administrator are refused with 409 because they already hold the
+rights. Every grant and revoke emits `admin.granted` or `admin.revoked`.
+
+Each entry in a list has `subject` (`account` or `mailbox`), `user_id` or
+`address_id` (whichever applies, the other null), `email`, `name` and
+`granted_at`.
+
 ## Removing a domain
 
 Deleting a domain deletes its addresses, and deleting an address deletes its

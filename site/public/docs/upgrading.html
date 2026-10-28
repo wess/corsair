@@ -85,6 +85,72 @@ sudo -u corsair bun scripts/migrate.ts up</code></pre></figure>
 <figure class="code"><span class="code-lang">sh</span><pre><code>systemctl status corsair
 sudo ss -lntp | grep bun            # every listener came back
 curl -sf localhost:3000/api/plans   # the API answers</code></pre></figure>
+<h2 id="upgrading-to-0-4">Upgrading to 0.4<a class="anchor" href="#upgrading-to-0-4" aria-label="Link to this section">#</a></h2>
+<p>Nothing here needs action to keep running, but read the first two items.</p>
+<ul><li><strong>Six migrations</strong> (<code>20261028000015_qresync</code>, <code>…017_dmarcreports</code>, <code>…019_apppasswords</code>, <code>…021_dkimrotate</code>, <code>…023_spam</code>, <code>…024_contacts</code>). All are additive and each has a <code>down.sql</code>. Run them before restarting, as always. After 0.4.1, <code>…025_storagestate</code> adds <code>users.storage_state</code>, which is how the storage warnings know they have already been sent.</li><li><strong>Corsair can hold ports 25 and 587 itself.</strong> On a runtime that passes the STARTTLS probe (Bun 1.4.4 or later) it upgrades connections without the Rust terminator in <code>engine/</code>, which is now an optional fallback. Keeping the terminator works unchanged. To drop it, set <code>SMTP_MX_PORT=25</code>, <code>SMTP_SUBMISSION_PORT=587</code>, <code>SMTP_BIND=0.0.0.0</code>, an empty <code>SMTP_TRUSTED_PROXIES</code> and <code>SMTP_STARTTLS_FRONTED=false</code>, stop and disable the front, and restart. Empty <code>SMTP_TRUSTED_PROXIES</code> matters: only list a proxy you run. See <a href="configuration.html#listeners">Listeners</a> and <a href="configuration.html#starttls-on-25-and-587">STARTTLS on 25 and 587</a>.</li><li><strong>0.4.1 closes connections that pipeline commands behind <code>STARTTLS</code></strong> on SMTP, IMAP, POP3 and ManageSieve, and caps the SMTP listener at 512 connections. A client that sends the next command before the upgrade finishes was never valid, but it will now be disconnected rather than served.</li></ul>
+<p>New features. These need no configuration to keep your install behaving as it did, but some are on by default:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Feature</th>
+<th>Default</th>
+<th>Where</th>
+</tr></thead><tbody>
+<tr>
+<td>ManageSieve on port 4190</td>
+<td>On (<code>MANAGESIEVE_ENABLED</code>). Open the port if you want it</td>
+<td><a href="filters.html#editing-from-a-mail-client">Filters</a></td>
+</tr>
+<tr>
+<td>IP and domain blocklists</td>
+<td>Score only. <code>SPAM_DNSBL=zen.spamhaus.org</code>, <code>SPAM_URIBL=dbl.spamhaus.org</code>. Set <code>SPAM_RESOLVER</code> to a local resolver</td>
+<td><a href="spam.html#blocklists">Spam filtering</a></td>
+</tr>
+<tr>
+<td>Greylisting</td>
+<td>Off (<code>SPAM_GREYLIST=false</code>)</td>
+<td><a href="spam.html#greylisting">Greylisting</a></td>
+</tr>
+<tr>
+<td>DMARC and TLS-RPT reports</td>
+<td>On. Sent daily from <code>REPORTS_FROM</code>; <code>DMARC_REPORTS_SEND=false</code> and <code>TLSRPT_SEND=false</code> turn them off</td>
+<td><a href="deliverability.html#reports-corsair-sends">Reports Corsair sends</a></td>
+</tr>
+<tr>
+<td>DANE for outbound delivery</td>
+<td><code>DANE=auto</code>: on only if the resolver is seen to validate DNSSEC. Set <code>DANE_RESOLVER</code></td>
+<td><a href="deliverability.html#dane">DANE</a></td>
+</tr>
+<tr>
+<td>Built-in ACME</td>
+<td>Off (<code>ACME=on</code>)</td>
+<td><a href="configuration.html#built-in-acme">Built-in ACME</a></td>
+</tr>
+<tr>
+<td>DKIM rotation</td>
+<td>Off (<code>DKIM_ROTATE_DAYS=0</code>)</td>
+<td><a href="configuration.html#dkim-rotation">DKIM rotation</a></td>
+</tr>
+<tr>
+<td>Metrics at <code>/metrics</code></td>
+<td>Off until <code>METRICS_TOKEN</code> is set</td>
+<td><a href="monitoring.html#prometheus-metrics">Prometheus metrics</a></td>
+</tr>
+<tr>
+<td>ARC</td>
+<td>Chains are checked and forwarded mail is sealed. <code>ARC_TRUSTED_SEALERS</code> is empty, so no DMARC override</td>
+<td><a href="configuration.html#forwarded-mail-arc">Forwarded mail</a></td>
+</tr>
+<tr>
+<td>App passwords</td>
+<td>Per mailbox, none until created</td>
+<td><a href="client-setup.html#app-passwords">App passwords</a></td>
+</tr>
+<tr>
+<td>CardDAV at <code>/dav/</code></td>
+<td>On, with the panel's HTTPS listener</td>
+<td><a href="contacts.html">Contacts</a></td>
+</tr>
+</tbody></table></div>
+<p>If you run the Rust front, no change is required. If a firewall rule allows only the ports you used to serve, add 4190 when you want ManageSieve.</p>
 <h2 id="upgrading-to-0-3">Upgrading to 0.3<a class="anchor" href="#upgrading-to-0-3" aria-label="Link to this section">#</a></h2>
 <p>Four things in 0.3 can surprise an existing install:</p>
 <aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Corsair will not start with a default <code>JWT_SECRET</code></p><p>It refuses the shipped default, any value copied from the repository, and anything shorter than 32 characters, and says so in the log. Set a real one first (<code>openssl rand -base64 48</code>). Changing it signs everyone out, and invalidates the SRS signatures on bounces for mail forwarded in the last few days, which is harmless but noisy.</p></aside>
@@ -134,7 +200,7 @@ sudo systemctl restart corsair</code></pre></figure>
 <h2 id="after-any-upgrade">After any upgrade<a class="anchor" href="#after-any-upgrade" aria-label="Link to this section">#</a></h2>
 <ul><li class="task"><span class="box" aria-hidden="true"></span>Send a message out, check for <code>dkim=pass</code></li><li class="task"><span class="box" aria-hidden="true"></span>Receive one from outside</li><li class="task"><span class="box" aria-hidden="true"></span>Connect a client over IMAP</li><li class="task"><span class="box" aria-hidden="true"></span><code>bun scripts/migrate.ts diff</code> reports in sync</li><li class="task"><span class="box" aria-hidden="true"></span>The queue is draining</li><li class="task"><span class="box" aria-hidden="true"></span>Nothing new in <code>journalctl -u corsair --since &quot;10 minutes ago&quot; | grep -i error</code></li></ul>
 <p>Then delete the pre-upgrade dump — or keep it for a week, which is cheaper than regretting it.</p><nav class="pager"><a class="pager-prev" href="./monitoring.html"><span>Previous</span><strong>Monitoring</strong></a><a class="pager-next" href="./scaling.html"><span>Next</span><strong>Scaling and performance</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#before-you-start">Before you start</a></li><li class="toc-h2"><a href="#the-upgrade">The upgrade</a></li><li class="toc-h2"><a href="#upgrading-to-0-3">Upgrading to 0.3</a></li><li class="toc-h2"><a href="#why-migrations-do-not-run-at-startup">Why migrations do not run at startup</a></li><li class="toc-h2"><a href="#with-docker-compose">With Docker Compose</a></li><li class="toc-h2"><a href="#zero-downtime-roughly">Zero-downtime, roughly</a></li><li class="toc-h2"><a href="#rolling-back">Rolling back</a></li><li class="toc-h2"><a href="#upgrading-postgresql">Upgrading PostgreSQL</a></li><li class="toc-h2"><a href="#upgrading-bun">Upgrading Bun</a></li><li class="toc-h2"><a href="#after-any-upgrade">After any upgrade</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#before-you-start">Before you start</a></li><li class="toc-h2"><a href="#the-upgrade">The upgrade</a></li><li class="toc-h2"><a href="#upgrading-to-0-4">Upgrading to 0.4</a></li><li class="toc-h2"><a href="#upgrading-to-0-3">Upgrading to 0.3</a></li><li class="toc-h2"><a href="#why-migrations-do-not-run-at-startup">Why migrations do not run at startup</a></li><li class="toc-h2"><a href="#with-docker-compose">With Docker Compose</a></li><li class="toc-h2"><a href="#zero-downtime-roughly">Zero-downtime, roughly</a></li><li class="toc-h2"><a href="#rolling-back">Rolling back</a></li><li class="toc-h2"><a href="#upgrading-postgresql">Upgrading PostgreSQL</a></li><li class="toc-h2"><a href="#upgrading-bun">Upgrading Bun</a></li><li class="toc-h2"><a href="#after-any-upgrade">After any upgrade</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

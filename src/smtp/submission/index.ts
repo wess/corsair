@@ -8,10 +8,11 @@ import { db } from "../../db/index.ts"
 import { sign } from "../../dkim/index.ts"
 import { activeDkimKey } from "../../domains/index.ts"
 import { queueId, rfcMessageId } from "../../ids/index.ts"
+import { recordSent } from "../../mailsend/index.ts"
 import * as mime from "../../mime/index.ts"
 import { enqueue } from "../../outbound/index.ts"
 import { withinDailyLimit } from "../../plans/index.ts"
-import { type Address, addresses, type Domain, domains, mailLog } from "../../schema/index.ts"
+import { type Address, addresses, type Domain, domains } from "../../schema/index.ts"
 import { deliver } from "../../store/index.ts"
 import type { Envelope, Identity, Reply } from "../session/index.ts"
 
@@ -257,27 +258,17 @@ export const handleMessage = async (
   }
 
   const parsed = mime.parseMessage(signed)
-  const owner = await ownerOfDomain(identity.domain.id)
-  for (const recipient of envelope.rcptTo) {
-    await db()
-      .execute(
-        from(mailLog).insert({
-          user_id: owner,
-          domain_id: identity.domain.id,
-          address_id: identity.address.id,
-          direction: "outbound",
-          status: "accepted",
-          mail_from: envelope.mailFrom,
-          rcpt_to: recipient,
-          subject: mime.decodeWords(mime.headerValue(parsed.headers, "subject") ?? ""),
-          message_id: mime.headerValue(parsed.headers, "message-id"),
-          size: signed.length,
-          dkim: key ? "signed" : "unsigned",
-          code: 250,
-        }),
-      )
-      .catch((e: unknown) => console.error("[corsair] mail_log insert failed:", e))
-  }
+  await recordSent({
+    owner: await ownerOfDomain(identity.domain.id),
+    domainId: identity.domain.id,
+    addressId: identity.address.id,
+    mailFrom: envelope.mailFrom,
+    recipients: envelope.rcptTo,
+    subject: mime.decodeWords(mime.headerValue(parsed.headers, "subject") ?? ""),
+    messageId: mime.headerValue(parsed.headers, "message-id"),
+    size: signed.length,
+    signed: Boolean(key),
+  })
 
   return { code: 250, enhanced: "2.0.0", message: "Message queued for delivery." }
 }

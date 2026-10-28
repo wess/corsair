@@ -31,6 +31,7 @@ import {
 import { applyReport, bounceTarget } from "../../sending/index.ts"
 import * as sieve from "../../sieve/index.ts"
 import { checkSpf, type DmarcPolicy, lookupDmarc, spfAligned } from "../../spf/index.ts"
+import { updateStorageState } from "../../storagestate/index.ts"
 import { deliver } from "../../store/index.ts"
 import { sendBounce } from "../bounce/index.ts"
 import { checkDomains, checkIp, extractDomains, rejectable } from "../dnsbl/index.ts"
@@ -428,6 +429,7 @@ const deliverToMailbox = async (
     try {
       await assertStorageAvailable(userId, stamped.length)
     } catch {
+      void updateStorageState(userId, stamped.length)
       return {
         code: 452,
         status: "rejected",

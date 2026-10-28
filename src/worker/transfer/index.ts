@@ -267,7 +267,14 @@ const localFolderFor = async (addressId: string, remoteName: string): Promise<Fo
 
 const BATCH = 1
 
-export const runTransfer = async (transfer: Transfer): Promise<void> => {
+export type TransferResult = { messages: number; bytes: number }
+
+/**
+ * Runs a queued transfer to completion. Answers what it copied when it finished,
+ * and null when there was nothing for it to do — already started elsewhere, or
+ * cancelled part-way — so the caller announces only a real completion.
+ */
+export const runTransfer = async (transfer: Transfer): Promise<TransferResult | null> => {
   const address = await db().one<Address>(
     from(addresses).where((q) => q("id").equals(transfer.address_id)),
   )
@@ -287,7 +294,7 @@ export const runTransfer = async (transfer: Transfer): Promise<void> => {
     text: "UPDATE transfers SET status = 'running', started_at = now(), last_error = NULL, updated_at = now() WHERE id = $1 AND status = 'queued' RETURNING id",
     values: [transfer.id],
   })
-  if (!begun) return
+  if (!begun) return null
 
   const client = await connectSource({
     host: transfer.server,
@@ -315,7 +322,7 @@ export const runTransfer = async (transfer: Transfer): Promise<void> => {
       return !row || row.status === "cancelled"
     }
     copy: for (const remote of remoteFolders) {
-      if (await cancelled()) return
+      if (await cancelled()) return null
       const selected = await client.send(`EXAMINE ${quote(remote)}`)
       const exists = Number(selected.match(/\* (\d+) EXISTS/)?.[1] ?? "0")
       if (!exists) {
@@ -363,11 +370,11 @@ export const runTransfer = async (transfer: Transfer): Promise<void> => {
 
       for (let i = 0; i < uids.length; i += BATCH) {
         if (transfer.message_limit && copied >= transfer.message_limit) break copy
-        if (await cancelled()) return
+        if (await cancelled()) return null
         const batch = uids.slice(i, i + BATCH)
         const response = await client.send(`UID FETCH ${batch.join(",")} (BODY.PEEK[])`)
 
-        if (await cancelled()) return
+        if (await cancelled()) return null
         for (const raw of parseFetchedMessages(response)) {
           if (transfer.message_limit && copied >= transfer.message_limit) break copy
           if (transfer.size_limit && BigInt(bytes + raw.length) > transfer.size_limit) break copy
@@ -394,6 +401,7 @@ export const runTransfer = async (transfer: Transfer): Promise<void> => {
       // The source credential has done its job and is somebody else's secret.
       password_enc: null,
     })
+    return { messages: copied, bytes }
   } finally {
     client.close()
   }

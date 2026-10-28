@@ -53,6 +53,9 @@ export const users = defineSchema("users", {
   provider_customer_ref: column.text().nullable(),
   email_verified_at: column.timestamp().nullable(),
   terminated_at: column.timestamp().nullable(),
+  // ok | warning | exceeded: what the owner was last told about storage. See
+  // src/storagestate.
+  storage_state: column.text().default("ok"),
   created_at: now(),
   updated_at: now(),
 })

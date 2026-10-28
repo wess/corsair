@@ -284,6 +284,44 @@ ratelimit-reset: 1</code></pre></figure>
 <td>Referral data</td>
 </tr>
 </tbody></table></div>
+<h3 id="administration">Administration<a class="anchor" href="#administration" aria-label="Link to this section">#</a></h3>
+<p>Instance owner only, with a panel session. See <a href="domains.html#delegating-administration">Delegating administration</a> and <a href="monitoring.html#from-the-panel">Logs</a>.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/users</code></td>
+<td>Create a panel account for a delegate</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/admins</code></td>
+<td>System administrators, the owner first</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/admins</code></td>
+<td>Make an account a system administrator</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/admins/:user_id</code></td>
+<td>Revoke it. The owner cannot be demoted</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/logs/sources</code></td>
+<td>Journal units that can be read, and the <code>since</code> windows</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/logs</code></td>
+<td>Read one unit's journal. <code>unit</code>, <code>lines</code>, <code>since</code>, <code>q</code>, <code>priority</code></td>
+</tr>
+</tbody></table></div>
 <h3 id="domains">Domains<a class="anchor" href="#domains" aria-label="Link to this section">#</a></h3>
 <div class='table-wrap'><table><thead><tr>
 <th>Method</th>
@@ -365,6 +403,31 @@ ratelimit-reset: 1</code></pre></figure>
 <td><code>/api/domains/:domain_id/addresses</code></td>
 <td>Create an address</td>
 </tr>
+<tr>
+<td>GET</td>
+<td><code>/api/domains/:domain_id/reports/dmarc</code></td>
+<td>Received DMARC reports, totalled. <code>days</code> 1 to 180. See <a href="deliverability.html#dmarc-reports">Deliverability</a></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/domains/:domain_id/reports/tls</code></td>
+<td>Received TLS reports, totalled. Same <code>days</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/domains/:domain_id/admins</code></td>
+<td>Who administers the domain. Owner only</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/domains/:domain_id/admins</code></td>
+<td>Grant by <code>email</code>, a mailbox or an account. Owner only</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/domains/:domain_id/admins/:user_id</code></td>
+<td>Revoke. Owner only</td>
+</tr>
 </tbody></table></div>
 <p>The API token posted to <code>dns/publish</code> is used for that one call and never stored.</p>
 <h3 id="addresses">Addresses<a class="anchor" href="#addresses" aria-label="Link to this section">#</a></h3>
@@ -397,6 +460,11 @@ ratelimit-reset: 1</code></pre></figure>
 <td>POST</td>
 <td><code>/api/addresses/:address_id/recovery</code></td>
 <td>Set the recovery address</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/addresses/:address_id/link</code></td>
+<td>Share the account password, or separate with <code>password</code>. See <a href="addresses.html#linking-and-separating">Addresses</a></td>
 </tr>
 <tr>
 <td>GET</td>
@@ -810,6 +878,11 @@ ratelimit-reset: 1</code></pre></figure>
 </tr>
 <tr>
 <td>GET</td>
+<td><code>/api/notices</code></td>
+<td>What needs attention on this account. See <a href="control-panel.html#notices">Control panel</a></td>
+</tr>
+<tr>
+<td>GET</td>
 <td><code>/api/client-config</code></td>
 <td>Hostnames and ports for mail clients</td>
 </tr>
@@ -896,7 +969,88 @@ ratelimit-reset: 1</code></pre></figure>
 <td><code>/api/mail/drafts</code></td>
 <td>Save a draft</td>
 </tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/password</code></td>
+<td>Change this mailbox's password</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/recovery</code></td>
+<td>Set or clear the recovery address</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/notices</code></td>
+<td>What this mailbox should be told about</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/app-passwords</code></td>
+<td>App passwords, without secrets</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/app-passwords</code></td>
+<td>Create one; needs <code>current_password</code>, <code>password</code> is returned once</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/mail/app-passwords/:app_password_id</code></td>
+<td>Revoke one</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/contacts</code></td>
+<td>Search the address book. See <a href="contacts.html#webmail-api">Contacts</a></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/contacts</code></td>
+<td>Create a contact</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/mail/contacts/:contact_id</code></td>
+<td>Replace a contact's name and addresses</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/mail/contacts/:contact_id</code></td>
+<td>Delete a contact</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/admin/domains</code></td>
+<td>Domains this mailbox administers</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/admin/domains/:domain_id/users</code></td>
+<td>Addresses on one</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/admin/domains/:domain_id/users</code></td>
+<td>Create one</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/mail/admin/users/:address_id</code></td>
+<td>Set <code>name</code> or <code>disabled</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/admin/users/:address_id/password</code></td>
+<td>Set its password</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/mail/admin/users/:address_id</code></td>
+<td>Delete it</td>
+</tr>
 </tbody></table></div>
+<p>The last six are for a mailbox that is a <a href="domains.html#delegating-administration">domain administrator</a>; see <a href="webmail.html#managing-users">Webmail</a>.</p>
 <p>Message bodies are sanitised server-side before this endpoint returns them.</p>
 <h3 id="payment-provider-webhook">Payment provider webhook<a class="anchor" href="#payment-provider-webhook" aria-label="Link to this section">#</a></h3>
 <div class='table-wrap'><table><thead><tr>
@@ -966,7 +1120,7 @@ ratelimit-reset: 1</code></pre></figure>
 <h2 id="serialisation">Serialisation<a class="anchor" href="#serialisation" aria-label="Link to this section">#</a></h2>
 <p>Every response shape comes from <code>src/serialize</code>. Keeping it in one place is what stops a secret gaining a field: a password hash, a DKIM private key, or a stored provider reference has to be added deliberately to be exposed, rather than appearing because someone returned a row.</p>
 <p>Objects carry an <code>object</code> discriminator (<code>&quot;domain&quot;</code>, <code>&quot;address&quot;</code>, <code>&quot;webhook&quot;</code>, <code>&quot;list&quot;</code>) so a client can tell them apart without inspecting shape.</p><nav class="pager"><a class="pager-prev" href="./architecture.html"><span>Previous</span><strong>Architecture</strong></a><a class="pager-next" href="./smtp.html"><span>Next</span><strong>SMTP</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#authentication">Authentication</a></li><li class="toc-h2"><a href="#errors">Errors</a></li><li class="toc-h2"><a href="#rate-limits">Rate limits</a></li><li class="toc-h2"><a href="#pagination">Pagination</a></li><li class="toc-h2"><a href="#endpoints">Endpoints</a></li><li class="toc-h3"><a href="#authentication-2">Authentication</a></li><li class="toc-h3"><a href="#account">Account</a></li><li class="toc-h3"><a href="#domains">Domains</a></li><li class="toc-h3"><a href="#addresses">Addresses</a></li><li class="toc-h3"><a href="#filters">Filters</a></li><li class="toc-h3"><a href="#transfers">Transfers</a></li><li class="toc-h3"><a href="#webhooks">Webhooks</a></li><li class="toc-h3"><a href="#sending-api">Sending API</a></li><li class="toc-h3"><a href="#agent-email">Agent email</a></li><li class="toc-h3"><a href="#billing">Billing</a></li><li class="toc-h3"><a href="#recovery">Recovery</a></li><li class="toc-h3"><a href="#dashboard">Dashboard</a></li><li class="toc-h3"><a href="#webmail">Webmail</a></li><li class="toc-h3"><a href="#payment-provider-webhook">Payment provider webhook</a></li><li class="toc-h2"><a href="#outside-api">Outside /api</a></li><li class="toc-h2"><a href="#route-ordering">Route ordering</a></li><li class="toc-h2"><a href="#serialisation">Serialisation</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#authentication">Authentication</a></li><li class="toc-h2"><a href="#errors">Errors</a></li><li class="toc-h2"><a href="#rate-limits">Rate limits</a></li><li class="toc-h2"><a href="#pagination">Pagination</a></li><li class="toc-h2"><a href="#endpoints">Endpoints</a></li><li class="toc-h3"><a href="#authentication-2">Authentication</a></li><li class="toc-h3"><a href="#account">Account</a></li><li class="toc-h3"><a href="#administration">Administration</a></li><li class="toc-h3"><a href="#domains">Domains</a></li><li class="toc-h3"><a href="#addresses">Addresses</a></li><li class="toc-h3"><a href="#filters">Filters</a></li><li class="toc-h3"><a href="#transfers">Transfers</a></li><li class="toc-h3"><a href="#webhooks">Webhooks</a></li><li class="toc-h3"><a href="#sending-api">Sending API</a></li><li class="toc-h3"><a href="#agent-email">Agent email</a></li><li class="toc-h3"><a href="#billing">Billing</a></li><li class="toc-h3"><a href="#recovery">Recovery</a></li><li class="toc-h3"><a href="#dashboard">Dashboard</a></li><li class="toc-h3"><a href="#webmail">Webmail</a></li><li class="toc-h3"><a href="#payment-provider-webhook">Payment provider webhook</a></li><li class="toc-h2"><a href="#outside-api">Outside /api</a></li><li class="toc-h2"><a href="#route-ordering">Route ordering</a></li><li class="toc-h2"><a href="#serialisation">Serialisation</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

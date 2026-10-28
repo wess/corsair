@@ -202,6 +202,25 @@ docker compose logs -f corsair        # if containerised</code></pre></figure>
 <td>Inbound refusals — no such user, over quota, filtered</td>
 </tr>
 </tbody></table></div>
+<h3 id="from-the-panel">From the panel<a class="anchor" href="#from-the-panel" aria-label="Link to this section">#</a></h3>
+<p>The instance owner can read the journal over the API without a shell. Both routes need the owner's panel session.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/logs/sources</code></td>
+<td>The units that can be read (<code>key</code>, <code>label</code>, <code>unit</code>) and the accepted <code>since</code> windows</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/logs</code></td>
+<td>One read of one unit's journal</td>
+</tr>
+</tbody></table></div>
+<p><code>/api/logs</code> takes <code>unit</code> (a <code>key</code> from the sources list, default <code>corsair</code>; an unknown one is a 400), <code>lines</code> (default 300, at most 2000), <code>since</code> (<code>15m</code>, <code>1h</code>, <code>6h</code>, <code>24h</code>, <code>7d</code> or <code>all</code>; default <code>1h</code>), <code>q</code> (a literal, case-insensitive search of at most 200 characters) and <code>priority</code> (0 to 7, entries at that syslog severity and worse). The answer is a list of entries (<code>id</code>, <code>at</code>, <code>unit</code>, <code>priority</code>, <code>message</code>) plus <code>truncated</code> and <code>available</code>. If the service account cannot read the journal, <code>available</code> is false and <code>reason</code> says to add it to the <code>systemd-journal</code> group. Output is redacted for connection strings and similar before it leaves the server.</p>
 <aside class="callout callout-warning"><p class="callout-title"><span aria-hidden="true">▲</span>Mail logs contain addresses</p><p>Sender and recipient addresses are personal data. Decide your retention period deliberately and configure <code>journald</code> or your log shipper to honour it.</p></aside>
 <h2 id="the-worker">The worker<a class="anchor" href="#the-worker" aria-label="Link to this section">#</a></h2>
 <p>Four periodic jobs, guarded by a Postgres advisory lock so several workers do not all start the same sweep:</p>
@@ -367,7 +386,7 @@ METRICS_TOKEN=$(openssl rand -hex 32)</code></pre></figure>
 <p>If you do only four things:</p>
 <ol><li>Alert when the process is down.</li><li>Alert when the oldest queued message is over an hour old.</li><li>Alert when the certificate has under fourteen days.</li><li>Alert when the backup heartbeat goes quiet.</li></ol>
 <p>Those four cover the failures that lose mail. Everything else on this page is refinement.</p><nav class="pager"><a class="pager-prev" href="./backups.html"><span>Previous</span><strong>Backups and restore</strong></a><a class="pager-next" href="./upgrading.html"><span>Next</span><strong>Upgrading</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#alert-on-these">Alert on these</a></li><li class="toc-h2"><a href="#is-it-running">Is it running</a></li><li class="toc-h2"><a href="#the-delivery-queue">The delivery queue</a></li><li class="toc-h2"><a href="#inbound-flow">Inbound flow</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#certificate-expiry">Certificate expiry</a></li><li class="toc-h2"><a href="#webhook-health">Webhook health</a></li><li class="toc-h2"><a href="#bounce-rate">Bounce rate</a></li><li class="toc-h2"><a href="#logs">Logs</a></li><li class="toc-h2"><a href="#the-worker">The worker</a></li><li class="toc-h2"><a href="#prometheus-metrics">Prometheus metrics</a></li><li class="toc-h2"><a href="#external-checks">External checks</a></li><li class="toc-h2"><a href="#a-minimal-setup">A minimal setup</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#alert-on-these">Alert on these</a></li><li class="toc-h2"><a href="#is-it-running">Is it running</a></li><li class="toc-h2"><a href="#the-delivery-queue">The delivery queue</a></li><li class="toc-h2"><a href="#inbound-flow">Inbound flow</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#certificate-expiry">Certificate expiry</a></li><li class="toc-h2"><a href="#webhook-health">Webhook health</a></li><li class="toc-h2"><a href="#bounce-rate">Bounce rate</a></li><li class="toc-h2"><a href="#logs">Logs</a></li><li class="toc-h3"><a href="#from-the-panel">From the panel</a></li><li class="toc-h2"><a href="#the-worker">The worker</a></li><li class="toc-h2"><a href="#prometheus-metrics">Prometheus metrics</a></li><li class="toc-h2"><a href="#external-checks">External checks</a></li><li class="toc-h2"><a href="#a-minimal-setup">A minimal setup</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

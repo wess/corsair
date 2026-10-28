@@ -109,6 +109,21 @@ reporting organisation. An IP you do not recognise with a high failure count is
 either a sender you forgot or somebody forging you; the reporter column says who
 saw it. See [DNS setup](dns-setup.html#dmarc) for what is and is not accepted.
 
+The same totals are available over the API. Both routes take a panel session and
+are open to a domain administrator as well as the owner, since they only read.
+`days` is 1 to 180 and defaults to 30.
+
+| Method | Path | Does |
+| --- | --- | --- |
+| GET | `/api/domains/:domain_id/reports/dmarc` | Totals, per sending IP, per reporter, and the individual reports |
+| GET | `/api/domains/:domain_id/reports/tls` | Totals, per reporter, per result type, and the individual reports |
+
+The DMARC summary (`object: "dmarc_summary"`) has `days`, `totals`
+(`reports`, `messages`, `passed`, `failed`), `by_source` (`source_ip`, the same
+counts, and `reporters`), `by_reporter` (`org_name` and counts) and `reports`.
+The TLS summary (`object: "tls_summary"`) has `totals` (`reports`, `succeeded`,
+`failed`), `by_reporter`, `by_result` (`result_type`, `sessions`) and `reports`.
+
 Move to `p=reject` only once those reports are clean. Going straight there means
 silently killing a legitimate sender you did not know you had.
 

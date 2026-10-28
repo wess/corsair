@@ -146,6 +146,24 @@ ORDER BY updated_at DESC LIMIT 20;</code></pre></figure>
 <figure class="code"><pre><code>v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@example.com;</code></pre></figure>
 <p>The aggregate reports tell you which senders are failing alignment — which is how you discover the marketing platform, the ticketing system, or the CI server that also sends as your domain and that you had forgotten about.</p>
 <p>Reports sent to <code>dmarc-reports@</code> (and TLS reports sent to <code>tlsrpt@</code>) are read and filed under the domain — no mailbox needed. <strong>Reports</strong> in the control panel shows the last 7 to 180 days: messages, pass rate, a table by sending IP, and a table by reporting organisation. An IP you do not recognise with a high failure count is either a sender you forgot or somebody forging you; the reporter column says who saw it. See <a href="dns-setup.html#dmarc">DNS setup</a> for what is and is not accepted.</p>
+<p>The same totals are available over the API. Both routes take a panel session and are open to a domain administrator as well as the owner, since they only read. <code>days</code> is 1 to 180 and defaults to 30.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/domains/:domain_id/reports/dmarc</code></td>
+<td>Totals, per sending IP, per reporter, and the individual reports</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/domains/:domain_id/reports/tls</code></td>
+<td>Totals, per reporter, per result type, and the individual reports</td>
+</tr>
+</tbody></table></div>
+<p>The DMARC summary (<code>object: &quot;dmarc_summary&quot;</code>) has <code>days</code>, <code>totals</code> (<code>reports</code>, <code>messages</code>, <code>passed</code>, <code>failed</code>), <code>by_source</code> (<code>source_ip</code>, the same counts, and <code>reporters</code>), <code>by_reporter</code> (<code>org_name</code> and counts) and <code>reports</code>. The TLS summary (<code>object: &quot;tls_summary&quot;</code>) has <code>totals</code> (<code>reports</code>, <code>succeeded</code>, <code>failed</code>), <code>by_reporter</code>, <code>by_result</code> (<code>result_type</code>, <code>sessions</code>) and <code>reports</code>.</p>
 <p>Move to <code>p=reject</code> only once those reports are clean. Going straight there means silently killing a legitimate sender you did not know you had.</p>
 <h3 id="reports-corsair-sends">Reports Corsair sends<a class="anchor" href="#reports-corsair-sends" aria-label="Link to this section">#</a></h3>
 <p>Corsair is also a receiver, and reports what it sees to everyone else:</p>

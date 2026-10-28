@@ -93,6 +93,85 @@ https:// {
 <h2 id="what-it-does">What it does<a class="anchor" href="#what-it-does" aria-label="Link to this section">#</a></h2>
 <ul><li>Read, reply, reply-all, forward</li><li>Compose with attachments</li><li>Move, delete, mark read or unread, flag</li><li>Create and delete folders</li><li>Search</li><li>Drafts, saved server-side so they follow you between devices</li></ul>
 <p>Sending goes through the same submission path as any client: the From address is proven to belong to the caller, the message is DKIM-signed with the domain's key, a copy is filed in Sent, and delivery is queued.</p>
+<h2 id="managing-users">Managing users<a class="anchor" href="#managing-users" aria-label="Link to this section">#</a></h2>
+<p>A mailbox that has been made a <a href="domains.html#delegating-administration">domain administrator</a> gets a Users section. It manages that domain's mailboxes with the credential it already holds, and nothing else: no billing, DNS, or domain deletion, and <code>/app</code> still refuses a mailbox sign-in. Every route takes the webmail session and re-checks the grant on each call, so a mailbox not named on a domain gets 404.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/admin/domains</code></td>
+<td>Domains this mailbox administers. Empty for almost every mailbox</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/admin/domains/:domain_id/users</code></td>
+<td>Every address on the domain</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/admin/domains/:domain_id/users</code></td>
+<td>Create one. 201</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/mail/admin/users/:address_id</code></td>
+<td>Set <code>name</code> or <code>disabled</code></td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/admin/users/:address_id/password</code></td>
+<td>Set a mailbox's password</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/mail/admin/users/:address_id</code></td>
+<td>Delete it, with its mail</td>
+</tr>
+</tbody></table></div>
+<p>Create takes <code>local_part</code>, <code>type</code> (<code>standard</code>, <code>alias</code> or <code>group</code>), and optionally <code>name</code>, <code>password</code> (8 to 200 characters) and <code>destinations</code> (up to 50 addresses). A mailbox made here always gets its own password and is never linked to a panel account. The limit that applies is the domain <em>owner's</em> plan: past <code>max_addresses</code> the answer is a 409. Agent mailboxes are not reachable from here. Setting a password on an alias or group is a 400, and on a mailbox that signs in with its owner's account password it is refused.</p>
+<p>You cannot disable or delete the mailbox you are signed in to. Both are 400.</p>
+<h2 id="your-own-credentials">Your own credentials<a class="anchor" href="#your-own-credentials" aria-label="Link to this section">#</a></h2>
+<div class='table-wrap'><table><thead><tr>
+<th>Method</th>
+<th>Path</th>
+<th>Does</th>
+</tr></thead><tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/password</code></td>
+<td>Change this mailbox's password</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/recovery</code></td>
+<td>Set or clear the recovery address</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/app-passwords</code></td>
+<td>App passwords, without secrets</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/mail/app-passwords</code></td>
+<td>Create one; <code>password</code> is returned once</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/mail/app-passwords/:app_password_id</code></td>
+<td>Revoke one</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/mail/notices</code></td>
+<td>What this mailbox should be told about</td>
+</tr>
+</tbody></table></div>
+<p><code>password</code> takes <code>current_password</code> and <code>new_password</code> (8 to 200 characters, different from the current one). Every other webmail session ends; this one stays. <code>recovery</code> takes <code>current_password</code> and <code>recovery_address</code> (an email, or <code>null</code> to clear it); the address cannot be the mailbox itself. Creating an app password also takes <code>current_password</code>. A wrong current password is a 401 and counts as a failed sign-in towards the per-IP ban. A mailbox that signs in with its owner's account password cannot change it here.</p>
+<p><code>/api/mail/notices</code> answers a list of <code>{ id, level, title, body, action }</code>, where <code>level</code> is <code>info</code> or <code>warn</code> and <code>action</code> (optional) is <code>{ label, target }</code>. A notice is computed, not stored: it exists while the thing it describes does, and there is nothing to dismiss. For a mailbox the only one today is <code>recovery_missing</code>.</p>
 <h2 id="sanitisation">Sanitisation<a class="anchor" href="#sanitisation" aria-label="Link to this section">#</a></h2>
 <p>Message bodies are sanitised on the <strong>server</strong>, in <code>src/sanitize</code>, never in the browser. Every message a mail server accepts is attacker-supplied by definition, and the browser is the wrong place to decide what is safe.</p>
 <p>Removed before the browser sees anything:</p>
@@ -112,7 +191,7 @@ https:// {
 <p>The IMAP and JMAP servers are standard. Roundcube, SnappyMail, and any JMAP client work against them unchanged — point them at 993 with the full address as the username.</p>
 <p>Corsair's own webmail exists so that a fresh install is usable immediately, without a second thing to deploy. It is not trying to be Roundcube.</p>
 <h2 id="what-it-deliberately-does-not-have">What it deliberately does not have<a class="anchor" href="#what-it-deliberately-does-not-have" aria-label="Link to this section">#</a></h2>
-<p><strong>No calendar or contacts.</strong> Corsair does email. There is no CalDAV or CardDAV server behind this.</p>
+<p><strong>No calendar.</strong> There is no CalDAV server. Contacts are an address book shared with <a href="contacts.html">CardDAV</a>, used for recipient autocomplete.</p>
 <p><strong>No conversation threading beyond <code>thread_id</code>.</strong> Messages carry a thread id and the API exposes it; the client lists messages rather than collapsing threads.</p>
 <p><strong>No per-user settings store.</strong> Preferences that would need persisting — signature, default folder behaviour — are not there. Use a full client if you need them.</p>
 <p><strong>No offline mode.</strong> It is a web page against an API.</p>
@@ -144,7 +223,7 @@ https:// {
 </tr>
 </tbody></table></div>
 <p>The last one catches people: nginx defaults to 1 MB, which silently rejects almost every attachment. Set it above <code>MAX_MESSAGE_BYTES</code>.</p><nav class="pager"><a class="pager-prev" href="./client-setup.html"><span>Previous</span><strong>Client settings</strong></a><a class="pager-next" href="./filters.html"><span>Next</span><strong>Filters</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#your-own-webmail-url">Your own webmail URL</a></li><li class="toc-h3"><a href="#for-operators">For operators</a></li><li class="toc-h2"><a href="#signing-in">Signing in</a></li><li class="toc-h2"><a href="#what-it-does">What it does</a></li><li class="toc-h2"><a href="#sanitisation">Sanitisation</a></li><li class="toc-h2"><a href="#remote-images">Remote images</a></li><li class="toc-h2"><a href="#search">Search</a></li><li class="toc-h2"><a href="#attachments">Attachments</a></li><li class="toc-h2"><a href="#using-something-else-instead">Using something else instead</a></li><li class="toc-h2"><a href="#what-it-deliberately-does-not-have">What it deliberately does not have</a></li><li class="toc-h2"><a href="#troubleshooting">Troubleshooting</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#your-own-webmail-url">Your own webmail URL</a></li><li class="toc-h3"><a href="#for-operators">For operators</a></li><li class="toc-h2"><a href="#signing-in">Signing in</a></li><li class="toc-h2"><a href="#what-it-does">What it does</a></li><li class="toc-h2"><a href="#managing-users">Managing users</a></li><li class="toc-h2"><a href="#your-own-credentials">Your own credentials</a></li><li class="toc-h2"><a href="#sanitisation">Sanitisation</a></li><li class="toc-h2"><a href="#remote-images">Remote images</a></li><li class="toc-h2"><a href="#search">Search</a></li><li class="toc-h2"><a href="#attachments">Attachments</a></li><li class="toc-h2"><a href="#using-something-else-instead">Using something else instead</a></li><li class="toc-h2"><a href="#what-it-deliberately-does-not-have">What it deliberately does not have</a></li><li class="toc-h2"><a href="#troubleshooting">Troubleshooting</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

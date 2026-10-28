@@ -190,6 +190,26 @@ Worth grepping for:
 | `job .* failed` | A worker job threw. It retries |
 | `rejected` | Inbound refusals — no such user, over quota, filtered |
 
+### From the panel
+
+The instance owner can read the journal over the API without a shell. Both routes
+need the owner's panel session.
+
+| Method | Path | Does |
+| --- | --- | --- |
+| GET | `/api/logs/sources` | The units that can be read (`key`, `label`, `unit`) and the accepted `since` windows |
+| GET | `/api/logs` | One read of one unit's journal |
+
+`/api/logs` takes `unit` (a `key` from the sources list, default `corsair`; an
+unknown one is a 400), `lines` (default 300, at most 2000), `since` (`15m`, `1h`,
+`6h`, `24h`, `7d` or `all`; default `1h`), `q` (a literal, case-insensitive
+search of at most 200 characters) and `priority` (0 to 7, entries at that syslog
+severity and worse). The answer is a list of entries (`id`, `at`, `unit`,
+`priority`, `message`) plus `truncated` and `available`. If the service account
+cannot read the journal, `available` is false and `reason` says to add it to the
+`systemd-journal` group. Output is redacted for connection strings and similar
+before it leaves the server.
+
 :::warning Mail logs contain addresses
 Sender and recipient addresses are personal data. Decide your retention period
 deliberately and configure `journald` or your log shipper to honour it.

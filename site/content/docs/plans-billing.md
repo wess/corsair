@@ -151,8 +151,9 @@ out.
 ## Quotas in practice
 
 **Storage** is per account across every domain and mailbox. One mailbox can use all
-of it. `quota.warning` and `quota.exceeded` webhooks fire before and at the cap,
-so you can tell someone before mail starts being refused.
+of it. `quota.warning` fires when an account crosses 90% and `quota.exceeded` when
+it fills, once per crossing, so you can tell someone before mail starts being
+refused. The owner gets the same news by email unless they turned it off.
 
 **Daily limits** reset on a rolling 24-hour window from `mail_log`. Hitting
 `daily_out` means submission is refused until the window moves; hitting `daily_in`

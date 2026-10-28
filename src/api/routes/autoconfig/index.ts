@@ -27,7 +27,7 @@ const xml = (conn: Parameters<typeof text>[0], body: string) => {
 // not shaped like an address is dropped rather than escaped: a client that
 // sent markup gets the placeholder, and no caller can shape the document.
 const HOSTNAME = /^[A-Za-z0-9.-]{1,253}$/
-const ADDRESS = /^[A-Za-z0-9!#$%*+\/=?^_`{|}~.-]{1,64}@[A-Za-z0-9.-]{1,253}$/
+const ADDRESS = /^[A-Za-z0-9!#$%*+/=?^_`{|}~.-]{1,64}@[A-Za-z0-9.-]{1,253}$/
 
 const domainOf = (url: string): string => {
   const value = new URL(url).searchParams.get("emailaddress") ?? ""

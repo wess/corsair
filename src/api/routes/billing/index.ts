@@ -198,7 +198,8 @@ export const billingRoutes: Route[] = [
         .update({ cancel_at_period_end: true, cancelled_at: new Date(), updated_at: new Date() })
         .returning(...allColumns(subscriptions)),
     )
-    return json(c, 200, subscriptionObject(saved!))
+    const plan = await db().one<Plan>(from(plans).where((q) => q("id").equals(saved!.plan_id)))
+    return json(c, 200, subscriptionObject(saved!, plan ?? undefined))
   }),
 
   /** Whether this instance can actually charge, so the panel knows what to show. */
@@ -403,29 +404,28 @@ export const billingRoutes: Route[] = [
       )
       if (!row) throw notFound("Payment method not found.")
 
-      const subscription = await activeSubscription(principalOf(c).userId)
-      if (subscription && row.is_default) {
-        const other = await db().one<PaymentMethod>(
-          from(paymentMethods).where((q) => [
-            q("user_id").equals(principalOf(c).userId),
-            q("id").notEquals(row.id),
-          ]),
-        )
-        if (!other) {
-          throw conflict("Cancel the subscription before removing the only payment method.")
-        }
-        await db().execute(
-          from(paymentMethods)
-            .where((q) => q("id").equals(other.id))
-            .update({ is_default: true }),
-        )
+      const other = await db().one<PaymentMethod>(
+        from(paymentMethods).where((q) => [
+          q("user_id").equals(principalOf(c).userId),
+          q("id").notEquals(row.id),
+        ]),
+      )
+      if (row.is_default && !other && (await activeSubscription(principalOf(c).userId))) {
+        throw conflict("Cancel the subscription before removing the only payment method.")
       }
 
-      await db().execute(
-        from(paymentMethods)
-          .where((q) => q("id").equals(row.id))
-          .del(),
-      )
+      // Delete, then promote, in one transaction: the unique index allows one
+      // default per account, so promoting first collided with the row being
+      // removed and answered 409 to an ordinary request.
+      await db().transaction(async (conn) => {
+        await conn.execute({ text: "DELETE FROM payment_methods WHERE id = $1", values: [row.id] })
+        if (row.is_default && other) {
+          await conn.execute({
+            text: "UPDATE payment_methods SET is_default = true WHERE id = $1",
+            values: [other.id],
+          })
+        }
+      })
       return json(c, 200, { object: "payment_method", id: row.id, deleted: true })
     },
   ),

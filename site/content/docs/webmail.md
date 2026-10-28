@@ -96,6 +96,58 @@ Sending goes through the same submission path as any client: the From address is
 proven to belong to the caller, the message is DKIM-signed with the domain's key,
 a copy is filed in Sent, and delivery is queued.
 
+## Managing users
+
+A mailbox that has been made a [domain administrator](domains.html#delegating-administration)
+gets a Users section. It manages that domain's mailboxes with the credential it
+already holds, and nothing else: no billing, DNS, or domain deletion, and
+`/app` still refuses a mailbox sign-in. Every route takes the webmail session and
+re-checks the grant on each call, so a mailbox not named on a domain gets 404.
+
+| Method | Path | Does |
+| --- | --- | --- |
+| GET | `/api/mail/admin/domains` | Domains this mailbox administers. Empty for almost every mailbox |
+| GET | `/api/mail/admin/domains/:domain_id/users` | Every address on the domain |
+| POST | `/api/mail/admin/domains/:domain_id/users` | Create one. 201 |
+| PATCH | `/api/mail/admin/users/:address_id` | Set `name` or `disabled` |
+| POST | `/api/mail/admin/users/:address_id/password` | Set a mailbox's password |
+| DELETE | `/api/mail/admin/users/:address_id` | Delete it, with its mail |
+
+Create takes `local_part`, `type` (`standard`, `alias` or `group`), and optionally
+`name`, `password` (8 to 200 characters) and `destinations` (up to 50 addresses).
+A mailbox made here always gets its own password and is never linked to a panel
+account. The limit that applies is the domain *owner's* plan: past
+`max_addresses` the answer is a 409. Agent mailboxes are not reachable from here.
+Setting a password on an alias or group is a 400, and on a mailbox that signs in
+with its owner's account password it is refused.
+
+You cannot disable or delete the mailbox you are signed in to. Both are 400.
+
+## Your own credentials
+
+| Method | Path | Does |
+| --- | --- | --- |
+| POST | `/api/mail/password` | Change this mailbox's password |
+| POST | `/api/mail/recovery` | Set or clear the recovery address |
+| GET | `/api/mail/app-passwords` | App passwords, without secrets |
+| POST | `/api/mail/app-passwords` | Create one; `password` is returned once |
+| DELETE | `/api/mail/app-passwords/:app_password_id` | Revoke one |
+| GET | `/api/mail/notices` | What this mailbox should be told about |
+
+`password` takes `current_password` and `new_password` (8 to 200 characters,
+different from the current one). Every other webmail session ends; this one stays.
+`recovery` takes `current_password` and `recovery_address` (an email, or `null`
+to clear it); the address cannot be the mailbox itself. Creating an app password
+also takes `current_password`. A wrong current password is a 401 and counts as a
+failed sign-in towards the per-IP ban. A mailbox that signs in with its owner's
+account password cannot change it here.
+
+`/api/mail/notices` answers a list of `{ id, level, title, body, action }`, where
+`level` is `info` or `warn` and `action` (optional) is `{ label, target }`. A
+notice is computed, not stored: it exists while the thing it describes does, and
+there is nothing to dismiss. For a mailbox the only one today is
+`recovery_missing`.
+
 ## Sanitisation
 
 Message bodies are sanitised on the **server**, in `src/sanitize`, never in the
@@ -154,8 +206,8 @@ without a second thing to deploy. It is not trying to be Roundcube.
 
 ## What it deliberately does not have
 
-**No calendar or contacts.** Corsair does email. There is no CalDAV or CardDAV
-server behind this.
+**No calendar.** There is no CalDAV server. Contacts are an address book shared
+with [CardDAV](contacts.html), used for recipient autocomplete.
 
 **No conversation threading beyond `thread_id`.** Messages carry a thread id and
 the API exposes it; the client lists messages rather than collapsing threads.

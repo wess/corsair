@@ -75,6 +75,16 @@ without a gap.
 
 The catch-all, the fallback domain, and self-service recovery.
 
+## Notices
+
+Things that need your attention are listed on every screen, not only the overview:
+an unverified email address, a domain whose DNS is incomplete, a verified domain
+with no mailboxes, recovery switched on for mailboxes with nowhere to send a link.
+They are computed from the account's own domains and disappear when the cause
+does, so there is nothing to dismiss. `GET /api/notices` returns them as a list of
+`{ id, level, title, body, action }`, with `level` of `info` or `warn`; the
+webmail has its own at `/api/mail/notices`.
+
 ## Reports
 
 The DMARC aggregate and TLS reports other mail servers sent about one domain,

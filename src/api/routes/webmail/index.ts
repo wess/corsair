@@ -1,5 +1,5 @@
 import { from } from "@wess/atlas/db/query"
-import { delR, getR, json, postR, type Route, text } from "@wess/atlas/server"
+import { delR, getR, json, postR, type Route } from "@wess/atlas/server"
 import { z } from "zod"
 import { domainsAdministeredByAddress } from "../../../access/index.ts"
 import { folderBySpecialUse, setPassword } from "../../../addresses/index.ts"
@@ -720,14 +720,19 @@ export const webmailRoutes: Route[] = [
       const message = await ownedMessage(identityOf(c), c.params.message_id)
       const raw = await getRaw({ storageKey: message.storage_key, messageId: message.id })
       if (!raw) throw notFound("This message's body is no longer available.")
-      const response = text(c, 200, raw)
-      return {
-        ...response,
-        respHeaders: new Headers([
-          ...response.respHeaders,
-          ["content-type", "text/plain; charset=utf-8"],
-        ]),
-      }
+      // The stored message is latin1, one character per byte. Handing that string
+      // to text() re-encoded every byte above 0x7f as UTF-8, so the "source" of a
+      // message with an accent in it was not the message. Served as the bytes.
+      return responseConn(
+        c,
+        new Response(Buffer.from(raw, "latin1"), {
+          headers: {
+            "content-type": "text/plain; charset=utf-8",
+            "x-content-type-options": "nosniff",
+            "content-security-policy": "sandbox",
+          },
+        }),
+      )
     },
   ),
 ]
