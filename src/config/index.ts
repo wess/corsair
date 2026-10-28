@@ -210,6 +210,20 @@ export const config = defineConfig({
     pollMs: env("WORKER_POLL_MS", { parse: Number, default: "1000" }),
   },
 
+  // Aggregate reports this server sends about the mail it receives (DMARC,
+  // RFC 7489) and the TLS it negotiates when sending (RFC 8460). Off means no
+  // outcomes are recorded either, not just that nothing is mailed.
+  reports: {
+    dmarcSend: env("DMARC_REPORTS_SEND", { parse: bool, default: "true" }),
+    tlsSend: env("TLSRPT_SEND", { parse: bool, default: "true" }),
+    // Reports of each kind sent per UTC day. Every domain that publishes `rua`
+    // and mailed us yesterday is one report, so a server receiving from a
+    // great many domains would otherwise send that many messages each morning.
+    dailyCap: env("REPORTS_DAILY_CAP", { parse: Number, default: "1000" }),
+    // Empty means `noreply-dmarc@<CORSAIR_HOSTNAME>`.
+    from: env("REPORTS_FROM", { default: "" }),
+  },
+
   // Card details never reach this server; these only let it talk to the
   // provider's API and verify its webhooks. Leave them empty to run unmetered.
   payments: {

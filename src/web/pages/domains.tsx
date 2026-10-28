@@ -638,6 +638,7 @@ const PURPOSE_LABEL: Record<string, string> = {
   dmarc: "DMARC",
   dkim: "DKIM/ARC key",
   mta_sts: "MTA-STS",
+  tlsrpt: "TLS reporting",
   autoconfig: "Thunderbird autoconfig",
   autodiscover: "Outlook autodiscover",
   webmail: "Webmail URL",

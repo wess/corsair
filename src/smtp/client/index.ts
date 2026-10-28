@@ -1,4 +1,5 @@
 import { resolveMx } from "node:dns/promises"
+import type { TlsSessionResult } from "../../authreports/outbound/index.ts"
 import { config } from "../../config/index.ts"
 import {
   type DanePolicy,
@@ -35,6 +36,12 @@ export type SendResult = {
    * when no session was attempted (console transport, no MX).
    */
   tls?: TlsResult
+  /**
+   * What happened to TLS on each session that got as far as EHLO, for the
+   * TLS reports in `src/authreports`. A session that never reached EHLO says
+   * nothing about TLS and is not counted.
+   */
+  sessions?: TlsSessionResult[]
 }
 
 /**
@@ -390,6 +397,22 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
           : "TLS without certificate checks",
     }
   }
+  let session: TlsSessionResult | undefined
+  let reachedEhlo = false
+  // Under DANE the report speaks for the TLSA policy and its verdict; otherwise
+  // it says how opportunistic STARTTLS went.
+  const sessions = (): { sessions?: TlsSessionResult[] } => {
+    if (input.dane) {
+      if (!reachedEhlo) return {}
+      const verdict = tlsResult()
+      return {
+        sessions: [
+          { host: input.host, policy: "tlsa", result: verdict.outcome, detail: verdict.reason },
+        ],
+      }
+    }
+    return session ? { sessions: [session] } : {}
+  }
 
   try {
     conn = await connect({
@@ -405,6 +428,7 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
 
     conn.write(`EHLO ${config.hostname}${CRLF}`)
     let greeting = await conn.read(250)
+    reachedEhlo = true
 
     const offersStartTls = /\bSTARTTLS\b/i.test(greeting.text)
     if (input.dane && !conn.secure() && !offersStartTls) {
@@ -433,9 +457,27 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
         }
         throw new SmtpFailure(421, `4.7.5 ${daneRefusal.reason}`, true)
       }
-      await conn.upgrade()
+      try {
+        await conn.upgrade()
+      } catch (e) {
+        session = {
+          host: input.host,
+          policy: "no-policy-found",
+          result: "validation-failure",
+          detail: (e as Error).message,
+        }
+        throw e
+      }
+      session = { host: input.host, policy: "no-policy-found", result: "success", detail: "" }
       conn.write(`EHLO ${config.hostname}${CRLF}`)
       greeting = await conn.read(250)
+    } else if (!input.implicitTls) {
+      session = {
+        host: input.host,
+        policy: "no-policy-found",
+        result: "starttls-not-supported",
+        detail: "",
+      }
     }
 
     if (input.auth) {
@@ -467,6 +509,7 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
       message: accepted.text,
       host: input.host,
       tls: tlsResult(),
+      ...sessions(),
     }
   } catch (e) {
     if (e instanceof SmtpFailure) {
@@ -480,6 +523,7 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
         message: e.message,
         host: input.host,
         tls: tlsResult(),
+        ...sessions(),
       }
     }
     // A DNS or TCP failure is transient by definition — the remote end never
@@ -491,6 +535,7 @@ export const sendMessage = async (input: SendInput): Promise<SendResult> => {
       message: (e as Error).message,
       host: input.host,
       tls: tlsResult(),
+      ...sessions(),
     }
   } finally {
     conn?.close()
@@ -602,6 +647,7 @@ export const deliverToMx = async (input: {
     host: null,
   }
 
+  const sessions: TlsSessionResult[] = []
   for (const host of hosts) {
     const policy = dane ? await policyForHost(host, { domain: input.domain, mxSecure }) : null
     if (policy?.kind === "defer") {
@@ -613,6 +659,7 @@ export const deliverToMx = async (input: {
         host,
         tls: { policy: "dane", outcome: "dnssec-invalid", reason: policy.reason },
       }
+      sessions.push({ host, policy: "tlsa", result: "dnssec-invalid", detail: policy.reason })
       continue
     }
     last = await sendMessage({
@@ -624,8 +671,8 @@ export const deliverToMx = async (input: {
       raw: input.raw,
       dane: policy?.kind === "dane" ? policy.policy : undefined,
     })
-    if (last.ok) return last
-    if (!last.retryable) return last
+    sessions.push(...(last.sessions ?? []))
+    if (last.ok || !last.retryable) break
   }
-  return last
+  return { ...last, sessions }
 }

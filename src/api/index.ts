@@ -19,6 +19,7 @@ import { agentRoutes } from "./routes/agents/index.ts"
 import { apiKeyRoutes } from "./routes/apikeys/index.ts"
 import { appPasswordRoutes } from "./routes/apppasswords/index.ts"
 import { authRoutes } from "./routes/auth/index.ts"
+import { authReportRoutes } from "./routes/authreports/index.ts"
 import { autoconfigRoutes } from "./routes/autoconfig/index.ts"
 import { billingRoutes } from "./routes/billing/index.ts"
 import { contactRoutes } from "./routes/contacts/index.ts"
@@ -59,6 +60,8 @@ export const allRoutes = (): Route[] => [
   // Same reason: `/api/domains/:domain_id/admins` must be registered ahead of
   // the domain routes' own `:domain_id` patterns.
   ...wrapAll(adminRoutes),
+  // And `/api/domains/:domain_id/reports/...`, for the same reason.
+  ...wrapAll(authReportRoutes),
   ...wrapAll(domainRoutes),
   ...wrapAll(recoveryRoutes),
   ...wrapAll(hookRoutes),

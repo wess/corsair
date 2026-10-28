@@ -8,6 +8,8 @@ import {
   resolveRecipient,
 } from "../../addresses/index.ts"
 import { type ArcChain, dmarcOverride, seal, verifyChain } from "../../arc/index.ts"
+import { ingestReports, reportTarget } from "../../authreports/index.ts"
+import { recordDmarc } from "../../authreports/outbound/index.ts"
 import { config } from "../../config/index.ts"
 import { isCorrespondent } from "../../correspondents/index.ts"
 import { db } from "../../db/index.ts"
@@ -28,7 +30,7 @@ import {
 } from "../../schema/index.ts"
 import { applyReport, bounceTarget } from "../../sending/index.ts"
 import * as sieve from "../../sieve/index.ts"
-import { checkSpf, lookupDmarc, spfAligned } from "../../spf/index.ts"
+import { checkSpf, type DmarcPolicy, lookupDmarc, spfAligned } from "../../spf/index.ts"
 import { deliver } from "../../store/index.ts"
 import { sendBounce } from "../bounce/index.ts"
 import { checkDomains, checkIp, extractDomains, rejectable } from "../dnsbl/index.ts"
@@ -116,6 +118,10 @@ export const validateRecipient = async (
 
   const route = await resolveRecipient(address)
 
+  // A domain's report address takes mail whether or not a mailbox answers for
+  // it, so pointing `rua` at it works without creating one.
+  if (route.kind === "unknown" && route.domain && (await reportTarget(address))) return null
+
   if (route.kind === "unknown") {
     // The domain distinction matters to the sender: "we do not host this
     // domain" is a relay refusal, "no such user" is a delivery failure.
@@ -169,6 +175,14 @@ type AuthResults = {
   arc: ArcChain
   /** The trusted sealer whose ARC pass overrides a DMARC failure, if any. */
   dmarcOverride: string | null
+  /** The inputs to the DMARC verdict, kept for the aggregate report. */
+  dmarcDetail: {
+    policy: DmarcPolicy
+    fromDomain: string
+    spfDomain: string
+    spfAligned: boolean
+    dkimAligned: boolean
+  } | null
 }
 
 /**
@@ -257,6 +271,7 @@ const authenticate = async (
 
   const fromDomain = fromDomainOf(parsed)
   let dmarc = "none"
+  let dmarcDetail: AuthResults["dmarcDetail"] = null
 
   if (fromDomain) {
     const policy = await lookupDmarc(fromDomain)
@@ -270,6 +285,13 @@ const authenticate = async (
           ? aligned(fromDomain, dkim.domain, policy.adkim)
           : false
       dmarc = spfOk || dkimOk ? "pass" : "fail"
+      dmarcDetail = {
+        policy,
+        fromDomain,
+        spfDomain: spf.domain,
+        spfAligned: spfAligned(fromDomain, spf.domain, policy.aspf),
+        dkimAligned: dkim.domain ? aligned(fromDomain, dkim.domain, policy.adkim) : false,
+      }
     }
   }
 
@@ -281,6 +303,7 @@ const authenticate = async (
     reverseDns: ptr,
     arc,
     dmarcOverride: dmarcOverride(dmarc, arc, config.arc.trustedSealers),
+    dmarcDetail,
   }
 }
 
@@ -599,6 +622,27 @@ export const handleMessage = async (
   const subject = mime.decodeWords(mime.headerValue(parsed.headers, "subject") ?? "")
   const messageId = mime.headerValue(parsed.headers, "message-id")
 
+  // Counted toward the From domain's daily aggregate report. Not for this
+  // machine talking to itself: 127.0.0.1 is not a source anyone can act on.
+  const detail = results.dmarcDetail
+  if (detail && !spfExempt(ctx)) {
+    void recordDmarc({
+      policy: detail.policy,
+      headerFrom: detail.fromDomain,
+      sourceIp: ctx.remoteIp,
+      envelopeFrom: envelope.mailFrom,
+      spf: { result: results.spf, domain: detail.spfDomain, aligned: detail.spfAligned },
+      dkim: { result: results.dkim, domain: results.dkimDomain, aligned: detail.dkimAligned },
+      // What was done, not what was asked for: nothing is refused on DMARC
+      // here, and a failing message is quarantined only if it scored as junk.
+      disposition: results.dmarc === "fail" && isJunk(verdict) ? "quarantine" : "none",
+    })
+  }
+
+  // Reports are filed for each domain at most once, however many of its report
+  // addresses the message was sent to.
+  const ingested = new Set<string>()
+
   let accepted = 0
   let lastFailure: DeliveryOutcome | null = null
 
@@ -638,6 +682,18 @@ export const handleMessage = async (
       continue
     }
 
+    const reportDomain = await reportTarget(recipient)
+    let reportDetail: string | null = null
+    if (reportDomain && !ingested.has(reportDomain.id)) {
+      ingested.add(reportDomain.id)
+      const filed = await ingestReports(reportDomain, normalized, parsed, mayBounceTo(results))
+      reportDetail = filed.stored
+        ? `Filed ${filed.stored} report(s).`
+        : filed.refused.length
+          ? `No report filed: ${filed.refused[0]}`.slice(0, 300)
+          : null
+    }
+
     const route = await resolveRecipient(recipient)
     let outcome: DeliveryOutcome
     // The one part of the verdict that depends on the recipient: whether this
@@ -645,7 +701,9 @@ export const handleMessage = async (
     const own =
       route.kind === "mailbox" ? await forMailbox(verdict, route.address.id, sender) : verdict
 
-    if (route.kind === "mailbox") {
+    if (reportDomain && route.kind === "unknown") {
+      outcome = { code: 250, status: "accepted", detail: reportDetail ?? "Report address." }
+    } else if (route.kind === "mailbox") {
       outcome = await deliverToMailbox(route, normalized, envelope, ctx, results, own)
     } else if (route.kind === "forward") {
       outcome = await deliverToForward(route, normalized, envelope, ctx, results)
@@ -655,12 +713,13 @@ export const handleMessage = async (
       outcome = { code: 550, status: "rejected", detail: "No such user here." }
     }
 
-    const userId = route.kind === "unknown" ? null : await ownerOfDomain(route.domain.id)
+    const loggedDomain = route.kind === "unknown" ? (reportDomain ?? null) : route.domain
+    const userId = loggedDomain ? await ownerOfDomain(loggedDomain.id) : null
     await db()
       .execute(
         from(mailLog).insert({
           user_id: userId,
-          domain_id: route.kind === "unknown" ? null : route.domain.id,
+          domain_id: loggedDomain?.id ?? null,
           address_id: route.kind === "unknown" ? null : (route.address?.id ?? null),
           direction: "inbound",
           status: outcome.status,
@@ -685,7 +744,7 @@ export const handleMessage = async (
     // transaction, and a failure to notify must never fail a delivery.
     void emit({
       userId,
-      domainId: route.kind === "unknown" ? null : route.domain.id,
+      domainId: loggedDomain?.id ?? null,
       type:
         outcome.code >= 400
           ? "message.rejected"

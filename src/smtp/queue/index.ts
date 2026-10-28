@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { from } from "@wess/atlas/db/query"
 import { ownerOfDomain } from "../../addresses/index.ts"
+import { recordTls } from "../../authreports/outbound/index.ts"
 import { config } from "../../config/index.ts"
 import { db } from "../../db/index.ts"
 import { emit } from "../../events/index.ts"
@@ -142,6 +143,10 @@ export const drain = async (limit = config.worker.concurrency): Promise<DrainRes
         rcptTo: row.rcpt_to,
         raw,
       })
+      // A relay's TLS is between us and the relay, which is not what a
+      // recipient domain's TLS report is about.
+      if (outcome.sessions?.length && config.delivery.transport !== "relay")
+        void recordTls(domain, outcome.sessions)
 
       if (outcome.ok) {
         await db().execute(

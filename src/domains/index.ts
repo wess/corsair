@@ -79,7 +79,9 @@ export const recordSpec = (input: {
       purpose: "dmarc",
       type: "TXT",
       host: "_dmarc",
-      value: `v=DMARC1; p=${input.dmarcPolicy ?? "quarantine"};`,
+      // `rua` names the domain's own report address, which this server accepts
+      // and files without a mailbox behind it (see `src/authreports`).
+      value: `v=DMARC1; p=${input.dmarcPolicy ?? "quarantine"}; rua=mailto:dmarc-reports@${input.domain};`,
       priority: null,
       required: true,
       position: 2,
@@ -132,6 +134,15 @@ export const recordSpec = (input: {
       priority: null,
       required: false,
       position: 12,
+    },
+    {
+      purpose: "tlsrpt",
+      type: "TXT",
+      host: "_smtp._tls",
+      value: `v=TLSRPTv1; rua=mailto:tlsrpt@${input.domain}`,
+      priority: null,
+      required: false,
+      position: 15,
     },
     {
       purpose: "mx",
@@ -343,7 +354,13 @@ const observe = async (record: DomainRecord, domain: Domain): Promise<Observatio
         // every domain that sends through anything else as well.
         const wanted = record.value.trim()
         const prefix =
-          record.purpose === "spf" ? "v=spf1" : record.purpose === "dmarc" ? "v=DMARC1" : null
+          record.purpose === "spf"
+            ? "v=spf1"
+            : record.purpose === "dmarc"
+              ? "v=DMARC1"
+              : record.purpose === "tlsrpt"
+                ? "v=TLSRPTv1"
+                : null
 
         if (prefix) {
           const candidate = values.find((v) =>

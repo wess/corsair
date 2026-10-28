@@ -142,10 +142,42 @@ ORDER BY updated_at DESC LIMIT 20;</code></pre></figure>
 <p>Build a suppression list from the <code>message.bounced</code> <a href="tutorials/webhook-consumer.html">webhook</a> if you send anything at volume.</p>
 <p><code>4xx</code> is temporary and Corsair retries with backoff out to about five days. That is correct behaviour; do not shorten it.</p>
 <h2 id="dmarc-reports">DMARC reports<a class="anchor" href="#dmarc-reports" aria-label="Link to this section">#</a></h2>
-<p>Add <code>rua=</code> to your DMARC record before tightening the policy:</p>
-<figure class="code"><pre><code>v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com</code></pre></figure>
+<p>Add <code>rua=</code> to your DMARC record before tightening the policy. The record Corsair generates already has one:</p>
+<figure class="code"><pre><code>v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@example.com;</code></pre></figure>
 <p>The aggregate reports tell you which senders are failing alignment — which is how you discover the marketing platform, the ticketing system, or the CI server that also sends as your domain and that you had forgotten about.</p>
+<p>Reports sent to <code>dmarc-reports@</code> (and TLS reports sent to <code>tlsrpt@</code>) are read and filed under the domain — no mailbox needed. <strong>Reports</strong> in the control panel shows the last 7 to 180 days: messages, pass rate, a table by sending IP, and a table by reporting organisation. An IP you do not recognise with a high failure count is either a sender you forgot or somebody forging you; the reporter column says who saw it. See <a href="dns-setup.html#dmarc">DNS setup</a> for what is and is not accepted.</p>
 <p>Move to <code>p=reject</code> only once those reports are clean. Going straight there means silently killing a legitimate sender you did not know you had.</p>
+<h3 id="reports-corsair-sends">Reports Corsair sends<a class="anchor" href="#reports-corsair-sends" aria-label="Link to this section">#</a></h3>
+<p>Corsair is also a receiver, and reports what it sees to everyone else:</p>
+<ul><li><strong>DMARC aggregate reports.</strong> For every message whose From domain publishes a DMARC record with <code>rua</code>, the result (source IP, SPF and DKIM outcomes and alignment, what was done with it) is counted. Once a UTC day ends, each such domain gets one gzipped RFC 7489 report from <code>noreply-dmarc@&lt;CORSAIR_HOSTNAME&gt;</code>. A <code>rua</code> on a different domain from the policy's is only used once that domain has published <code>&lt;policy-domain&gt;._report._dmarc.&lt;its-domain&gt;</code> (RFC 7489 §7.1); otherwise anyone could point a record at a stranger and have this server mail them daily.</li><li><strong>SMTP TLS reports.</strong> For every domain this server delivers to, each session's TLS outcome is counted — negotiated, <code>starttls-not-supported</code>, or <code>validation-failure</code>. Domains that publish <code>_smtp._tls</code> with a <code>mailto:</code> or <code>https:</code> <code>rua</code> get a daily RFC 8460 report. Sessions where a DNSSEC-signed TLSA record applied are reported under policy type <code>tlsa</code>, with DANE's verdict (<code>certificate-host-mismatch</code>, <code>dnssec-invalid</code>, and so on). Every other session is <code>no-policy-found</code>, because outbound delivery does not apply MTA-STS.</li></ul>
+<p>Disposition is reported as what Corsair actually did. It never refuses mail on a DMARC failure; a failing message is reported <code>quarantine</code> only when it also scored as spam.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>DMARC_REPORTS_SEND</code></td>
+<td><code>true</code></td>
+<td>Record DMARC results and send aggregate reports. Off records nothing</td>
+</tr>
+<tr>
+<td><code>TLSRPT_SEND</code></td>
+<td><code>true</code></td>
+<td>Record outbound TLS outcomes and send TLS reports. Off records nothing</td>
+</tr>
+<tr>
+<td><code>REPORTS_DAILY_CAP</code></td>
+<td><code>1000</code></td>
+<td>Reports of each kind sent per UTC day</td>
+</tr>
+<tr>
+<td><code>REPORTS_FROM</code></td>
+<td><code>noreply-dmarc@&lt;CORSAIR_HOSTNAME&gt;</code></td>
+<td>The From and envelope sender of outgoing reports</td>
+</tr>
+</tbody></table></div>
+<p>RFC 8460 requires a TLS report sent by mail to be DKIM-signed, and receivers discard unsigned ones. Reports are signed when <code>REPORTS_FROM</code> is on a domain hosted on this server — point it at one (say <code>noreply-dmarc@example.com</code>) if you want them read. The raw counts are deleted once a day's report is built, and anything left unsent is dropped after seven days.</p>
 <h2 id="mta-sts">MTA-STS<a class="anchor" href="#mta-sts" aria-label="Link to this section">#</a></h2>
 <p>Corsair serves an MTA-STS policy at <code>/.well-known/mta-sts.txt</code>. Its mode tracks what the MX can actually do:</p>
 <div class='table-wrap'><table><thead><tr>
@@ -251,7 +283,7 @@ echo 'DANE_RESOLVER=127.0.0.1' &gt;&gt; .env</code></pre></figure>
        dkim=pass header.i=@example.com header.s=corsair-1
        dmarc=pass (p=QUARANTINE ...)</code></pre></figure>
 <p>Three passes. Re-check this any time deliverability goes strange — it is the fastest way to tell a configuration problem from a reputation one.</p><nav class="pager"><a class="pager-prev" href="./spam.html"><span>Previous</span><strong>Spam filtering</strong></a><a class="pager-next" href="./sending.html"><span>Next</span><strong>Sending API</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#the-non-negotiables">The non-negotiables</a></li><li class="toc-h2"><a href="#warming-up">Warming up</a></li><li class="toc-h2"><a href="#reading-the-signals">Reading the signals</a></li><li class="toc-h2"><a href="#bounces">Bounces</a></li><li class="toc-h2"><a href="#dmarc-reports">DMARC reports</a></li><li class="toc-h2"><a href="#mta-sts">MTA-STS</a></li><li class="toc-h2"><a href="#dane">DANE</a></li><li class="toc-h3"><a href="#sending-to-dane-domains">Sending to DANE domains</a></li><li class="toc-h3"><a href="#publishing-tlsa-for-your-own-mx">Publishing TLSA for your own MX</a></li><li class="toc-h2"><a href="#forwarding">Forwarding</a></li><li class="toc-h2"><a href="#what-damages-reputation-fastest">What damages reputation fastest</a></li><li class="toc-h2"><a href="#what-barely-matters">What barely matters</a></li><li class="toc-h2"><a href="#if-you-cannot-get-good-deliverability">If you cannot get good deliverability</a></li><li class="toc-h2"><a href="#checking-your-own-work">Checking your own work</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#the-non-negotiables">The non-negotiables</a></li><li class="toc-h2"><a href="#warming-up">Warming up</a></li><li class="toc-h2"><a href="#reading-the-signals">Reading the signals</a></li><li class="toc-h2"><a href="#bounces">Bounces</a></li><li class="toc-h2"><a href="#dmarc-reports">DMARC reports</a></li><li class="toc-h3"><a href="#reports-corsair-sends">Reports Corsair sends</a></li><li class="toc-h2"><a href="#mta-sts">MTA-STS</a></li><li class="toc-h2"><a href="#dane">DANE</a></li><li class="toc-h3"><a href="#sending-to-dane-domains">Sending to DANE domains</a></li><li class="toc-h3"><a href="#publishing-tlsa-for-your-own-mx">Publishing TLSA for your own MX</a></li><li class="toc-h2"><a href="#forwarding">Forwarding</a></li><li class="toc-h2"><a href="#what-damages-reputation-fastest">What damages reputation fastest</a></li><li class="toc-h2"><a href="#what-barely-matters">What barely matters</a></li><li class="toc-h2"><a href="#if-you-cannot-get-good-deliverability">If you cannot get good deliverability</a></li><li class="toc-h2"><a href="#checking-your-own-work">Checking your own work</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

@@ -91,18 +91,63 @@ is correct behaviour; do not shorten it.
 
 ## DMARC reports
 
-Add `rua=` to your DMARC record before tightening the policy:
+Add `rua=` to your DMARC record before tightening the policy. The record Corsair
+generates already has one:
 
 ```
-v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com
+v=DMARC1; p=quarantine; rua=mailto:dmarc-reports@example.com;
 ```
 
 The aggregate reports tell you which senders are failing alignment — which is how
 you discover the marketing platform, the ticketing system, or the CI server that
 also sends as your domain and that you had forgotten about.
 
+Reports sent to `dmarc-reports@` (and TLS reports sent to `tlsrpt@`) are read and
+filed under the domain — no mailbox needed. **Reports** in the control panel shows
+the last 7 to 180 days: messages, pass rate, a table by sending IP, and a table by
+reporting organisation. An IP you do not recognise with a high failure count is
+either a sender you forgot or somebody forging you; the reporter column says who
+saw it. See [DNS setup](dns-setup.html#dmarc) for what is and is not accepted.
+
 Move to `p=reject` only once those reports are clean. Going straight there means
 silently killing a legitimate sender you did not know you had.
+
+### Reports Corsair sends
+
+Corsair is also a receiver, and reports what it sees to everyone else:
+
+- **DMARC aggregate reports.** For every message whose From domain publishes a
+  DMARC record with `rua`, the result (source IP, SPF and DKIM outcomes and
+  alignment, what was done with it) is counted. Once a UTC day ends, each such
+  domain gets one gzipped RFC 7489 report from `noreply-dmarc@<CORSAIR_HOSTNAME>`.
+  A `rua` on a different domain from the policy's is only used once that domain
+  has published `<policy-domain>._report._dmarc.<its-domain>` (RFC 7489 §7.1);
+  otherwise anyone could point a record at a stranger and have this server mail
+  them daily.
+- **SMTP TLS reports.** For every domain this server delivers to, each session's
+  TLS outcome is counted — negotiated, `starttls-not-supported`, or
+  `validation-failure`. Domains that publish `_smtp._tls` with a `mailto:` or
+  `https:` `rua` get a daily RFC 8460 report. Sessions where a DNSSEC-signed TLSA
+  record applied are reported under policy type `tlsa`, with DANE's verdict
+  (`certificate-host-mismatch`, `dnssec-invalid`, and so on). Every other session
+  is `no-policy-found`, because outbound delivery does not apply MTA-STS.
+
+Disposition is reported as what Corsair actually did. It never refuses mail on a
+DMARC failure; a failing message is reported `quarantine` only when it also scored
+as spam.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DMARC_REPORTS_SEND` | `true` | Record DMARC results and send aggregate reports. Off records nothing |
+| `TLSRPT_SEND` | `true` | Record outbound TLS outcomes and send TLS reports. Off records nothing |
+| `REPORTS_DAILY_CAP` | `1000` | Reports of each kind sent per UTC day |
+| `REPORTS_FROM` | `noreply-dmarc@<CORSAIR_HOSTNAME>` | The From and envelope sender of outgoing reports |
+
+RFC 8460 requires a TLS report sent by mail to be DKIM-signed, and receivers
+discard unsigned ones. Reports are signed when `REPORTS_FROM` is on a domain hosted
+on this server — point it at one (say `noreply-dmarc@example.com`) if you want them
+read. The raw counts are deleted once a day's report is built, and anything left
+unsent is dropped after seven days.
 
 ## MTA-STS
 
