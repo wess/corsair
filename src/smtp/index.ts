@@ -6,7 +6,7 @@ import {
   upgradeAcceptedSocket,
   warnIfStartTlsUnavailable,
 } from "../starttls/index.ts"
-import { tlsOptions } from "../tls/index.ts"
+import { currentTls, serveImplicitTls, tlsOptions } from "../tls/index.ts"
 import * as inbound from "./inbound/index.ts"
 import { isLoopback } from "./inbound/index.ts"
 import { createSession, type Identity, type Session, type SessionMode } from "./session/index.ts"
@@ -61,7 +61,10 @@ const createListener = (input: {
   // Never advertise STARTTLS the runtime cannot actually perform: a sender
   // that takes us up on it gets its connection dropped mid-handshake and
   // defers rather than falling back. See src/starttls.
-  const canStartTls = Boolean(input.tls) && !input.implicitTls && canUpgradeServerSocketToTls()
+  // Asked per connection, not once: with ACME the first certificate can arrive
+  // after the listener is already up.
+  const tlsNow = () => currentTls() ?? input.tls
+  const canStartTls = () => Boolean(tlsNow()) && !input.implicitTls && canUpgradeServerSocketToTls()
 
   const handleChunk = async (socket: Bun.Socket<SocketData>, chunk: Uint8Array) => {
     const state = socket.data
@@ -81,7 +84,7 @@ const createListener = (input: {
       state.upgradeRequested = false
       try {
         const [, tlsSocket] = upgradeAcceptedSocket<SocketData>(socket, {
-          tls: input.tls!,
+          tls: tlsNow()!,
           // NOT `handlers`. Bun runs `open` on the upgraded socket, and this
           // listener's `open` builds fresh state, starts a new session, and
           // writes a second greeting — so reusing it silently replaced the
@@ -148,7 +151,7 @@ const createListener = (input: {
           data.proxied = true
           if (info.secure) data.secure = true
         },
-        ...(canStartTls
+        ...(canStartTls()
           ? {
               startTls: () => {
                 data.upgradeRequested = true
@@ -294,7 +297,7 @@ export const startSmtp = async (): Promise<void> => {
     label: "submission",
   })
 
-  if (tls) {
+  serveImplicitTls("submission+tls", (current) =>
     createListener({
       mode: "submission",
       port: config.smtp.submissionTlsPort,
@@ -304,8 +307,8 @@ export const startSmtp = async (): Promise<void> => {
       // take submission on 465 off the internet.
       bind: "0.0.0.0",
       implicitTls: true,
-      tls,
+      tls: current,
       label: "submission+tls",
-    })
-  }
+    }),
+  )
 }

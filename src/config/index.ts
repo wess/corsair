@@ -107,6 +107,25 @@ export const config = defineConfig({
     keyPath: env("TLS_KEY_PATH", { default: "" }),
   },
 
+  // The built-in ACME client, for an install with no certbot and no reverse
+  // proxy holding a certificate. Off by default: with it on, TLS_CERT_PATH and
+  // TLS_KEY_PATH are ignored. See src/acme.
+  acme: {
+    enabled: env("ACME", { parse: (v) => v === "on" || bool(v), default: "off" }),
+    email: env("ACME_EMAIL", { default: "" }),
+    agreeTos: env("ACME_AGREE_TOS", { parse: bool, default: "false" }),
+    domains: env("ACME_DOMAINS", {
+      parse: list,
+      default: process.env.CORSAIR_HOSTNAME ?? "mail.corsair.local",
+    }),
+    directory: env("ACME_DIRECTORY", {
+      default: "https://acme-v02.api.letsencrypt.org/directory",
+    }),
+    dir: env("ACME_DIR", { default: "./data/acme" }),
+    // 0 = no listener of its own; port 80 must then reach PORT some other way.
+    httpPort: env("ACME_HTTP_PORT", { parse: Number, default: "0" }),
+  },
+
   delivery: {
     transport: env("DELIVERY_TRANSPORT", { default: "console" }),
     relay: {

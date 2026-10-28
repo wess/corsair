@@ -247,6 +247,49 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 </tbody></table></div>
 <p>Used by the implicit-TLS listeners and by STARTTLS. Leave them empty to run plaintext-only, which is fine locally and unacceptable anywhere else — Corsair advertises <code>LOGINDISABLED</code> and refuses SMTP <code>AUTH</code> and IMAP <code>LOGIN</code> on an unencrypted connection when a certificate is configured.</p>
 <p>See <a href="tls.html">TLS certificates</a>.</p>
+<h3 id="built-in-acme">Built-in ACME<a class="anchor" href="#built-in-acme" aria-label="Link to this section">#</a></h3>
+<p>Off unless you turn it on. For an install with no reverse proxy and no certbot; see <a href="tls.html#built-in-acme-optional">Built-in ACME</a>.</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Variable</th>
+<th>Default</th>
+<th>What it does</th>
+</tr></thead><tbody>
+<tr>
+<td><code>ACME</code></td>
+<td><code>off</code></td>
+<td><code>on</code> to obtain and renew the mail certificate over ACME. <code>TLS_CERT_PATH</code>/<code>TLS_KEY_PATH</code> are then ignored</td>
+</tr>
+<tr>
+<td><code>ACME_EMAIL</code></td>
+<td><em>(empty)</em></td>
+<td>Contact address for the CA. Required with <code>ACME=on</code></td>
+</tr>
+<tr>
+<td><code>ACME_AGREE_TOS</code></td>
+<td><code>false</code></td>
+<td>Must be <code>true</code> with <code>ACME=on</code>: you agree to the CA's terms</td>
+</tr>
+<tr>
+<td><code>ACME_DOMAINS</code></td>
+<td><code>CORSAIR_HOSTNAME</code></td>
+<td>Comma-separated names on the certificate</td>
+</tr>
+<tr>
+<td><code>ACME_DIRECTORY</code></td>
+<td>Let's Encrypt production</td>
+<td>Staging: <code>https://acme-staging-v02.api.letsencrypt.org/directory</code></td>
+</tr>
+<tr>
+<td><code>ACME_DIR</code></td>
+<td><code>./data/acme</code></td>
+<td>Account key and certificate, mode 0600</td>
+</tr>
+<tr>
+<td><code>ACME_HTTP_PORT</code></td>
+<td><code>0</code></td>
+<td>Port for a challenge-only listener (normally <code>80</code>). <code>0</code> means none: port 80 must then reach <code>PORT</code></td>
+</tr>
+</tbody></table></div>
 <h2 id="delivery">Delivery<a class="anchor" href="#delivery" aria-label="Link to this section">#</a></h2>
 <div class='table-wrap'><table><thead><tr>
 <th>Variable</th>
@@ -478,7 +521,7 @@ STORAGE_SECRET_ACCESS_KEY=...</code></pre></figure>
 # or
 docker compose up -d</code></pre></figure>
 <p>There is no reload signal. A mail server that reconfigures itself mid-connection is a source of bugs nobody enjoys.</p><nav class="pager"><a class="pager-prev" href="./installation.html"><span>Previous</span><strong>Installation</strong></a><a class="pager-next" href="./dns-setup.html"><span>Next</span><strong>DNS setup</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#core">Core</a></li><li class="toc-h2"><a href="#mail-identity">Mail identity</a></li><li class="toc-h2"><a href="#listeners">Listeners</a></li><li class="toc-h3"><a href="#starttls-on-25-and-587">STARTTLS on 25 and 587</a></li><li class="toc-h2"><a href="#tls">TLS</a></li><li class="toc-h2"><a href="#delivery">Delivery</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#workers">Workers</a></li><li class="toc-h2"><a href="#payments">Payments</a></li><li class="toc-h2"><a href="#mailbox-transfers">Mailbox transfers</a></li><li class="toc-h2"><a href="#webhooks">Webhooks</a></li><li class="toc-h2"><a href="#limits">Limits</a></li><li class="toc-h2"><a href="#seeding">Seeding</a></li><li class="toc-h2"><a href="#a-production-starting-point">A production starting point</a></li><li class="toc-h2"><a href="#changing-configuration">Changing configuration</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#core">Core</a></li><li class="toc-h2"><a href="#mail-identity">Mail identity</a></li><li class="toc-h2"><a href="#listeners">Listeners</a></li><li class="toc-h3"><a href="#starttls-on-25-and-587">STARTTLS on 25 and 587</a></li><li class="toc-h2"><a href="#tls">TLS</a></li><li class="toc-h3"><a href="#built-in-acme">Built-in ACME</a></li><li class="toc-h2"><a href="#delivery">Delivery</a></li><li class="toc-h2"><a href="#storage">Storage</a></li><li class="toc-h2"><a href="#workers">Workers</a></li><li class="toc-h2"><a href="#payments">Payments</a></li><li class="toc-h2"><a href="#mailbox-transfers">Mailbox transfers</a></li><li class="toc-h2"><a href="#webhooks">Webhooks</a></li><li class="toc-h2"><a href="#limits">Limits</a></li><li class="toc-h2"><a href="#seeding">Seeding</a></li><li class="toc-h2"><a href="#a-production-starting-point">A production starting point</a></li><li class="toc-h2"><a href="#changing-configuration">Changing configuration</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

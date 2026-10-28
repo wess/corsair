@@ -1,5 +1,6 @@
 import { withSecurityHeaders } from "@wess/atlas/security"
 import { type Route, router } from "@wess/atlas/server"
+import { challengeResponse } from "../acme/challenge/index.ts"
 import { assetResponse, buildClients, type ClientBundle } from "../bundle/index.ts"
 import { config } from "../config/index.ts"
 import { errorBody, notFound } from "../errors/index.ts"
@@ -131,6 +132,10 @@ export const buildFetch = (clients: ClientBundle | null): ((req: Request) => Pro
     if (rejected) return rejected
     const url = new URL(req.url)
     const pathname = url.pathname
+    // Ahead of the webmail-host branch: the CA asks for the challenge under
+    // whichever name it is validating, and that can be a customer's host.
+    const challenge = challengeResponse(req, pathname)
+    if (challenge) return challenge
     if (url.hostname !== new URL(config.publicUrl).hostname && webmailDomain(url.hostname)) {
       if (!(await allowsWebmailHost(url.hostname)))
         return new Response(notFoundBody, {
