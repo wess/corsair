@@ -126,6 +126,21 @@ public key has nowhere to go and its mail fails while looking correct on the way
 out. `createDomain` adopts the pair already in use for the host. The private key
 being shared changes no blast radius — one server holds all of them either way.
 
+**DKIM rotation never moves signing to a key it has not seen resolve.**
+`src/dkimrotate` alternates between the selector hosts customers already CNAME to,
+so no customer edits DNS; the operator publishes the TXT at the host, because
+Corsair holds no credentials for that zone. Phase is per *host* (`dkim_hosts`),
+while `dkim_keys.active` says which host each domain signs with. Two gates, both
+checked against live DNS: the host's TXT must match before it leaves `staged` and
+again after the 48 h soak, and each domain flips only when its *own*
+`corsair-N._domainkey.<domain>` resolves to the new key through its own CNAME. A
+domain that never published the next selector keeps the old key, and the old host
+is not revoked while any domain signs with it. The manual `activate` endpoint uses
+the same `keyResolves`. New domains take the active host, and the required DKIM
+CNAME is the signing selector, not position 0. `DKIM_ROTATE_DAYS` defaults to 0 so
+no install starts a cycle by surprise. `tests/dkimrotate.test.ts` uses a stub
+resolver; keep the refusal cases.
+
 **Ports 25 and 587 are held by a Rust process, not by Bun.** `engine/` is a
 STARTTLS terminator: it relays the session verbatim and intervenes at exactly
 two points — it advertises STARTTLS in the EHLO reply, and it performs the

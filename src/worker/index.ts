@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto"
 import { from } from "@wess/atlas/db/query"
 import { config } from "../config/index.ts"
 import { db } from "../db/index.ts"
+import { advance } from "../dkimrotate/index.ts"
 import { checkDomain } from "../domains/index.ts"
 import { emit } from "../events/index.ts"
 import { type Domain, domains, type Job, jobs, type Transfer, transfers } from "../schema/index.ts"
@@ -16,7 +17,12 @@ export { deliverEvent, drainWebhooks, replayEvent } from "./webhook/index.ts"
 
 const WORKER_ID = `${process.pid}-${randomUUID().slice(0, 8)}`
 
-export type JobKind = "domain.verify" | "transfer.run" | "quota.recompute" | "retention.sweep"
+export type JobKind =
+  | "domain.verify"
+  | "transfer.run"
+  | "quota.recompute"
+  | "retention.sweep"
+  | "dkim.rotate"
 
 export const enqueueJob = async (input: {
   kind: JobKind
@@ -228,6 +234,11 @@ const runJob = async (job: Job): Promise<void> => {
       return
     }
 
+    case "dkim.rotate": {
+      for (const line of await advance()) console.log(`[corsair] dkim ${line}`)
+      return
+    }
+
     default:
       throw new Error(`unknown job kind: ${job.kind}`)
   }
@@ -310,6 +321,13 @@ export const startWorker = async (): Promise<void> => {
       void releaseStaleJobs().catch(() => {})
       void periodic("retention.sweep", 4711).catch(() => {})
     }, 15 * 60_000),
+  )
+
+  // Cheap when no rotation is under way: a few reads and no DNS.
+  timers.push(
+    setInterval(() => {
+      void periodic("dkim.rotate", 4713).catch(() => {})
+    }, 60 * 60_000),
   )
 
   timers.push(

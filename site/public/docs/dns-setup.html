@@ -153,6 +153,43 @@ try{var t=localStorage.getItem("corsair-theme");if(t)document.documentElement.se
 <figure class="code"><span class="code-lang">sh</span><pre><code>dig +short CNAME corsair-1._domainkey.example.com
 dig +short TXT   corsair-1._domainkey.example.com</code></pre></figure>
 <p>The TXT lookup should follow the CNAME and return <code>v=DKIM1; k=rsa; p=…</code>.</p>
+<h3 id="key-rotation">Key rotation<a class="anchor" href="#key-rotation" aria-label="Link to this section">#</a></h3>
+<p>Customers publish the CNAMEs once and never touch them again. <strong>You</strong> publish the key itself: the three <code>MAIL_DKIM_HOSTS</code> names are in your zone, each holds one TXT record, and Corsair has no credentials for your zone (the DNS tokens it is handed are for customers' zones and are never stored). A host holds one key, so a rotation moves signing to a <em>different</em> selector, which is why all three CNAMEs should be published. Domains created before this existed may only have the first; they keep their current key until their next selector resolves, and nothing breaks.</p>
+<p>Each host moves through these phases:</p>
+<div class='table-wrap'><table><thead><tr>
+<th>Phase</th>
+<th>Meaning</th>
+</tr></thead><tbody>
+<tr>
+<td><code>spare</code></td>
+<td>Idle. Not signing, nothing to publish</td>
+</tr>
+<tr>
+<td><code>staged</code></td>
+<td>A new key exists. <strong>You publish its TXT record</strong></td>
+</tr>
+<tr>
+<td><code>published</code></td>
+<td>Seen in DNS. Waits <code>DKIM_SOAK_HOURS</code> (48) so resolver caches expire</td>
+</tr>
+<tr>
+<td><code>active</code></td>
+<td>Signing. Each domain moves only when its <em>own</em> <code>corsair-N._domainkey</code> name resolves to this key</td>
+</tr>
+<tr>
+<td><code>retiring</code></td>
+<td>Replaced, but still published for <code>DKIM_RETIRE_DAYS</code> (7) so in-flight mail verifies</td>
+</tr>
+<tr>
+<td><code>revoked</code></td>
+<td>Publish <code>v=DKIM1; k=rsa; p=</code> (empty), which tells verifiers the key is withdrawn</td>
+</tr>
+</tbody></table></div>
+<figure class="code"><span class="code-lang">sh</span><pre><code>bun run dkim status    # every host, its phase, and exactly which TXT to publish where
+bun run dkim rotate    # start now: stage a new key on the next host
+bun run dkim advance   # run the worker's pass immediately</code></pre></figure>
+<p><code>status</code> prints lines such as <code>publish at dkim-2.mail.example.com: TXT &quot;v=DKIM1; k=rsa; p=…&quot;</code>, already split into 255-character strings for DNS panels that need it. Publish it, and the worker (hourly) does the rest. Set <code>DKIM_ROTATE_DAYS</code> to start cycles automatically; the default <code>0</code> never starts one, so an operator who publishes by hand is not surprised. A cycle started with <code>rotate</code> is advanced either way.</p>
+<p>Corsair never switches signing to a key it has not seen resolve. A host whose TXT does not match stays <code>staged</code>; a domain whose own selector does not resolve to the new key keeps signing with the old one, and the old host is not revoked while any domain still signs with it. <code>status</code> lists those domains. Activating a key by hand from the panel is held to the same check.</p>
 <aside class="callout callout-danger"><p class="callout-title"><span aria-hidden="true">●</span>Some providers flatten CNAMEs</p><p>Cloudflare's proxy and a few managed DNS products will resolve a CNAME at publish time and store the result. That freezes the key, and rotation then silently breaks signing. If your provider does this, turn proxying <strong>off</strong> for the <code>_domainkey</code> records.</p></aside>
 <h2 id="dmarc">DMARC<a class="anchor" href="#dmarc" aria-label="Link to this section">#</a></h2>
 <figure class="code"><pre><code>v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com</code></pre></figure>
@@ -212,7 +249,7 @@ dig +short TXT   corsair-1._domainkey.example.com</code></pre></figure>
 <h2 id="before-a-migration-lower-your-ttls">Before a migration, lower your TTLs<a class="anchor" href="#before-a-migration-lower-your-ttls" aria-label="Link to this section">#</a></h2>
 <p>A day before you plan to change the MX, drop its TTL to 300 seconds. Then the cutover window is five minutes rather than however long the old TTL was.</p>
 <p>Raise them again afterwards.</p><nav class="pager"><a class="pager-prev" href="./configuration.html"><span>Previous</span><strong>Configuration</strong></a><a class="pager-next" href="./tls.html"><span>Next</span><strong>TLS certificates</strong></a></nav></main>
-<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#verification">Verification</a></li><li class="toc-h2"><a href="#spf">SPF</a></li><li class="toc-h2"><a href="#dkim">DKIM</a></li><li class="toc-h2"><a href="#dmarc">DMARC</a></li><li class="toc-h2"><a href="#mx">MX</a></li><li class="toc-h2"><a href="#mta-sts">MTA-STS</a></li><li class="toc-h2"><a href="#autoconfig-and-autodiscover">autoconfig and autodiscover</a></li><li class="toc-h2"><a href="#checking-everything">Checking everything</a></li><li class="toc-h2"><a href="#when-a-record-will-not-verify">When a record will not verify</a></li><li class="toc-h2"><a href="#before-a-migration-lower-your-ttls">Before a migration, lower your TTLs</a></li></ul></nav>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-h2"><a href="#verification">Verification</a></li><li class="toc-h2"><a href="#spf">SPF</a></li><li class="toc-h2"><a href="#dkim">DKIM</a></li><li class="toc-h3"><a href="#key-rotation">Key rotation</a></li><li class="toc-h2"><a href="#dmarc">DMARC</a></li><li class="toc-h2"><a href="#mx">MX</a></li><li class="toc-h2"><a href="#mta-sts">MTA-STS</a></li><li class="toc-h2"><a href="#autoconfig-and-autodiscover">autoconfig and autodiscover</a></li><li class="toc-h2"><a href="#checking-everything">Checking everything</a></li><li class="toc-h2"><a href="#when-a-record-will-not-verify">When a record will not verify</a></li><li class="toc-h2"><a href="#before-a-migration-lower-your-ttls">Before a migration, lower your TTLs</a></li></ul></nav>
 </div>
 </div>
 <footer class="colophon">

@@ -461,6 +461,20 @@ export const dkimKeys = defineSchema("dkim_keys", {
 })
 
 /**
+ * Rotation phase of each selector host in `MAIL_DKIM_HOSTS`; see `src/dkimrotate`.
+ *
+ * phase: spare | staged | published | active | retiring | revoked
+ */
+export const dkimHosts = defineSchema("dkim_hosts", {
+  host: column.text().primaryKey(),
+  position: column.integer(),
+  phase: column.text().default("spare"),
+  phase_at: now(),
+  published_at: column.timestamp().nullable(),
+  created_at: now(),
+})
+
+/**
  * One of `user_id` or `address_id`, never both — a database CHECK enforces it.
  * A panel account is granted by the first; a mailbox on this server by the
  * second, which is how somebody manages a domain without a second identity.
@@ -478,6 +492,7 @@ export type Domain = RowOf<typeof domains>
 export type DomainAdmin = RowOf<typeof domainAdmins>
 export type DomainRecord = RowOf<typeof domainRecords>
 export type DkimKey = RowOf<typeof dkimKeys>
+export type DkimHost = RowOf<typeof dkimHosts>
 
 // filters
 
@@ -901,6 +916,7 @@ export const allSchemas = [
   bans,
   bounces,
   deliveries,
+  dkimHosts,
   dkimKeys,
   domainAdmins,
   domainRecords,

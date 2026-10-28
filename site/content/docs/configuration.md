@@ -90,6 +90,18 @@ single-host install, point them all at the same name.
 per selector pointing at these names and this server answers the lookup — three
 selectors let a key be rotated without a gap in signing.
 
+### DKIM rotation
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `DKIM_ROTATE_DAYS` | `0` | Start a rotation when the active key is this old. `0` never starts one |
+| `DKIM_SOAK_HOURS` | `48` | How long a new key sits in DNS before anything signs with it |
+| `DKIM_RETIRE_DAYS` | `7` | How long the replaced key stays published |
+
+Off by default because every rotation needs you to publish a TXT record, and an
+install that does that by hand should not find one begun under it. See
+[Key rotation](dns-setup.html#key-rotation).
+
 ## Listeners
 
 | Variable | Default (dev) | Production |

@@ -47,6 +47,21 @@ export const config = defineConfig({
     }),
   },
 
+  /**
+   * Automatic DKIM rotation (`src/dkimrotate`). Off by default: a rotation needs
+   * the operator's DNS to publish a new TXT record, and an install that does
+   * that by hand should not find a cycle started under it. With 0 the job still
+   * advances a rotation someone began with `bun run dkim rotate`.
+   */
+  dkim: {
+    rotateDays: env("DKIM_ROTATE_DAYS", { parse: Number, default: "0" }),
+    // Resolver caches hold the old answer for up to the record's TTL; 48 hours
+    // outlasts every TTL worth worrying about.
+    soakHours: env("DKIM_SOAK_HOURS", { parse: Number, default: "48" }),
+    // Mail already in flight was signed with the old key and may be verified late.
+    retireDays: env("DKIM_RETIRE_DAYS", { parse: Number, default: "7" }),
+  },
+
   smtp: {
     enabled: env("SMTP_ENABLED", { parse: bool, default: "true" }),
     mxPort: env("SMTP_MX_PORT", { parse: Number, default: "2525" }),

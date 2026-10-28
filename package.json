@@ -18,6 +18,7 @@
     "migrate:down": "bun scripts/migrate.ts down",
     "migrate:diff": "bun scripts/migrate.ts diff",
     "seed": "bun scripts/seed.ts",
+    "dkim": "bun scripts/dkim.ts",
     "db:up": "docker compose -f docker/compose.yml up -d",
     "db:down": "docker compose -f docker/compose.yml down",
     "test": "WEBHOOK_ALLOW_PRIVATE=true bun test --concurrency=1 tests/ && STRIPE_SECRET_KEY=sk_test_dummy STRIPE_WEBHOOK_SECRET=whsec_dummy bun test tests/billingstripe.test.ts",

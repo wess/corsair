@@ -2635,6 +2635,18 @@ single-host install, point them all at the same name.
 per selector pointing at these names and this server answers the lookup — three
 selectors let a key be rotated without a gap in signing.
 
+### DKIM rotation
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `DKIM_ROTATE_DAYS` | `0` | Start a rotation when the active key is this old. `0` never starts one |
+| `DKIM_SOAK_HOURS` | `48` | How long a new key sits in DNS before anything signs with it |
+| `DKIM_RETIRE_DAYS` | `7` | How long the replaced key stays published |
+
+Off by default because every rotation needs you to publish a TXT record, and an
+install that does that by hand should not find one begun under it. See
+[Key rotation](dns-setup.html#key-rotation).
+
 ## Listeners
 
 | Variable | Default (dev) | Production |
@@ -2961,6 +2973,45 @@ dig +short TXT   corsair-1._domainkey.example.com
 ```
 
 The TXT lookup should follow the CNAME and return `v=DKIM1; k=rsa; p=…`.
+
+### Key rotation
+
+Customers publish the CNAMEs once and never touch them again. **You** publish the
+key itself: the three `MAIL_DKIM_HOSTS` names are in your zone, each holds one TXT
+record, and Corsair has no credentials for your zone (the DNS tokens it is handed
+are for customers' zones and are never stored). A host holds one key, so a rotation
+moves signing to a *different* selector, which is why all three CNAMEs should be
+published. Domains created before this existed may only have the first; they keep
+their current key until their next selector resolves, and nothing breaks.
+
+Each host moves through these phases:
+
+| Phase | Meaning |
+| --- | --- |
+| `spare` | Idle. Not signing, nothing to publish |
+| `staged` | A new key exists. **You publish its TXT record** |
+| `published` | Seen in DNS. Waits `DKIM_SOAK_HOURS` (48) so resolver caches expire |
+| `active` | Signing. Each domain moves only when its *own* `corsair-N._domainkey` name resolves to this key |
+| `retiring` | Replaced, but still published for `DKIM_RETIRE_DAYS` (7) so in-flight mail verifies |
+| `revoked` | Publish `v=DKIM1; k=rsa; p=` (empty), which tells verifiers the key is withdrawn |
+
+```sh
+bun run dkim status    # every host, its phase, and exactly which TXT to publish where
+bun run dkim rotate    # start now: stage a new key on the next host
+bun run dkim advance   # run the worker's pass immediately
+```
+
+`status` prints lines such as `publish at dkim-2.mail.example.com: TXT "v=DKIM1; k=rsa; p=…"`,
+already split into 255-character strings for DNS panels that need it. Publish it,
+and the worker (hourly) does the rest. Set `DKIM_ROTATE_DAYS` to start cycles
+automatically; the default `0` never starts one, so an operator who publishes by
+hand is not surprised. A cycle started with `rotate` is advanced either way.
+
+Corsair never switches signing to a key it has not seen resolve. A host whose TXT
+does not match stays `staged`; a domain whose own selector does not resolve to the
+new key keeps signing with the old one, and the old host is not revoked while any
+domain still signs with it. `status` lists those domains. Activating a key by hand
+from the panel is held to the same check.
 
 danger Some providers flatten CNAMEs
 Cloudflare's proxy and a few managed DNS products will resolve a CNAME at
@@ -5224,6 +5275,11 @@ form, and a CNAME lets the key rotate on the server without you touching DNS
 again.
 
 ### Rotating without a gap
+
+Rotation is automated on the operator's side; see
+[Key rotation](dns-setup.html#key-rotation). What follows is the manual order, which
+the panel's activate button still follows: it now refuses unless the selector
+resolves to the key.
 
 1. **Publish the CNAME for the next selector** — `corsair-2._domainkey` — and wait
    for it to resolve. Signing has not changed; you are only making the key
@@ -8188,7 +8244,7 @@ Source: https://wess.io/corsair/docs/cli.html
 
 # Command line
 
-Corsair has no administrative CLI. Everything an operator does is either an
+Corsair has no administrative CLI beyond the scripts below. Everything an operator does is either an
 entrypoint, a script, or SQL — which keeps the surface small and means nothing is
 hidden behind a subcommand you have to discover.
 
@@ -8240,6 +8296,18 @@ Creates the default plan ladder and one account, then prints its credentials. It
 is idempotent: an existing plan key or an existing user is left alone.
 
 The account it creates **owns the instance** if it is the first one.
+
+## DKIM rotation
+
+```sh
+bun scripts/dkim.ts status     # phases, DNS state, and the TXT records to publish
+bun scripts/dkim.ts rotate     # stage a new key on the next selector host
+bun scripts/dkim.ts advance    # one worker pass now
+```
+
+Also `bun run dkim <command>`. Corsair cannot publish at your selector hosts, so
+`status` and `rotate` print exactly what to put where; the worker advances the
+rotation once DNS shows it. See [Key rotation](dns-setup.html#key-rotation).
 
 ## Package scripts
 

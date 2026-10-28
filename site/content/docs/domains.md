@@ -82,6 +82,11 @@ again.
 
 ### Rotating without a gap
 
+Rotation is automated on the operator's side; see
+[Key rotation](dns-setup.html#key-rotation). What follows is the manual order, which
+the panel's activate button still follows: it now refuses unless the selector
+resolves to the key.
+
 1. **Publish the CNAME for the next selector** — `corsair-2._domainkey` — and wait
    for it to resolve. Signing has not changed; you are only making the key
    available.
