@@ -1,6 +1,7 @@
 {
   "name": "corsair",
-  "version": "0.4.2",
+  "version": "0.4.3",
+  "packageManager": "bun@1.4.4",
   "description": "Open source email hosting. Mailboxes on your own domains — SMTP, IMAP, POP3, and a control panel.",
   "license": "MIT",
   "type": "module",
@@ -44,7 +45,7 @@
     "test:starttls:server": "bun tests/serverstarttls.ts",
     "test:admins": "bun tests/admins.ts",
     "acme": "bun scripts/acme.ts",
-    "check:atlas": "bunx --package https://github.com/wess/atlas/releases/download/v0.4.9/wess-atlas-cli-0.4.9.tgz atlas check"
+    "check:atlas": "bunx --package https://github.com/wess/atlas/releases/download/v0.4.10/wess-atlas-cli-0.4.10.tgz atlas check"
   },
   "dependencies": {
     "react": "^19.3.1",
@@ -60,11 +61,11 @@
     "@wess/atlas-storage": "https://github.com/wess/atlas/releases/download/v0.4.9/wess-atlas-storage-0.4.9.tgz"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.2",
-    "@types/bun": "^1.4.3",
+    "@biomejs/biome": "2.6.4",
+    "@types/bun": "^1.4.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "resend": "6.34.1",
+    "resend": "6.37.0",
     "typescript": "^7.0.2"
   },
   "engines": {
